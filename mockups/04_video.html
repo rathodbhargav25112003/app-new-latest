@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>04 · Video lectures — Sushruta UI 2.0</title>
+<link rel="stylesheet" href="_styles.css"/>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · UI 2.0</div>
+  <nav>
+    <a href="index.html">Overview</a><a href="01_auth.html">Auth</a><a href="02_home.html">Home</a>
+    <a href="03_profile.html">Profile</a><a href="04_video.html" class="active">Video</a>
+    <a href="05_notes.html">Notes</a><a href="06_tests.html">Tests</a>
+    <a href="07_progress.html">Progress</a><a href="08_subscription.html">Plans</a>
+    <a href="09_bonus.html">Extras</a>
+  </nav>
+  <button class="theme-toggle" id="tt"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+<h1 class="display">04 · <span class="grad">Video lectures</span></h1>
+<p class="lead">
+  Browse → play → bookmark → resume. Cleaner thumbnails, filter chips that scroll horizontally,
+  and the new FAB cluster with bookmark sheet. Tablet landscape gets a side panel for notes/transcript.
+</p>
+
+<section class="section-title">📱 Mobile — library · player · bookmark sheet</section>
+<div class="row">
+
+  <!-- LIBRARY -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Video lectures</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">🔍</div></div></div>
+        <div class="scroll" style="padding-bottom:90px;">
+          <div style="display:flex; gap:6px; overflow-x:auto; margin:2px -16px 14px; padding:2px 16px;">
+            <span class="chip accent">All · 342</span>
+            <span class="chip">Bailey</span>
+            <span class="chip">Sabiston</span>
+            <span class="chip">Schwartz</span>
+            <span class="chip">Clinical</span>
+            <span class="chip">Rapid</span>
+          </div>
+
+          <p style="margin:0 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Continue watching</p>
+          <div class="card" style="padding:12px; display:flex; gap:12px; align-items:center;">
+            <div class="thumb v" style="width:70px; height:70px; font-size:22px;">▶</div>
+            <div style="flex:1;">
+              <p style="margin:0; font-size:13.5px; font-weight:700; line-height:1.25;">Wound healing — phases &amp; cytokines</p>
+              <p style="margin:3px 0 6px; font-size:11.5px; color:var(--ink-3);">19 min left · Dr. Dabas</p>
+              <div class="bar"><span class="acc" style="width:68%;"></span></div>
+            </div>
+          </div>
+
+          <p style="margin:16px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Featured playlists</p>
+          <div style="display:flex; gap:10px; overflow-x:auto; margin:0 -16px; padding:2px 16px;">
+            <div style="flex:0 0 180px; background:linear-gradient(135deg, var(--accent), var(--purple)); color:#fff; border-radius:14px; padding:14px; height:110px; display:flex; flex-direction:column; justify-content:space-between;">
+              <div style="font-size:26px;">🔥</div>
+              <div>
+                <p style="margin:0; font-size:13px; font-weight:800;">High-Yield · Bailey</p>
+                <p style="margin:3px 0 0; font-size:11px; opacity:.85;">28 lectures</p>
+              </div>
+            </div>
+            <div style="flex:0 0 180px; background:linear-gradient(135deg, var(--warn), var(--bad)); color:#fff; border-radius:14px; padding:14px; height:110px; display:flex; flex-direction:column; justify-content:space-between;">
+              <div style="font-size:26px;">🩺</div>
+              <div>
+                <p style="margin:0; font-size:13px; font-weight:800;">Clinical Scenarios</p>
+                <p style="margin:3px 0 0; font-size:11px; opacity:.85;">42 lectures</p>
+              </div>
+            </div>
+            <div style="flex:0 0 180px; background:linear-gradient(135deg, var(--teal), var(--accent)); color:#fff; border-radius:14px; padding:14px; height:110px; display:flex; flex-direction:column; justify-content:space-between;">
+              <div style="font-size:26px;">⚡</div>
+              <div>
+                <p style="margin:0; font-size:13px; font-weight:800;">Rapid Revision</p>
+                <p style="margin:3px 0 0; font-size:11px; opacity:.85;">18 · short</p>
+              </div>
+            </div>
+          </div>
+
+          <p style="margin:16px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">By module</p>
+          <div class="row-list">
+            <div class="thumb v">▶</div>
+            <div style="flex:1;"><p style="margin:0; font-size:13.5px; font-weight:700;">Shock — classification &amp; MAP</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">24 min · Dr. Mehta · 4.9 ★</p></div>
+            <span class="chip ok">New</span>
+          </div>
+          <div class="row-list">
+            <div class="thumb v">▶</div>
+            <div style="flex:1;"><p style="margin:0; font-size:13.5px; font-weight:700;">Fluids &amp; electrolytes — a decision tree</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">31 min · 4.8 ★</p></div>
+            <span style="color:var(--ok); font-size:16px;">✓</span>
+          </div>
+          <div class="row-list" style="border:0;">
+            <div class="thumb v">▶</div>
+            <div style="flex:1;"><p style="margin:0; font-size:13.5px; font-weight:700;">Burns — resuscitation formulas</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">18 min</p></div>
+            <span class="chip">↓</span>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><span class="i">🏠</span>Home</div>
+          <div class="tab active"><span class="i">🎞</span>Videos</div>
+          <div class="tab"><span class="i">📝</span>Tests</div>
+          <div class="tab"><span class="i">📊</span>Progress</div>
+          <div class="tab"><span class="i">☰</span>More</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Video library<small>Filter chips · continue-watching · playlists · module list with state indicators</small></p>
+  </div>
+
+  <!-- PLAYER -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2 style="font-size:14px;">Wound healing</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⋯</div></div></div>
+
+        <!-- Player -->
+        <div style="position:relative; margin:0 16px; aspect-ratio:16/9; background:#000; border-radius:14px; overflow:hidden; box-shadow:var(--shadow-2);">
+          <div style="position:absolute; inset:0; background:radial-gradient(circle at 30% 40%, #2a1a4a 0%, #000 70%);"></div>
+          <div style="position:absolute; inset:0; display:grid; place-items:center;">
+            <div style="width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,.18); backdrop-filter:blur(10px); display:grid; place-items:center; box-shadow:0 10px 30px rgba(0,0,0,.4);">
+              <div style="border-left:16px solid #fff; border-top:11px solid transparent; border-bottom:11px solid transparent; margin-left:4px;"></div>
+            </div>
+          </div>
+          <div style="position:absolute; left:0; right:0; bottom:0; padding:10px 14px 12px; background:linear-gradient(to top, rgba(0,0,0,.6), transparent);">
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:#fff; margin-bottom:6px; font-weight:600;">
+              <span>12:47</span><span>28:05</span>
+            </div>
+            <div style="height:3px; background:rgba(255,255,255,.25); border-radius:2px; position:relative;">
+              <div style="position:absolute; left:0; top:0; bottom:0; width:45%; background:var(--bad); border-radius:2px;"></div>
+              <div style="position:absolute; left:45%; top:-4px; width:11px; height:11px; border-radius:50%; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.4);"></div>
+            </div>
+          </div>
+
+          <!-- FAB cluster -->
+          <div style="position:absolute; right:12px; bottom:50px; display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
+            <div class="fab small" style="width:40px; height:40px;">🔖</div>
+            <div class="fab warn" style="padding:10px 14px; font-size:12px;">➕ Bookmark</div>
+          </div>
+        </div>
+
+        <div style="padding:14px 16px 0;">
+          <h3 style="margin:0 0 4px; font-size:17px; letter-spacing:-0.01em;">Wound healing — phases &amp; cytokines</h3>
+          <p style="margin:0 0 10px; font-size:12.5px; color:var(--ink-3);">Dr. Ramesh Dabas · 28 min · 68% watched · 4.9 ★ · 2.1k students</p>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+            <span class="chip accent">HD · 720p</span>
+            <span class="chip">1.0×</span>
+            <span class="chip">CC English</span>
+            <span class="chip ok">Downloaded</span>
+          </div>
+
+          <div class="card flat" style="padding:4px;">
+            <div class="row-list"><div class="icon accent">📋</div><div style="flex:1;"><div class="t">Transcript</div><div class="s">Searchable · AI-corrected</div></div><span style="color:var(--ink-3);">›</span></div>
+            <div class="row-list"><div class="icon purple">📝</div><div style="flex:1;"><div class="t">Lecture notes</div><div class="s">PDF · 18 pages</div></div><span style="color:var(--ink-3);">›</span></div>
+            <div class="row-list" style="border:0;"><div class="icon warn">🔖</div><div style="flex:1;"><div class="t">Your bookmarks</div><div class="s">5 saved</div></div><span style="color:var(--ink-3);">›</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Player · portrait<small>Inline FAB cluster · metadata chips · attached resources (transcript, notes, bookmarks)</small></p>
+  </div>
+
+  <!-- BOOKMARK SHEET -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen" style="background:#000;">
+        <div class="statusbar" style="color:rgba(255,255,255,.9);"><span>9:41</span><span>●●●●</span></div>
+        <div style="position:relative; height:180px; background:radial-gradient(circle at 30% 40%, #2a1a4a 0%, #000 70%); filter:brightness(.55);">
+          <div style="position:absolute; inset:0; display:grid; place-items:center;">
+            <div style="width:48px; height:48px; border-radius:50%; background:rgba(255,255,255,.14);"></div>
+          </div>
+        </div>
+        <!-- Sheet -->
+        <div style="position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-top-left-radius:24px; border-top-right-radius:24px; box-shadow:0 -20px 40px rgba(0,0,0,.3); padding:10px 18px 20px; height:72%;">
+          <div style="width:44px; height:5px; background:var(--surface-3); border-radius:3px; margin:4px auto 14px;"></div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="margin:0; font-size:17px; letter-spacing:-0.01em;">Your bookmarks</h3>
+            <span class="chip accent">5 saved</span>
+          </div>
+
+          <div class="row-list" style="padding:10px 0;">
+            <span style="background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:12px; padding:6px 10px; border-radius:8px; font-variant-numeric:tabular-nums;">02:14</span>
+            <div style="flex:1; margin-left:10px;">
+              <p style="margin:0; font-size:13px; font-weight:600;">Inflammation phase begins</p>
+              <p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Added today · 2 min ago</p>
+            </div>
+            <span style="color:var(--ink-3); font-size:16px;">🗑</span>
+          </div>
+          <div class="row-list" style="padding:10px 0;">
+            <span style="background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:12px; padding:6px 10px; border-radius:8px; font-variant-numeric:tabular-nums;">07:48</span>
+            <div style="flex:1; margin-left:10px;">
+              <p style="margin:0; font-size:13px; font-weight:600;">Collagen III → I conversion</p>
+              <p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Today</p>
+            </div>
+            <span style="color:var(--ink-3); font-size:16px;">🗑</span>
+          </div>
+          <div class="row-list" style="padding:10px 0;">
+            <span style="background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:12px; padding:6px 10px; border-radius:8px; font-variant-numeric:tabular-nums;">12:31</span>
+            <div style="flex:1; margin-left:10px;">
+              <p style="margin:0; font-size:13px; font-weight:600;">Growth factors table</p>
+              <p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Today</p>
+            </div>
+            <span style="color:var(--ink-3); font-size:16px;">🗑</span>
+          </div>
+          <div class="row-list" style="padding:10px 0;">
+            <span style="background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:12px; padding:6px 10px; border-radius:8px; font-variant-numeric:tabular-nums;">18:05</span>
+            <div style="flex:1; margin-left:10px;">
+              <p style="margin:0; font-size:13px; font-weight:600;">Delayed healing factors</p>
+              <p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Yesterday</p>
+            </div>
+            <span style="color:var(--ink-3); font-size:16px;">🗑</span>
+          </div>
+          <div class="row-list" style="padding:10px 0; border:0;">
+            <span style="background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:12px; padding:6px 10px; border-radius:8px; font-variant-numeric:tabular-nums;">22:40</span>
+            <div style="flex:1; margin-left:10px;">
+              <p style="margin:0; font-size:13px; font-weight:600;">Keloid vs hypertrophic scar</p>
+              <p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Yesterday</p>
+            </div>
+            <span style="color:var(--ink-3); font-size:16px;">🗑</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Bookmarks sheet<small>Tap time chip → seek · swipe or trash to remove · persists per user via /api/user/video-bookmark</small></p>
+  </div>
+</div>
+
+<section class="section-title">📱 iPad landscape — split view player · notes · bookmarks</section>
+<div class="row">
+  <div>
+    <div class="device tablet" style="width:820px;">
+      <div class="screen" style="display:grid; grid-template-columns:1.7fr 1fr; background:#000; height:520px;">
+        <div style="position:relative; background:radial-gradient(circle at 40% 40%, #2a1a4a 0%, #000 70%);">
+          <div style="position:absolute; inset:0; display:grid; place-items:center;">
+            <div style="width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,.18); backdrop-filter:blur(10px); display:grid; place-items:center;">
+              <div style="border-left:20px solid #fff; border-top:14px solid transparent; border-bottom:14px solid transparent; margin-left:5px;"></div>
+            </div>
+          </div>
+          <div style="position:absolute; left:0; right:0; bottom:0; padding:14px 20px; background:linear-gradient(to top, rgba(0,0,0,.7), transparent);">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:#fff; margin-bottom:8px; font-weight:600;"><span>12:47</span><span>28:05</span></div>
+            <div style="height:4px; background:rgba(255,255,255,.25); border-radius:2px; position:relative;">
+              <div style="position:absolute; left:0; top:0; bottom:0; width:45%; background:var(--bad); border-radius:2px;"></div>
+              <div style="position:absolute; left:45%; top:-5px; width:14px; height:14px; border-radius:50%; background:#fff;"></div>
+            </div>
+          </div>
+
+          <!-- FAB cluster -->
+          <div style="position:absolute; right:16px; bottom:66px; display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
+            <div class="fab small" style="width:40px; height:40px;">🔖</div>
+            <div class="fab warn" style="padding:10px 14px; font-size:12px;">➕ Bookmark</div>
+          </div>
+        </div>
+        <div style="background:var(--surface); display:flex; flex-direction:column;">
+          <div style="display:flex; padding:14px 16px 0; gap:6px;">
+            <div class="chip accent">📋 Transcript</div>
+            <div class="chip">📝 Notes</div>
+            <div class="chip">🔖 Bookmarks</div>
+          </div>
+          <div style="padding:14px 16px; overflow-y:auto; flex:1;">
+            <div style="display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-2);">
+              <span style="color:var(--ink-3); font-size:11px; font-weight:700; min-width:44px;">11:40</span>
+              <p style="margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.45;">Moving into the proliferation phase — fibroblasts become the dominant cell type around day 3…</p>
+            </div>
+            <div style="display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-2); background:var(--accent-soft); margin:0 -16px; padding-left:16px; padding-right:16px;">
+              <span style="color:var(--accent); font-size:11px; font-weight:700; min-width:44px;">12:47</span>
+              <p style="margin:0; font-size:12.5px; color:var(--ink); line-height:1.45; font-weight:600;">Key: collagen type III is replaced by type I during maturation, taking up to 6 months. This is why scars keep evolving.</p>
+            </div>
+            <div style="display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-2);">
+              <span style="color:var(--ink-3); font-size:11px; font-weight:700; min-width:44px;">13:22</span>
+              <p style="margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.45;">Growth factors involved — PDGF from platelets, TGF-β from macrophages, VEGF from multiple sources…</p>
+            </div>
+            <div style="display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-2);">
+              <span style="color:var(--ink-3); font-size:11px; font-weight:700; min-width:44px;">14:05</span>
+              <p style="margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.45;">An easy mnemonic for delayed healing: <b>DIDN'T HEAL</b>…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">iPad landscape<small>Player left · synced transcript right (current line highlighted) · tab-switch to notes/bookmarks</small></p>
+  </div>
+</div>
+
+</main>
+<script>
+  const r=document.documentElement,k='sushrutaTheme',s=localStorage.getItem(k);
+  if(s)r.setAttribute('data-theme',s);
+  document.getElementById('tt').onclick=()=>{const n=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',n);localStorage.setItem(k,n);};
+</script>
+</body>
+</html>

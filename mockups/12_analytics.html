@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>12 · Advanced Analytics &amp; Student Features — Sushruta UI 2.0</title>
+<link rel="stylesheet" href="_styles.css"/>
+<style>
+  /* cluster-local helpers */
+  .pctile { position:relative; height:64px; border-radius:12px; background:linear-gradient(90deg, var(--bad) 0%, var(--warn) 40%, var(--ok) 78%, var(--accent) 100%); overflow:hidden; }
+  .pctile .you { position:absolute; top:-2px; bottom:-2px; width:3px; background:#fff; box-shadow:0 0 0 2px var(--ink); }
+  .pctile .tag { position:absolute; top:-24px; transform:translateX(-50%); background:var(--ink); color:#fff; font-size:10.5px; font-weight:800; padding:3px 7px; border-radius:6px; white-space:nowrap; }
+
+  .heat { display:grid; grid-template-columns: repeat(12, 1fr); gap:3px; }
+  .heat .d { aspect-ratio:1; border-radius:3px; background:var(--surface-3); }
+  .heat .d.l1 { background: rgba(10,132,255,.18); }
+  .heat .d.l2 { background: rgba(10,132,255,.34); }
+  .heat .d.l3 { background: rgba(10,132,255,.55); }
+  .heat .d.l4 { background: rgba(10,132,255,.82); }
+  .heat .d.l5 { background: var(--accent); }
+
+  .spark { display:flex; align-items:flex-end; gap:3px; height:44px; }
+  .spark span { flex:1; background:linear-gradient(180deg, var(--accent), var(--indigo)); border-radius:3px 3px 0 0; }
+
+  .tpq-chart { display:flex; align-items:flex-end; gap:4px; height:80px; padding:4px 0; }
+  .tpq-chart .b { flex:1; background: var(--surface-3); border-radius:3px 3px 0 0; position:relative; }
+  .tpq-chart .b.hot { background: var(--bad); }
+  .tpq-chart .b.warm { background: var(--warn); }
+  .tpq-chart .b.cool { background: var(--accent); }
+  .tpq-chart .b.mid { background: var(--indigo); }
+
+  .circle-mini { width:42px; height:42px; border-radius:50%; display:grid; place-items:center; font-size:11px; font-weight:800; color:#fff; }
+
+  /* concept map */
+  .map-box { position:relative; height:300px; background: radial-gradient(circle at 50% 50%, var(--accent-soft) 0%, transparent 60%); border-radius:14px; overflow:hidden; }
+  .node { position:absolute; padding:6px 10px; border-radius:999px; font-size:11px; font-weight:700; box-shadow:var(--shadow-1); border:1px solid var(--border); background:var(--surface); color:var(--ink); white-space:nowrap; }
+  .node.core { background:var(--accent); color:#fff; border-color:var(--accent); font-size:13px; padding:10px 16px; }
+  .node.ok { background:var(--ok-soft); color:var(--ok); border-color:transparent; }
+  .node.bad { background:var(--bad-soft); color:var(--bad); border-color:transparent; }
+  .node.warn { background:var(--warn-soft); color:var(--warn); border-color:transparent; }
+  .edge { position:absolute; background:var(--border); height:1.5px; transform-origin: 0 50%; }
+
+  .mini-cal { display:grid; grid-template-columns: repeat(7, 1fr); gap:4px; }
+  .mini-cal .c { aspect-ratio:1; display:grid; place-items:center; font-size:10px; font-weight:700; border-radius:6px; background:var(--surface-3); color:var(--ink-2); }
+  .mini-cal .c.today { background:var(--accent); color:#fff; }
+  .mini-cal .c.has   { background:var(--accent-soft); color:var(--accent); }
+  .mini-cal .c.rest  { background:var(--surface); color:var(--ink-3); border:1px dashed var(--border); }
+
+  .api { background:#0d1016; color:#e8ecf5; padding:10px 12px; border-radius:10px; font:600 11px/1.6 ui-monospace,"SF Mono",monospace; }
+  .api .m { color:#ffd966; margin-right:6px; }
+  .api .p { color:#4cd6a0; }
+  .api .c { color:#78869a; }
+
+  .tick { color:var(--ok); font-weight:800; margin-right:4px; }
+  .xtick { color:var(--bad); font-weight:800; margin-right:4px; }
+
+  /* Readiness gauge (half donut) */
+  .gauge { width:180px; height:96px; margin:0 auto; position:relative; }
+  .gauge::before { content:""; position:absolute; inset:0; border-radius:180px 180px 0 0; background: conic-gradient(from 270deg, var(--bad) 0deg, var(--warn) 45deg, var(--ok) 120deg, var(--accent) 180deg, transparent 180deg); }
+  .gauge::after { content:""; position:absolute; left:10px; right:10px; top:10px; bottom:0; border-radius:180px 180px 0 0; background:var(--surface); }
+  .gauge .val { position:absolute; inset:0; display:grid; place-items:end center; font-weight:800; font-size:28px; letter-spacing:-0.02em; z-index:1; padding-bottom:6px; }
+  .gauge .sub { position:absolute; inset:0; display:grid; place-items:start center; padding-top:56px; font-size:10.5px; color:var(--ink-3); font-weight:700; letter-spacing:.06em; text-transform:uppercase; z-index:1; }
+  .gauge .needle { position:absolute; left:50%; bottom:0; width:3px; height:82px; background:var(--ink); transform-origin: bottom center; transform: rotate(48deg); border-radius:3px; z-index:2; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · UI 2.0</div>
+  <nav>
+    <a href="index.html">Overview</a><a href="01_auth.html">Auth</a><a href="02_home.html">Home</a>
+    <a href="03_profile.html">Profile</a><a href="04_video.html">Video</a>
+    <a href="05_notes.html">Notes</a><a href="06_tests.html">Tests</a>
+    <a href="07_progress.html">Progress</a><a href="08_subscription.html">Plans</a>
+    <a href="09_bonus.html">Extras</a><a href="10_explorer.html">Explorer</a>
+    <a href="11_exam_engine.html">Exam engine</a>
+    <a href="12_analytics.html" class="active">Analytics</a>
+  </nav>
+  <button class="theme-toggle" id="tt"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+<h1 class="display">12 · <span class="grad">Advanced Analytics &amp; Student Features</span></h1>
+<p class="lead">
+  Eight new student-facing tools that layer on top of the existing exam engine. Percentile tracking, peer comparison,
+  study calendar, AI-generated plan, flashcard decks, mock rank history, time-per-question, concept map, exam-readiness
+  prediction. Every one is sketched with a concrete API contract so the backend work can start in parallel.
+</p>
+
+<!-- =============================================================== DASHBOARD HERO -->
+<section class="section-title">📱 The new Analytics home — one screen, everything visible</section>
+<div class="row">
+
+  <!-- Dashboard mobile -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Analytics</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">📤</div></div></div>
+        <div class="scroll" style="padding-bottom:100px;">
+
+          <!-- Gauge hero -->
+          <div class="card" style="padding:18px 16px; text-align:center; background:linear-gradient(180deg, var(--accent-soft) 0%, transparent 100%); border:none;">
+            <p style="margin:0; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); font-weight:700;">Readiness score</p>
+            <div class="gauge">
+              <div class="needle"></div>
+              <div class="val">74</div>
+              <div class="sub">Confident</div>
+            </div>
+            <p style="margin:8px 0 0; font-size:12.5px; color:var(--ink-3);">Projected rank <b style="color:var(--ink);">~182 / 1400</b> · exam 86 days away</p>
+          </div>
+
+          <div class="grid-3">
+            <div class="stat"><p class="v">92<sub style="font-size:13px; color:var(--ink-3);">%ile</sub></p><p class="l">Your overall</p></div>
+            <div class="stat"><p class="v" style="color:var(--ok);">+6</p><p class="l">vs last week</p></div>
+            <div class="stat"><p class="v">8.7<span style="font-size:13px; color:var(--ink-3);">h</span></p><p class="l">This week</p></div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Where you stand · cohort of 1 412</p>
+          <div class="card" style="padding:24px 14px 14px;">
+            <div class="pctile">
+              <div class="you" style="left:82%;"><span class="tag">You · 92</span></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-3); margin-top:8px; font-weight:700;">
+              <span>P0</span><span>P25</span><span>P50</span><span>P75</span><span>P100</span>
+            </div>
+          </div>
+
+          <div class="card" style="display:flex; gap:10px; align-items:center; background:var(--accent-soft); border:none;">
+            <div class="icon accent">🤖</div>
+            <div style="flex:1;"><p style="margin:0; font-size:12.5px; font-weight:700; color:var(--accent);">AI insight</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--accent); line-height:1.4;">Colorectal accuracy has dropped to 54%. Schedule a 45-min drill tonight?</p></div>
+            <button class="btn primary" style="padding:8px 12px; font-size:11.5px;">Yes</button>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">This week · study time</p>
+          <div class="card" style="padding:14px;">
+            <div class="spark">
+              <span style="height:30%;"></span>
+              <span style="height:58%;"></span>
+              <span style="height:72%;"></span>
+              <span style="height:44%;"></span>
+              <span style="height:85%;"></span>
+              <span style="height:62%;"></span>
+              <span style="height:20%;"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-3); margin-top:6px; font-weight:700;">
+              <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab"><span class="i">🏠</span>Home</div>
+          <div class="tab"><span class="i">🎞</span>Videos</div>
+          <div class="tab"><span class="i">📝</span>Tests</div>
+          <div class="tab active"><span class="i">📊</span>Analytics</div>
+          <div class="tab"><span class="i">☰</span>More</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Analytics home<small>Readiness gauge · percentile strip · AI insight · weekly study sparks</small></p>
+  </div>
+
+  <!-- Mock rank history -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Rank history</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">🔍</div></div></div>
+        <div class="scroll">
+          <div class="card" style="padding:14px;">
+            <div style="display:flex; align-items:flex-end; gap:10px;">
+              <p style="margin:0; font-size:36px; font-weight:800; letter-spacing:-0.03em; line-height:1;">182</p>
+              <p style="margin:0 0 4px; font-size:13px; color:var(--ok); font-weight:700;">▲ 47 ranks</p>
+            </div>
+            <p style="margin:4px 0 10px; font-size:12px; color:var(--ink-3);">Mock #7 · 1412 took · top 13%</p>
+
+            <!-- chart -->
+            <svg viewBox="0 0 300 120" width="100%" height="120" style="overflow:visible;">
+              <defs>
+                <linearGradient id="rk" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="var(--accent)" stop-opacity=".4"/>
+                  <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <!-- baseline -->
+              <polyline fill="none" stroke="var(--border)" stroke-dasharray="4 4" points="0,60 300,60"/>
+              <!-- fill -->
+              <path d="M0,90 L40,70 L80,82 L120,55 L160,45 L200,60 L240,38 L280,28 L300,24 L300,120 L0,120 Z" fill="url(#rk)"/>
+              <!-- line -->
+              <polyline fill="none" stroke="var(--accent)" stroke-width="2" points="0,90 40,70 80,82 120,55 160,45 200,60 240,38 280,28 300,24"/>
+              <!-- last dot -->
+              <circle cx="300" cy="24" r="5" fill="#fff" stroke="var(--accent)" stroke-width="3"/>
+            </svg>
+            <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--ink-3); font-weight:700; margin-top:4px;">
+              <span>M1</span><span>M2</span><span>M3</span><span>M4</span><span>M5</span><span>M6</span><span>M7</span>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Recent mocks</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="circle-mini" style="background:var(--ok);">M7</div><div style="flex:1;"><p class="card-title">Grand Mock #7</p><p class="card-sub">242 / 300 · 13 Apr</p></div><span class="chip ok">▲ 47</span></div>
+            <div class="row-list"><div class="circle-mini" style="background:var(--ok);">M6</div><div style="flex:1;"><p class="card-title">Grand Mock #6</p><p class="card-sub">228 / 300 · 30 Mar</p></div><span class="chip ok">▲ 12</span></div>
+            <div class="row-list"><div class="circle-mini" style="background:var(--warn);">M5</div><div style="flex:1;"><p class="card-title">Grand Mock #5</p><p class="card-sub">214 / 300 · 16 Mar</p></div><span class="chip warn">▼ 8</span></div>
+            <div class="row-list" style="border:0;"><div class="circle-mini" style="background:var(--bad);">M4</div><div style="flex:1;"><p class="card-title">Grand Mock #4</p><p class="card-sub">198 / 300 · 2 Mar</p></div><span class="chip bad">▼ 32</span></div>
+          </div>
+
+          <div class="card" style="background:var(--ok-soft); border:none; display:flex; gap:10px; align-items:center;">
+            <div class="icon ok">🏆</div>
+            <div style="flex:1;"><p style="margin:0; font-size:12.5px; font-weight:700; color:var(--ok);">Personal best</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ok);">Top 13% — 2.3% better than your previous high</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Mock rank history<small>Big-number hero · SVG trend · mock-by-mock list · PB celebration</small></p>
+  </div>
+
+  <!-- Time-per-question -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Time · per question</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⋯</div></div></div>
+        <div class="scroll">
+          <div class="grid-3">
+            <div class="stat"><p class="v">48<span style="font-size:13px; color:var(--ink-3);">s</span></p><p class="l">Median</p></div>
+            <div class="stat"><p class="v" style="color:var(--bad);">2:14</p><p class="l">Slowest 5%</p></div>
+            <div class="stat"><p class="v" style="color:var(--ok);">12<span style="font-size:13px; color:var(--ink-3);">s</span></p><p class="l">Fastest 5%</p></div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Distribution · mock #7</p>
+          <div class="card" style="padding:14px;">
+            <div class="tpq-chart">
+              <span class="b cool" style="height:20%;"></span>
+              <span class="b cool" style="height:38%;"></span>
+              <span class="b cool" style="height:60%;"></span>
+              <span class="b mid"  style="height:85%;"></span>
+              <span class="b mid"  style="height:70%;"></span>
+              <span class="b mid"  style="height:52%;"></span>
+              <span class="b warm" style="height:36%;"></span>
+              <span class="b warm" style="height:22%;"></span>
+              <span class="b hot"  style="height:12%;"></span>
+              <span class="b hot"  style="height:8%;"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--ink-3); margin-top:6px; font-weight:700;">
+              <span>0-15s</span><span>30</span><span>45</span><span>60</span><span>75</span><span>90s+</span>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Pace vs. accuracy</p>
+          <div class="card" style="padding:14px;">
+            <div style="margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><b>Fast &amp; right</b><span style="color:var(--ok); font-weight:700;">38%</span></div>
+              <div class="bar ok"><span style="width:38%;"></span></div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><b>Slow &amp; right</b><span style="color:var(--accent); font-weight:700;">32%</span></div>
+              <div class="bar acc"><span style="width:32%;"></span></div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><b>Slow &amp; wrong</b><span style="color:var(--warn); font-weight:700;">18%</span></div>
+              <div class="bar bad"><span style="width:18%;"></span></div>
+            </div>
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><b>Fast &amp; wrong</b><span style="color:var(--bad); font-weight:700;">12%</span></div>
+              <div class="bar bad"><span style="width:12%;"></span></div>
+            </div>
+          </div>
+
+          <div class="card" style="background:var(--warn-soft); border:none; display:flex; gap:10px; align-items:center;">
+            <div class="icon warn">⚡</div>
+            <div style="flex:1;"><p style="margin:0; font-size:12.5px; font-weight:700; color:var(--warn);">12 fast-wrongs</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--warn); line-height:1.4;">Clicking too quickly on Colorectal &amp; Vascular. Slow down on the next mock.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Time-per-question<small>3-stat strip · histogram · fast-right/slow-wrong matrix · AI nudge</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== STUDY CALENDAR + AI PLAN -->
+<section class="section-title">📱 Study calendar · AI-generated plan · flashcard decks</section>
+<div class="row">
+
+  <!-- Study calendar / planner -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Study calendar</h2><div class="right"><div class="icon" style="background:var(--accent-soft); color:var(--accent);">+</div></div></div>
+        <div class="scroll">
+
+          <!-- Month -->
+          <div class="card" style="padding:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <p style="margin:0; font-size:15px; font-weight:800; letter-spacing:-0.01em;">April 2026</p>
+              <div style="display:flex; gap:6px;"><span class="chip" style="padding:4px 8px;">‹</span><span class="chip" style="padding:4px 8px;">›</span></div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; font-size:10px; font-weight:700; color:var(--ink-3); margin-bottom:6px; text-align:center;">
+              <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+            </div>
+            <div class="mini-cal">
+              <div class="c rest">31</div><div class="c has">1</div><div class="c has">2</div><div class="c">3</div><div class="c has">4</div><div class="c has">5</div><div class="c">6</div>
+              <div class="c has">7</div><div class="c has">8</div><div class="c">9</div><div class="c has">10</div><div class="c has">11</div><div class="c has">12</div><div class="c">13</div>
+              <div class="c has">14</div><div class="c has">15</div><div class="c has">16</div><div class="c has">17</div><div class="c has">18</div><div class="c today">19</div><div class="c has">20</div>
+              <div class="c has">21</div><div class="c has">22</div><div class="c">23</div><div class="c has">24</div><div class="c has">25</div><div class="c has">26</div><div class="c">27</div>
+              <div class="c has">28</div><div class="c has">29</div><div class="c has">30</div><div class="c rest">1</div><div class="c rest">2</div><div class="c rest">3</div><div class="c rest">4</div>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Today · Sun 19 Apr</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list">
+              <div class="icon accent">🎞</div>
+              <div style="flex:1;"><p class="card-title">Watch · Colorectal — Diverticulitis</p><p class="card-sub">9:00 – 9:45 am · 45 min</p></div>
+              <span class="chip ok">Done</span>
+            </div>
+            <div class="row-list">
+              <div class="icon purple">📝</div>
+              <div style="flex:1;"><p class="card-title">Practice · 20 MCQs · Colorectal</p><p class="card-sub">10:00 – 10:30 am</p></div>
+              <span class="chip accent">In 20m</span>
+            </div>
+            <div class="row-list">
+              <div class="icon teal">🎴</div>
+              <div style="flex:1;"><p class="card-title">Flashcards · 42 due</p><p class="card-sub">12:00 – 12:20 pm</p></div>
+              <span class="chip">Upcoming</span>
+            </div>
+            <div class="row-list" style="border:0;">
+              <div class="icon pink">📔</div>
+              <div style="flex:1;"><p class="card-title">Notes · Vascular · AAA chapter</p><p class="card-sub">4:00 – 5:00 pm</p></div>
+              <span class="chip">Upcoming</span>
+            </div>
+          </div>
+
+          <button class="btn ghost block" style="margin-top:10px;">+ Add custom block</button>
+          <button class="btn primary block" style="margin-top:8px;">🤖 Regenerate with AI</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Study calendar<small>Month heatmap · today's blocks · AI regenerate button</small></p>
+  </div>
+
+  <!-- AI study plan -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>AI study plan</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⟳</div></div></div>
+        <div class="scroll">
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div style="background:linear-gradient(135deg, var(--accent), var(--indigo)); color:#fff; padding:20px 16px;">
+              <p style="margin:0; font-size:11px; opacity:.85; letter-spacing:.06em; text-transform:uppercase; font-weight:700;">Personalised for you</p>
+              <h2 style="margin:6px 0 4px; font-size:20px; font-weight:800; letter-spacing:-0.02em;">12-week ramp to NEET SS</h2>
+              <p style="margin:0; font-size:12px; opacity:.9;">Rebuilt every Sunday · based on your mocks, weak topics, pace &amp; available hours</p>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">This week · W-8 focus</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list">
+              <div style="width:36px; text-align:center; font-weight:800; font-size:16px; color:var(--accent);">①</div>
+              <div style="flex:1;"><p class="card-title">Colorectal — push to 78%</p><p class="card-sub">2 video modules · 40 MCQs · 2 flashcard sessions</p></div>
+              <span class="chip accent">8 h</span>
+            </div>
+            <div class="row-list">
+              <div style="width:36px; text-align:center; font-weight:800; font-size:16px; color:var(--purple);">②</div>
+              <div style="flex:1;"><p class="card-title">Vascular — maintain 84%</p><p class="card-sub">1 video module · 20 MCQs</p></div>
+              <span class="chip purple">4 h</span>
+            </div>
+            <div class="row-list">
+              <div style="width:36px; text-align:center; font-weight:800; font-size:16px; color:var(--teal);">③</div>
+              <div style="flex:1;"><p class="card-title">Hernia — revision only</p><p class="card-sub">Notes skim · 15 flashcards</p></div>
+              <span class="chip teal">2 h</span>
+            </div>
+            <div class="row-list" style="border:0;">
+              <div style="width:36px; text-align:center; font-weight:800; font-size:16px; color:var(--warn);">④</div>
+              <div style="flex:1;"><p class="card-title">Mock #8 · Sun 10 am</p><p class="card-sub">Full-length grand mock</p></div>
+              <span class="chip warn">4 h</span>
+            </div>
+          </div>
+
+          <div class="card" style="background:var(--ok-soft); border:none;">
+            <div class="card-head"><div class="icon ok">🎯</div><div><p class="card-title">Why these choices?</p></div></div>
+            <p style="margin:0; font-size:12.5px; color:var(--ok); line-height:1.5;">Colorectal dropped from 71% → 54% in mock #6 &amp; #7. Vascular is your strength — light maintenance only. Hernia is fresh — revision, no new material.</p>
+          </div>
+
+          <button class="btn primary block lg" style="margin-top:10px;">Import into calendar</button>
+          <button class="btn ghost block" style="margin-top:8px;">Edit priorities</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">AI study plan<small>Personalised 12-week ramp · weekly focus cards · reasoning panel</small></p>
+  </div>
+
+  <!-- Flashcard deck -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Flashcards</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⚙</div></div></div>
+        <div class="scroll">
+
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div style="background:linear-gradient(135deg, var(--pink), var(--bad)); color:#fff; padding:18px 16px; text-align:center;">
+              <p style="margin:0; font-size:11px; opacity:.85; letter-spacing:.06em; text-transform:uppercase; font-weight:700;">Due today</p>
+              <p style="margin:4px 0 0; font-size:40px; font-weight:800; letter-spacing:-0.03em; line-height:1;">42</p>
+              <p style="margin:4px 0 0; font-size:12.5px; opacity:.95;">~12 minutes · SM-2 schedule</p>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Decks</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="icon purple">🧬</div><div style="flex:1;"><p class="card-title">Shock &amp; fluids</p><p class="card-sub">88 cards · 12 due</p></div><span class="chip warn">12</span></div>
+            <div class="row-list"><div class="icon teal">🫀</div><div style="flex:1;"><p class="card-title">Vascular anatomy</p><p class="card-sub">54 cards · 8 due</p></div><span class="chip warn">8</span></div>
+            <div class="row-list"><div class="icon pink">🦴</div><div style="flex:1;"><p class="card-title">Hernia landmarks</p><p class="card-sub">36 cards · 14 due</p></div><span class="chip warn">14</span></div>
+            <div class="row-list" style="border:0;"><div class="icon accent">🤖</div><div style="flex:1;"><p class="card-title">Auto-generated · wrong answers</p><p class="card-sub">Pulled from your 12-week mocks</p></div><span class="chip accent">New</span></div>
+          </div>
+
+          <!-- sample card -->
+          <div class="card" style="padding:0; overflow:hidden;">
+            <div style="padding:22px 16px; text-align:center; background:var(--surface-2); min-height:120px; display:flex; flex-direction:column; justify-content:center;">
+              <p style="margin:0 0 6px; font-size:10px; color:var(--ink-3); letter-spacing:.06em; text-transform:uppercase; font-weight:700;">Shock &amp; fluids · card 3 / 42</p>
+              <p style="margin:0; font-size:15px; font-weight:700; line-height:1.4;">What is the first-line fluid for resuscitation in a traumatic hypovolemic shock patient?</p>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:10px; border-top:1px solid var(--border);">
+              <button class="btn" style="background:var(--bad-soft); color:var(--bad); font-size:10.5px; padding:10px 4px; line-height:1.2; font-weight:800;">Again<br><span style="font-size:9px; opacity:.8;">10m</span></button>
+              <button class="btn" style="background:var(--warn-soft); color:var(--warn); font-size:10.5px; padding:10px 4px; line-height:1.2; font-weight:800;">Hard<br><span style="font-size:9px; opacity:.8;">1d</span></button>
+              <button class="btn" style="background:var(--ok-soft); color:var(--ok); font-size:10.5px; padding:10px 4px; line-height:1.2; font-weight:800;">Good<br><span style="font-size:9px; opacity:.8;">4d</span></button>
+              <button class="btn" style="background:var(--accent-soft); color:var(--accent); font-size:10.5px; padding:10px 4px; line-height:1.2; font-weight:800;">Easy<br><span style="font-size:9px; opacity:.8;">10d</span></button>
+            </div>
+          </div>
+
+          <button class="btn primary block lg" style="margin-top:10px;">Start · 42 cards</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Flashcard decks<small>Due-today hero · deck list · SM-2 card with 4-rating row · auto-gen from wrong answers</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== PEER COMPARE + CONCEPT MAP -->
+<section class="section-title">📱 Peer comparison · concept map</section>
+<div class="row">
+
+  <!-- Peer compare -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Peer compare</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">🔀</div></div></div>
+        <div class="scroll">
+
+          <div style="display:flex; gap:6px; margin-bottom:12px;">
+            <span class="chip accent">Cohort</span>
+            <span class="chip">Top 10%</span>
+            <span class="chip">Friends</span>
+            <span class="chip">State-wise</span>
+          </div>
+
+          <div class="card" style="padding:14px; background:linear-gradient(180deg, var(--accent-soft) 0%, transparent 100%); border:none;">
+            <p style="margin:0; font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.08em;">You vs. top 10%</p>
+            <p style="margin:6px 0 10px; font-size:13px; color:var(--ink-3);">Anonymous · same NEET SS target as 142 peers</p>
+
+            <div style="margin-bottom:10px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><b>MCQs answered</b><span>You <b>1 840</b> · Top <b>2 160</b></span></div>
+              <div class="bar"><span class="acc" style="width:85%;"></span></div>
+            </div>
+            <div style="margin-bottom:10px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><b>Accuracy</b><span>You <b>74%</b> · Top <b>81%</b></span></div>
+              <div class="bar"><span class="acc" style="width:74%;"></span></div>
+            </div>
+            <div style="margin-bottom:10px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><b>Study hours</b><span>You <b>8.7</b> · Top <b>11.2</b></span></div>
+              <div class="bar"><span class="acc" style="width:78%;"></span></div>
+            </div>
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><b>Flashcards due-rate</b><span>You <b>92%</b> · Top <b>97%</b></span></div>
+              <div class="bar"><span class="acc" style="width:92%;"></span></div>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Closest peers · anonymous</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="circle-mini" style="background:var(--accent);">AN</div><div style="flex:1;"><p class="card-title">Aarav N.</p><p class="card-sub">Rank 176 · 75% acc · 9.1 h/w</p></div><span class="chip warn">+6</span></div>
+            <div class="row-list"><div class="circle-mini" style="background:var(--purple);">RS</div><div style="flex:1;"><p class="card-title">Riya S.</p><p class="card-sub">Rank 181 · 74% acc · 8.6 h/w</p></div><span class="chip">tie</span></div>
+            <div class="row-list" style="border:0;"><div class="circle-mini" style="background:var(--ink);">YOU</div><div style="flex:1;"><p class="card-title">You</p><p class="card-sub">Rank 182 · 74% acc · 8.7 h/w</p></div><span class="chip accent">—</span></div>
+          </div>
+
+          <div class="card" style="background:var(--indigo-soft); border:none; display:flex; gap:10px; align-items:center;">
+            <div class="icon indigo">🎯</div>
+            <div style="flex:1;"><p style="margin:0; font-size:12.5px; font-weight:700; color:var(--indigo);">Close the gap</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--indigo); line-height:1.4;">Add 2.5 h/week &amp; push accuracy to 77% to enter top 10%.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Peer comparison<small>Anonymous cohort · gap bars · nearest rivals · personal delta</small></p>
+  </div>
+
+  <!-- Concept map -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Concept map · Shock</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⤢</div></div></div>
+        <div class="scroll">
+
+          <p style="margin:0 2px 8px; font-size:11.5px; color:var(--ink-3); line-height:1.5;">
+            Live concept graph — green = mastered · red = weak · amber = revisit soon.
+          </p>
+
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div class="map-box">
+              <div class="edge" style="left:50%; top:48%; width:70px; transform: rotate(-35deg);"></div>
+              <div class="edge" style="left:50%; top:48%; width:80px; transform: rotate(-120deg);"></div>
+              <div class="edge" style="left:50%; top:48%; width:82px; transform: rotate(40deg);"></div>
+              <div class="edge" style="left:50%; top:48%; width:70px; transform: rotate(115deg);"></div>
+              <div class="edge" style="left:50%; top:48%; width:86px; transform: rotate(165deg);"></div>
+              <div class="edge" style="left:50%; top:48%; width:78px; transform: rotate(-170deg);"></div>
+
+              <div class="node core" style="left:50%; top:48%; transform:translate(-50%,-50%);">Shock</div>
+
+              <div class="node ok"   style="top:14%;  left:46%; transform:translate(-50%,0);">Hypovolemic 92%</div>
+              <div class="node ok"   style="top:20%;  left:80%;">Vasopressors 88%</div>
+              <div class="node bad"  style="top:64%;  left:82%;">Septic · 54%</div>
+              <div class="node warn" style="top:82%;  left:58%;">Cardiogenic 68%</div>
+              <div class="node bad"  style="top:74%;  left:10%;">Obstructive 48%</div>
+              <div class="node warn" style="top:40%;  left:6%;">Massive Txn 66%</div>
+              <div class="node ok"   style="top:10%;  left:12%;">Fluid types 90%</div>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Red nodes · auto-drill</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="circle-mini" style="background:var(--bad);">54</div><div style="flex:1;"><p class="card-title">Septic shock</p><p class="card-sub">12 related MCQs · 1 video</p></div><button class="btn primary" style="padding:8px 12px; font-size:11.5px;">Drill</button></div>
+            <div class="row-list" style="border:0;"><div class="circle-mini" style="background:var(--bad);">48</div><div style="flex:1;"><p class="card-title">Obstructive shock</p><p class="card-sub">8 related MCQs · 1 video</p></div><button class="btn primary" style="padding:8px 12px; font-size:11.5px;">Drill</button></div>
+          </div>
+
+          <div class="card" style="background:var(--accent-soft); border:none; display:flex; gap:10px; align-items:center;">
+            <div class="icon accent">🔗</div>
+            <div style="flex:1;"><p style="margin:0; font-size:12.5px; font-weight:700; color:var(--accent);">Tap any node</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--accent);">Jumps straight to the topic inside the Explorer</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Concept map<small>Live graph colored by mastery · red-node auto-drill · tap to explore</small></p>
+  </div>
+
+  <!-- Exam readiness deep -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Readiness forecast</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">ⓘ</div></div></div>
+        <div class="scroll">
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div style="background:linear-gradient(135deg, var(--accent), var(--purple)); color:#fff; padding:22px 16px; text-align:center;">
+              <p style="margin:0; font-size:11px; opacity:.85; letter-spacing:.06em; text-transform:uppercase; font-weight:700;">Projected rank</p>
+              <p style="margin:6px 0 4px; font-size:44px; font-weight:800; letter-spacing:-0.03em; line-height:1;">~182</p>
+              <p style="margin:0; font-size:12.5px; opacity:.95;">of 1 400 · top 13% · with ±18 confidence</p>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Key drivers</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="icon ok">↑</div><div style="flex:1;"><p class="card-title">Mock #7 score jump</p><p class="card-sub">+14 pts · shifted confidence up 9%</p></div></div>
+            <div class="row-list"><div class="icon ok">↑</div><div style="flex:1;"><p class="card-title">Consistent daily study</p><p class="card-sub">19/21 days this month</p></div></div>
+            <div class="row-list"><div class="icon bad">↓</div><div style="flex:1;"><p class="card-title">Colorectal accuracy</p><p class="card-sub">71% → 54% · pulled rank back</p></div></div>
+            <div class="row-list" style="border:0;"><div class="icon warn">↔</div><div style="flex:1;"><p class="card-title">Flashcards lapsed</p><p class="card-sub">11 cards past-due 4+ days</p></div></div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Simulate an action</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="icon accent">+</div><div style="flex:1;"><p class="card-title">+3 h study / week</p><p class="card-sub">Project → rank ~152 (+30)</p></div><button class="btn ghost" style="padding:8px 12px; font-size:11.5px;">Apply</button></div>
+            <div class="row-list"><div class="icon purple">🎯</div><div style="flex:1;"><p class="card-title">Fix Colorectal to 75%</p><p class="card-sub">Project → rank ~148 (+34)</p></div><button class="btn ghost" style="padding:8px 12px; font-size:11.5px;">Apply</button></div>
+            <div class="row-list" style="border:0;"><div class="icon teal">🎴</div><div style="flex:1;"><p class="card-title">Clear flashcard backlog</p><p class="card-sub">Project → rank ~176 (+6)</p></div><button class="btn ghost" style="padding:8px 12px; font-size:11.5px;">Apply</button></div>
+          </div>
+
+          <button class="btn primary block lg">Build combined plan</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Readiness forecast<small>Projected rank · drivers list · what-if simulator · combined plan</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== API CONTRACTS -->
+<section class="section-title">🧩 API sketches — every feature, one endpoint contract away</section>
+<div class="quilt" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
+
+  <div class="card">
+    <div class="card-head"><div class="icon accent">📊</div><div><p class="card-title">Readiness score + forecast</p><p class="card-sub">Dashboard hero · forecast page</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/analytics/readiness</span><br>
+      <span class="c">→ { score, confidence, projected_rank, projected_percentile, drivers[], simulations[] }</span>
+    </div>
+    <p style="margin:8px 0 0; font-size:11.5px; color:var(--ink-3);">Derived server-side from mock scores, study hours, topic accuracy, calendar adherence.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon indigo">🏁</div><div><p class="card-title">Percentile + cohort</p><p class="card-sub">Where-you-stand strip</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/analytics/percentile?scope=all|topic|mock</span><br>
+      <span class="c">→ { user_pct, cohort_size, bucket_counts[101], anchors: {p25,p50,p75,p90} }</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon purple">🤝</div><div><p class="card-title">Peer comparison</p><p class="card-sub">Anonymous cohort + nearest</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/analytics/peers?scope=cohort|top10|friends</span><br>
+      <span class="c">→ { metrics: [{ key, you, peer_avg, delta }], nearest: [{ alias, rank, acc, hours }] }</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon pink">📈</div><div><p class="card-title">Mock rank history</p><p class="card-sub">SVG trend + mock list</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/analytics/mocks?limit=12</span><br>
+      <span class="c">→ [{ mock_id, title, date, score, max, rank, cohort, pb }]</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon teal">⏱</div><div><p class="card-title">Time-per-question</p><p class="card-sub">Histogram + fast/slow matrix</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/analytics/tpq?attempt_id=...</span><br>
+      <span class="c">→ { median, p05, p95, buckets[], pace_acc: {fr, sr, sw, fw}, fast_wrongs[] }</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon ok">📅</div><div><p class="card-title">Study calendar</p><p class="card-sub">Planner blocks + completion</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/planner/month?from=2026-04-01</span><br>
+      <span class="m">POST</span><span class="p">/api/planner/block</span><span class="c"> { kind, title, duration, start_at }</span><br>
+      <span class="m">PATCH</span><span class="p">/api/planner/block/:id/complete</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon accent">🤖</div><div><p class="card-title">AI study plan</p><p class="card-sub">Weekly rebuild · reasoning</p></div></div>
+    <div class="api">
+      <span class="m">POST</span><span class="p">/api/planner/ai-generate</span><span class="c"> { target_exam, weeks, hours_per_week }</span><br>
+      <span class="c">→ { weeks: [{ w, focus:[{topic, goal, materials, hours}] }], reasoning }</span>
+    </div>
+    <p style="margin:8px 0 0; font-size:11.5px; color:var(--ink-3);">Runs Sunday via cron · stores latest plan as the current calendar layer.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon bad">🎴</div><div><p class="card-title">Flashcard decks</p><p class="card-sub">SM-2 scheduling</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/flashcards/due</span> <span class="c">→ [{ id, front, back, deck, interval }]</span><br>
+      <span class="m">POST</span><span class="p">/api/flashcards/:id/rate</span><span class="c"> { rating:0..3 } → { next_due }</span><br>
+      <span class="m">POST</span><span class="p">/api/flashcards/auto</span><span class="c"> { source:"mock_wrong"|"topic" }</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon warn">🕸</div><div><p class="card-title">Concept map</p><p class="card-sub">Mastery-coloured graph</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/analytics/concept-map?topic=shock</span><br>
+      <span class="c">→ { nodes: [{ id, label, mastery }], edges: [{ a, b, strength }] }</span>
+    </div>
+    <p style="margin:8px 0 0; font-size:11.5px; color:var(--ink-3);">Mastery = weighted accuracy + recency · recomputed whenever an attempt is scored.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon indigo">🧪</div><div><p class="card-title">What-if simulator</p><p class="card-sub">Drives the readiness page</p></div></div>
+    <div class="api">
+      <span class="m">POST</span><span class="p">/api/analytics/simulate</span><br>
+      <span class="c">body { changes: [{ key, delta }] } → { projected_rank, delta }</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon teal">⚡</div><div><p class="card-title">AI insight feed</p><p class="card-sub">Dashboard nudge card</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/ai/insights?n=3</span><br>
+      <span class="c">→ [{ kind, title, body, cta_label, cta_action, urgency }]</span>
+    </div>
+    <p style="margin:8px 0 0; font-size:11.5px; color:var(--ink-3);">Refreshed at login &amp; every 6 h. Action buttons dispatch to planner / practice / flashcards directly.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon ok">🔔</div><div><p class="card-title">Smart nudges</p><p class="card-sub">Push &amp; in-app</p></div></div>
+    <div class="api">
+      <span class="m">GET</span><span class="p">/api/notifications/schedule</span><br>
+      <span class="m">PATCH</span><span class="p">/api/notifications/prefs</span><span class="c"> { quiet_hours, kinds[] }</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- =============================================================== WINS -->
+<section class="section-title">✨ Why this moves the needle for students</section>
+<div class="quilt" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+  <div class="card"><p class="card-title"><span class="tick">✓</span>Clarity of standing</p><p class="card-sub" style="margin-top:6px;">Students see their rank, percentile &amp; projected rank on one screen, every day.</p></div>
+  <div class="card"><p class="card-title"><span class="tick">✓</span>Actionable, not pretty</p><p class="card-sub" style="margin-top:6px;">Every metric pairs with an AI-suggested next action — one tap to practice, drill, flashcard.</p></div>
+  <div class="card"><p class="card-title"><span class="tick">✓</span>Plan rebuilds itself</p><p class="card-sub" style="margin-top:6px;">AI re-plans weekly based on actual performance — not what the student last committed to.</p></div>
+  <div class="card"><p class="card-title"><span class="tick">✓</span>Peer motivation, not shame</p><p class="card-sub" style="margin-top:6px;">Anonymous cohort comparison, nearest-rival deltas, gap-closing advice — never public leaderboards.</p></div>
+  <div class="card"><p class="card-title"><span class="tick">✓</span>Simulate before you spend</p><p class="card-sub" style="margin-top:6px;">The what-if panel answers "is more study worth it?" with a concrete rank projection.</p></div>
+  <div class="card"><p class="card-title"><span class="tick">✓</span>Zero-cost parallelism</p><p class="card-sub" style="margin-top:6px;">Every feature maps to an isolated endpoint. Backend and UI teams can ship independently.</p></div>
+</div>
+
+</main>
+<script>
+  const r=document.documentElement,k='sushrutaTheme',s=localStorage.getItem(k);
+  if(s)r.setAttribute('data-theme',s);
+  document.getElementById('tt').onclick=()=>{const n=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',n);localStorage.setItem(k,n);};
+</script>
+</body>
+</html>

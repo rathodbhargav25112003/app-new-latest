@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Area 01 · Auth upgrade</title>
+<link rel="stylesheet" href="_styles.css" />
+<link rel="stylesheet" href="_upgrade_styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · Upgrade</div>
+  <nav>
+    <a href="upgrade_index.html">All areas</a>
+    <a href="up_01_auth.html" class="active">01 Auth</a>
+    <a href="up_02_dashboard_home.html">02 Home</a>
+    <a href="up_05_tests.html">05 Tests</a>
+    <a href="up_09_subscription_store.html">09 Store</a>
+  </nav>
+  <button class="theme-toggle" id="tt" aria-label="Toggle dark mode"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+
+<section class="up-hero">
+  <h1 class="display">01 · Auth <span class="grad">upgrade</span></h1>
+  <p class="lead">Splash → login → OTP → signup → recovery → onboarding. Same routes, same MobX stores, same API calls. Every OTP variant collapses onto one reusable widget; every form uses the new tokens.</p>
+  <div class="area-stats">
+    <div class="s"><div class="v">13</div><div class="l">Screens covered</div></div>
+    <div class="s"><div class="v">0</div><div class="l">Route changes</div></div>
+    <div class="s"><div class="v">0</div><div class="l">API changes</div></div>
+    <div class="s"><div class="v">3→1</div><div class="l">OTP widgets → one</div></div>
+    <div class="s"><div class="v">28</div><div class="l">States (searchable dropdown)</div></div>
+  </div>
+  <div class="up-subnav">
+    <a href="#splash">Splash</a><a href="#login-phone">Phone login</a><a href="#login-email">Email login</a>
+    <a href="#signup-phone">Phone signup</a><a href="#signup-email">Email signup</a><a href="#otp">OTP</a>
+    <a href="#forgot-pass">Forgot password</a><a href="#forgot-email">Forgot email</a>
+    <a href="#edit-profile">Edit profile</a><a href="#google-signup">Google signup</a><a href="#preparing">Preparing for</a>
+  </div>
+</section>
+
+<!-- 1. SPLASH -->
+<section class="ba-block" id="splash">
+  <div class="ba-head">
+    <h3>1 · Splash</h3>
+    <p class="ba-path">modules/splash/main_splash_screen.dart · modules/splash/splash_screen.dart · Route.mainSplash, Route.splash</p>
+    <p class="ba-sub">Two splash screens today (one Lottie + one image gate). Consolidate visual language — the second becomes a 300ms fade-through routed inside the first, no new route, no file deletion needed.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="bd" style="align-items:center; justify-content:center; gap:20px; background: #0048D0; color:#fff;">
+          <div style="width:92px;height:92px;border-radius:20px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:800;">S</div>
+          <div style="font-size:22px;font-weight:700;">Sushruta LMS</div>
+          <div style="width:30px;height:4px;background:rgba(255,255,255,.5);border-radius:2px;margin-top:auto;"></div>
+          <div style="font-size:11px;opacity:.75;margin-top:4px;">v2.4.1</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="bd" style="align-items:center; justify-content:center; gap:14px; background: linear-gradient(160deg,#0048D0 0%,#3764D8 100%); color:#fff;">
+          <div style="width:100px;height:100px;border-radius:26px;background:rgba(255,255,255,.18);backdrop-filter: blur(8px);display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:800;letter-spacing:-.02em;box-shadow:0 8px 32px rgba(0,0,0,.18);">S</div>
+          <div style="font-size:24px;font-weight:700;letter-spacing:-.02em;">Sushruta</div>
+          <div style="font-size:12px;opacity:.8;letter-spacing:.1em;text-transform:uppercase;font-weight:600;">Learning · Mastery · Mocks</div>
+          <div style="margin-top:auto;display:flex;align-items:center;gap:6px;opacity:.85;font-size:11px;">
+            <div style="width:12px;height:12px;border:2px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;"></div>
+            Checking session…
+          </div>
+          <div style="font-size:10px;opacity:.55;">v2.4.1 · production</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div>
+      <h5>Visual polish</h5>
+      <ul class="ba-deltas" style="margin:0;">
+        <li>Gradient 160° background instead of flat brand blue</li>
+        <li>Larger logo tile (100×100) with subtle glass inset</li>
+        <li>Tightened typography (-0.02em tracking)</li>
+      </ul>
+    </div>
+    <div>
+      <h5>Functional</h5>
+      <ul class="ba-deltas" style="margin:0;">
+        <li>Inline session-check spinner instead of frozen screen</li>
+        <li>Version badge stays, no longer prominent</li>
+        <li>Second splash fades in as 300ms transition, not full remount</li>
+      </ul>
+    </div>
+    <div>
+      <h5>Absorbed from mockup</h5>
+      <ul class="ba-deltas kept" style="margin:0;">
+        <li>Cluster 01 splash gradient</li>
+        <li>Cluster 01 glass logo treatment</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 2. LOGIN - PHONE -->
+<section class="ba-block" id="login-phone">
+  <div class="ba-head">
+    <h3>2 · Login — phone-first</h3>
+    <p class="ba-path">modules/login/login_with_phone_screen.dart · Route.login (primary entry)</p>
+    <p class="ba-sub">Existing widget tree: <code>Scaffold → Column(phone field, continue button, alt-login link)</code>. We add: country-flag prefix, stepper dots, error toast on silent failures, loading state on button.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="bd" style="padding:22px;gap:14px;">
+          <div style="text-align:center;">
+            <div style="width:64px;height:64px;margin:8px auto;border-radius:14px;background:#0048D0;color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;">S</div>
+            <div style="font-size:20px;font-weight:700;margin-top:8px;">Welcome Back</div>
+            <div style="font-size:12px;color:var(--muted);">Login with your phone number</div>
+          </div>
+          <div class="mini-field" style="margin-top:14px;">+91 • Enter phone number</div>
+          <div class="mini-btn block" style="background:#0048D0;">Continue</div>
+          <div style="text-align:center;font-size:11.5px;color:var(--muted);margin-top:8px;">OR</div>
+          <div style="text-align:center;font-size:12px;color:#0048D0;">Login with email</div>
+          <div style="text-align:center;font-size:11.5px;color:var(--muted);margin-top:auto;">New here? Sign up</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="bd" style="padding:22px;gap:14px;">
+          <div style="display:flex;gap:6px;justify-content:center;margin-top:4px;">
+            <div style="width:18px;height:4px;border-radius:2px;background:var(--accent);"></div>
+            <div style="width:8px;height:4px;border-radius:2px;background:var(--surface-3);"></div>
+            <div style="width:8px;height:4px;border-radius:2px;background:var(--surface-3);"></div>
+          </div>
+          <div style="text-align:center;margin-top:14px;">
+            <div style="width:60px;height:60px;margin:0 auto;border-radius:16px;background:linear-gradient(135deg,#0048D0,#497BDC);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;">S</div>
+            <div style="font-size:22px;font-weight:700;letter-spacing:-.02em;margin-top:12px;">Welcome back</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:2px;">Sign in with your phone number</div>
+          </div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:10px;">Phone</label>
+          <div class="mini-field focus" style="display:flex;align-items:center;gap:8px;padding:11px 12px;">
+            <span style="font-size:14px;">🇮🇳</span>
+            <span style="color:var(--ink);font-weight:600;">+91</span>
+            <span style="color:var(--muted);">•</span>
+            <span style="color:var(--ink);font-weight:600;">98765 43210</span>
+          </div>
+          <div class="mini-btn block" style="background:#0048D0;position:relative;">
+            <span style="display:inline-flex;align-items:center;gap:8px;"><span style="width:12px;height:12px;border:2px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;"></span>Sending OTP…</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin:6px 0;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <span style="font-size:11px;color:var(--muted);">OR</span>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+          </div>
+          <div class="mini-btn ghost block" style="padding:11px;">Login with email</div>
+          <div style="text-align:center;font-size:12.5px;color:var(--muted);margin-top:auto;">New to Sushruta? <b style="color:var(--accent);">Create account</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div>
+      <h5>Visual polish</h5>
+      <ul class="ba-deltas" style="margin:0;">
+        <li>Stepper dots (1 of 3) pinned under status bar</li>
+        <li>Gradient logo tile replaces flat square</li>
+        <li>Semantic field label in caption style</li>
+        <li>Country flag + dial-code prefix inside field</li>
+        <li>Ghost button style for alt-login</li>
+      </ul>
+    </div>
+    <div>
+      <h5>Functional</h5>
+      <ul class="ba-deltas" style="margin:0;">
+        <li>Inline spinner replaces silent delay</li>
+        <li>Validation on blur (not only on tap Continue)</li>
+        <li>Error toast when API fails (queued, 3s auto-dismiss)</li>
+        <li>Return key on keyboard submits</li>
+      </ul>
+    </div>
+    <div>
+      <h5>Unchanged</h5>
+      <ul class="ba-deltas kept" style="margin:0;">
+        <li>Route <code>Route.login</code></li>
+        <li><code>LoginStore.sendOtp()</code> signature</li>
+        <li><code>ApiService.sendOtp</code> payload</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3. LOGIN - EMAIL -->
+<section class="ba-block" id="login-email">
+  <div class="ba-head">
+    <h3>3 · Login — email &amp; password fallback</h3>
+    <p class="ba-path">modules/login/login_screen.dart · Route.loginWithPass</p>
+    <p class="ba-sub">Generic form today. Add password show/hide, focus ring, inline validation, and linked "Forgot password" that preserves the current <code>forgotPassword</code> route.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Login</span></div>
+        <div class="bd" style="gap:12px;">
+          <div class="mini-field">Email address</div>
+          <div class="mini-field">Password</div>
+          <div style="text-align:right;font-size:11.5px;color:#0048D0;">Forgot password?</div>
+          <div class="mini-btn block" style="background:#0048D0;">Login</div>
+          <div style="text-align:center;font-size:11.5px;color:var(--muted);">Don't have an account? Sign up</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;letter-spacing:-.01em;">Sign in</span><span class="spacer"></span></div>
+        <div class="bd" style="gap:12px;">
+          <div style="font-size:13px;color:var(--muted);">Use your email and password.</div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Email</label>
+          <div class="mini-field filled" style="display:flex;align-items:center;gap:8px;"><span>✉</span><span>rahul.m@mail.com</span></div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:4px;">Password</label>
+          <div class="mini-field focus" style="display:flex;align-items:center;gap:8px;"><span>🔒</span><span style="flex:1;color:var(--ink);font-weight:600;">••••••••</span><span style="font-size:11px;color:var(--accent);font-weight:600;">Show</span></div>
+          <div style="text-align:right;font-size:12px;color:var(--accent);font-weight:600;">Forgot password?</div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:4px;">Sign in</div>
+          <div style="display:flex;align-items:center;gap:10px;margin:8px 0;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <span style="font-size:11px;color:var(--muted);">OR</span>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+          </div>
+          <div class="mini-btn ghost block">Continue with phone</div>
+          <div style="text-align:center;font-size:12.5px;color:var(--muted);margin-top:auto;">No account yet? <b style="color:var(--accent);">Sign up</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div><h5>Visual polish</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Semantic field labels</li><li>Icon prefixes inside fields</li>
+      <li>Focus ring (2px accent)</li><li>Show/hide password toggle</li>
+    </ul></div>
+    <div><h5>Functional</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Keyboard-dismiss on tap outside</li>
+      <li>Autofill hint: email-address / password</li>
+      <li>"Continue with phone" swaps to <code>Route.login</code></li>
+    </ul></div>
+    <div><h5>Unchanged</h5><ul class="ba-deltas kept" style="margin:0;">
+      <li><code>LoginStore.loginWithPass()</code></li>
+      <li><code>Route.loginWithPass</code></li>
+      <li>Form field names sent to <code>ApiService</code></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- 4. SIGNUP - PHONE -->
+<section class="ba-block" id="signup-phone">
+  <div class="ba-head">
+    <h3>4 · Signup — phone</h3>
+    <p class="ba-path">modules/signup/signup_with_phone_screen.dart · Route.register</p>
+    <p class="ba-sub">Existing: Name, Phone, Email (optional), Password, Terms checkbox, CTA. Adds stepper, password strength bar, linked privacy/terms text.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Sign up</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field">Full name</div>
+          <div class="mini-field">+91 Phone number</div>
+          <div class="mini-field">Email (optional)</div>
+          <div class="mini-field">Password</div>
+          <div style="font-size:11.5px;">☐ I agree to Terms &amp; Privacy Policy</div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Create account</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Create account</span><span class="spacer"></span><span class="act">1 of 2</span></div>
+        <div class="bd" style="gap:10px;">
+          <div style="display:flex;gap:6px;"><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);"></div></div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Step 1 · Account</div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Full name</label>
+          <div class="mini-field filled">Rahul Mehta</div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Phone</label>
+          <div class="mini-field focus" style="display:flex;align-items:center;gap:8px;"><span>🇮🇳 +91</span><span style="color:var(--ink);font-weight:600;">98765 43210</span></div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Password</label>
+          <div class="mini-field filled" style="display:flex;align-items:center;gap:8px;"><span>🔒</span><span style="flex:1;font-weight:600;color:var(--ink);">••••••••</span><span style="font-size:11px;color:var(--accent);">Show</span></div>
+          <div style="display:flex;gap:4px;margin-top:2px;">
+            <div style="flex:1;height:4px;border-radius:2px;background:#33AD48;"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:#33AD48;"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:#33AD48;"></div>
+            <div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);"></div>
+          </div>
+          <div style="font-size:10.5px;color:#1e7c2c;">Strong password</div>
+          <div style="font-size:11.5px;color:var(--ink-2);margin-top:6px;"><b style="color:var(--accent);">☑</b> I agree to <u style="color:var(--accent);">Terms</u> &amp; <u style="color:var(--accent);">Privacy Policy</u></div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Continue</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div><h5>Visual polish</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Progress bar + "Step 1 of 2"</li>
+      <li>Password strength bar (4 ticks)</li>
+      <li>Terms checkbox with inline links</li>
+    </ul></div>
+    <div><h5>Functional</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Live strength compute as user types</li>
+      <li>Email moves to step 2 (optional)</li>
+      <li>Save draft to <code>LoginStore.signupDraft</code> — resumable</li>
+    </ul></div>
+    <div><h5>Unchanged</h5><ul class="ba-deltas kept" style="margin:0;">
+      <li><code>Route.register</code></li>
+      <li><code>ApiService.register()</code> payload</li>
+      <li>Validation rules unchanged</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- 5. SIGNUP - EMAIL -->
+<section class="ba-block" id="signup-email">
+  <div class="ba-head">
+    <h3>5 · Signup — email</h3>
+    <p class="ba-path">modules/signup/signup_screen.dart · Route.registerWithPass</p>
+    <p class="ba-sub">Same form family as Signup-phone. Identical upgrades. Shown compactly — assume the phone-signup deltas apply here too.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Register</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field">Full name</div>
+          <div class="mini-field">Email address</div>
+          <div class="mini-field">Password</div>
+          <div class="mini-field">Confirm password</div>
+          <div style="font-size:11.5px;">☐ I agree to Terms</div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Register</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Create account</span><span class="spacer"></span><span class="act">1 of 2</span></div>
+        <div class="bd" style="gap:10px;">
+          <div style="display:flex;gap:6px;"><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);"></div></div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Full name</label>
+          <div class="mini-field filled">Rahul Mehta</div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Email</label>
+          <div class="mini-field filled" style="display:flex;align-items:center;gap:8px;"><span>✉</span><span>rahul.m@mail.com</span></div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Password</label>
+          <div class="mini-field focus">••••••••</div>
+          <div style="display:flex;gap:4px;"><div style="flex:1;height:4px;border-radius:2px;background:#33AD48;"></div><div style="flex:1;height:4px;border-radius:2px;background:#33AD48;"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);"></div></div>
+          <div style="font-size:10.5px;color:#a76a0b;">Add a number for a stronger password</div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Confirm</label>
+          <div class="mini-field">Re-enter password</div>
+          <div style="font-size:11.5px;"><b style="color:var(--accent);">☑</b> I agree to <u style="color:var(--accent);">Terms</u> &amp; <u style="color:var(--accent);">Privacy</u></div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Continue</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-foot"><b>Identical deltas to signup-phone</b> (above). Same store, same route, same API — just a different primary field.</div>
+</section>
+
+<!-- 6. OTP VERIFICATION -->
+<section class="ba-block" id="otp">
+  <div class="ba-head">
+    <h3>6 · OTP verification (one widget, three routes)</h3>
+    <p class="ba-path">modules/verifyotp/verify_otp.dart · modules/login/verify_otp_mail.dart · modules/login/store/verify_otp_phone.dart · Route.verifyOtp / verifyOtpMail / verifyOtpPhone</p>
+    <p class="ba-sub">Today the three OTP screens look subtly different. The upgrade introduces a single <code>OtpField</code> widget consumed by all three routes — cell polish, auto-advance, paste support, countdown resend, haptic on complete.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Verify OTP</span></div>
+        <div class="bd" style="gap:12px;">
+          <div style="font-size:13px;">Enter the 6-digit code sent to +91 98765 43210</div>
+          <div class="otp-row">
+            <div class="otp">5</div><div class="otp">8</div><div class="otp">3</div><div class="otp"></div><div class="otp"></div><div class="otp"></div>
+          </div>
+          <div style="text-align:center;font-size:12px;color:var(--muted);">Resend in 30s</div>
+          <div class="mini-btn block" style="background:#0048D0;">Verify</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Verify</span><span class="spacer"></span><span style="font-size:11px;color:var(--muted);">2 of 3</span></div>
+        <div class="bd" style="gap:14px;">
+          <div style="display:flex;gap:6px;"><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);"></div></div>
+          <div style="text-align:center;margin-top:6px;">
+            <div style="font-size:19px;font-weight:700;letter-spacing:-.01em;">Enter OTP</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:4px;">Sent to <b>+91 98765 43210</b> · <span style="color:var(--accent);">Change</span></div>
+          </div>
+          <div class="otp-row" style="gap:8px;">
+            <div class="otp filled">5</div><div class="otp filled">8</div><div class="otp filled">3</div>
+            <div class="otp focus"></div><div class="otp"></div><div class="otp"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:4px;">
+            <div style="width:20px;height:20px;border-radius:50%;background:conic-gradient(var(--accent) 0 50%, var(--surface-3) 50% 100%);"></div>
+            <div style="font-size:12px;color:var(--muted);">Resend in <b style="color:var(--ink);">0:15</b></div>
+          </div>
+          <div class="mini-btn block" style="background:#0048D0;">Verify &amp; continue</div>
+          <div style="text-align:center;font-size:11.5px;color:var(--muted);margin-top:auto;">Didn't get it? <b style="color:var(--accent);">Call me instead</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div><h5>Visual polish</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Step indicator (2 of 3)</li>
+      <li>Filled cells use accent-soft bg</li>
+      <li>Countdown becomes a conic-gradient ring</li>
+      <li>"Change number" inline link</li>
+    </ul></div>
+    <div><h5>Functional</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Auto-advance + paste full 6-digit code</li>
+      <li>Auto-submit when 6th digit entered</li>
+      <li>Voice-OTP fallback ("Call me instead")</li>
+      <li>Haptic on complete</li>
+    </ul></div>
+    <div><h5>Unchanged</h5><ul class="ba-deltas kept" style="margin:0;">
+      <li>All three routes remain</li>
+      <li>Each calls its existing verify action</li>
+      <li>Shared <code>OtpField</code> widget — zero API churn</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- 7. FORGOT PASSWORD -->
+<section class="ba-block" id="forgot-pass">
+  <div class="ba-head">
+    <h3>7 · Forgot password</h3>
+    <p class="ba-path">modules/login/forgot_password.dart · Route.forgotPassword</p>
+    <p class="ba-sub">Three-step flow: enter email → OTP → new password. Today these live as a single scroll. Upgrade splits them into visual steps using the same stepper bar introduced above — still a single route.</p>
+  </div>
+  <div class="ba-pair triple">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Forgot password</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field">Email address</div>
+          <div class="mini-btn block" style="background:#0048D0;">Send OTP</div>
+          <div class="mini-field" style="margin-top:8px;">OTP</div>
+          <div class="mini-field">New password</div>
+          <div class="mini-field">Confirm password</div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Reset password</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded · Step 1</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Reset password</span><span class="spacer"></span><span style="font-size:11px;color:var(--muted);">1 of 3</span></div>
+        <div class="bd" style="gap:12px;">
+          <div style="display:flex;gap:6px;"><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);"></div></div>
+          <div style="font-size:19px;font-weight:700;margin-top:6px;">Find your account</div>
+          <div style="font-size:12.5px;color:var(--muted);">We'll send a 6-digit OTP to verify it's you.</div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Email</label>
+          <div class="mini-field focus filled"><span>✉ rahul.m@mail.com</span></div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Send OTP</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded · Step 3</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Reset password</span><span class="spacer"></span><span style="font-size:11px;color:var(--muted);">3 of 3</span></div>
+        <div class="bd" style="gap:12px;">
+          <div style="display:flex;gap:6px;"><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div></div>
+          <div style="font-size:19px;font-weight:700;">Set new password</div>
+          <div style="font-size:12.5px;color:var(--muted);">8+ characters · mix letters &amp; numbers.</div>
+          <div class="mini-field focus">New password</div>
+          <div style="display:flex;gap:4px;"><div style="flex:1;height:4px;border-radius:2px;background:#33AD48;"></div><div style="flex:1;height:4px;border-radius:2px;background:#33AD48;"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);"></div></div>
+          <div class="mini-field">Confirm password</div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Reset &amp; sign in</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-foot">Step 2 uses the same OTP widget shown in section 6. Route unchanged — <code>Route.forgotPassword</code> renders all three steps in-widget using an <code>AnimatedSwitcher</code>.</div>
+</section>
+
+<!-- 8. FORGOT EMAIL -->
+<section class="ba-block" id="forgot-email">
+  <div class="ba-head">
+    <h3>8 · Forgot email</h3>
+    <p class="ba-path">modules/login/forgot_email.dart · Route.forgotEmailId</p>
+    <p class="ba-sub">Enter phone → show masked email → send OTP to continue. Same visual family.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Forgot email ID</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field">+91 Phone number</div>
+          <div class="mini-btn block" style="background:#0048D0;">Find email</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Find your email</span></div>
+        <div class="bd" style="gap:12px;">
+          <div style="font-size:13px;color:var(--muted);">Enter your registered phone number and we'll show you the email linked to your account.</div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Phone</label>
+          <div class="mini-field focus" style="display:flex;align-items:center;gap:8px;"><span>🇮🇳 +91</span><span style="color:var(--ink);font-weight:600;">98765 43210</span></div>
+          <div class="mini-btn block" style="background:#0048D0;">Find email</div>
+          <div style="margin-top:12px;padding:14px;background:var(--surface-2);border-radius:12px;border:1px solid var(--border);">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Account found</div>
+            <div style="font-size:15px;font-weight:700;margin-top:4px;">r****l.m@mail.com</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">Proceed to sign in with this email.</div>
+          </div>
+          <div class="mini-btn ghost block" style="margin-top:auto;">Continue to login</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-foot">Result card inlines after API returns — no extra route push. Uses existing <code>LoginStore.findEmail</code>.</div>
+</section>
+
+<!-- 9. EDIT PROFILE -->
+<section class="ba-block" id="edit-profile">
+  <div class="ba-head">
+    <h3>9 · Edit profile (post-signup completion)</h3>
+    <p class="ba-path">modules/signup/edit_profile.dart · Route.editProfile</p>
+    <p class="ba-sub">Long single form today. Restructure into visual groups, searchable state dropdown (28 states is painful to scroll), chip-grid for "preparing for".</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Edit profile</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field">Full name</div>
+          <div class="mini-field">Date of birth</div>
+          <div class="mini-field">State (dropdown)</div>
+          <div class="mini-field">City</div>
+          <div class="mini-field">College</div>
+          <div class="mini-field">Preparing for (dropdown)</div>
+          <div class="mini-field">Year of appearing</div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Save</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Your profile</span><span class="spacer"></span><span class="act">Save</span></div>
+        <div class="bd" style="gap:10px;">
+          <div style="display:flex;gap:12px;align-items:center;">
+            <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#0048D0,#497BDC);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;">RM</div>
+            <div style="flex:1;">
+              <div style="font-size:15px;font-weight:700;">Rahul Mehta</div>
+              <div style="font-size:11.5px;color:var(--muted);">+91 98765 43210 · rahul.m@mail.com</div>
+            </div>
+            <span class="mini-chip acc">Edit photo</span>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:8px;">Personal</div>
+          <div class="mini-field filled">Rahul Mehta</div>
+          <div class="grid-2-mini">
+            <div class="mini-field filled">DOB · 14 Aug 1999</div>
+            <div class="mini-field filled">Male</div>
+          </div>
+
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:8px;">Location</div>
+          <div class="mini-field focus" style="display:flex;align-items:center;gap:8px;"><span>🔎</span><span style="color:var(--muted);">Search state</span></div>
+          <div class="chip-row">
+            <span class="chip on">Karnataka</span><span class="chip">Maharashtra</span><span class="chip">Tamil Nadu</span><span class="chip">+25 more</span>
+          </div>
+          <div class="mini-field filled">Bengaluru</div>
+
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:8px;">Preparing for</div>
+          <div class="chip-row" style="gap:8px;">
+            <span class="chip on">NEET PG</span><span class="chip">NEET SS</span><span class="chip">INI CET</span>
+            <span class="chip">FMGE</span><span class="chip">USMLE</span>
+          </div>
+          <div class="grid-2-mini">
+            <div class="mini-field filled">Year · 2026</div>
+            <div class="mini-field filled">College · JIPMER</div>
+          </div>
+
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Save changes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div><h5>Visual polish</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Header card with avatar + contact</li>
+      <li>Section labels (Personal / Location / Preparing)</li>
+      <li>Chip grids replace native dropdowns</li>
+      <li>Save button moves into AppBar, also at bottom</li>
+    </ul></div>
+    <div><h5>Functional</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Searchable state dropdown</li>
+      <li>Draft autosave — no lost data on back</li>
+      <li>Dirty-state indicator on Save</li>
+    </ul></div>
+    <div><h5>Unchanged</h5><ul class="ba-deltas kept" style="margin:0;">
+      <li><code>Route.editProfile</code></li>
+      <li><code>ProfileStore.save()</code> payload</li>
+      <li>"Preparing for" enum values</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- 10. GOOGLE SIGNUP CONTINUATION -->
+<section class="ba-block" id="google-signup">
+  <div class="ba-head">
+    <h3>10 · Google signup continuation</h3>
+    <p class="ba-path">modules/signup/google_signup_form.dart · Route.googleSignUpForm</p>
+    <p class="ba-sub">After OAuth succeeds, Sushruta needs phone + profile details. Today this is a long form. Upgrade pre-fills from Google, highlights what's still missing.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Complete profile</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field filled">Rahul Mehta (from Google)</div>
+          <div class="mini-field filled">rahul.m@gmail.com</div>
+          <div class="mini-field">+91 Phone number</div>
+          <div class="mini-field">Date of birth</div>
+          <div class="mini-field">State</div>
+          <div class="mini-field">Preparing for</div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Finish setup</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Almost done</span><span class="spacer"></span><span style="font-size:11px;color:var(--muted);">2 of 2</span></div>
+        <div class="bd" style="gap:10px;">
+          <div style="display:flex;gap:6px;"><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div><div style="flex:1;height:4px;border-radius:2px;background:var(--accent);"></div></div>
+          <div style="padding:10px 12px;background:var(--surface-2);border-radius:12px;border:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+            <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#4285F4,#34A853);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;">G</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;">Rahul Mehta</div>
+              <div style="font-size:11px;color:var(--muted);">rahul.m@gmail.com · from Google</div>
+            </div>
+            <span class="mini-chip ok">Verified</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;">Missing · required</div>
+          <label style="font-size:11px;color:var(--muted);">Phone</label>
+          <div class="mini-field focus" style="display:flex;align-items:center;gap:8px;"><span>🇮🇳 +91</span><span style="color:var(--muted);">Enter phone</span></div>
+          <label style="font-size:11px;color:var(--muted);">Date of birth</label>
+          <div class="mini-field">DD · MM · YYYY</div>
+          <label style="font-size:11px;color:var(--muted);">Preparing for</label>
+          <div class="chip-row"><span class="chip on">NEET PG</span><span class="chip">NEET SS</span><span class="chip">INI CET</span></div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Finish setup</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-foot">Google-verified fields are pinned as a single card at top and greyed out (not editable). Required missing fields get a section label so the user knows what to fill.</div>
+</section>
+
+<!-- 11. PREPARING FOR -->
+<section class="ba-block" id="preparing">
+  <div class="ba-head">
+    <h3>11 · Preparing for (exam target)</h3>
+    <p class="ba-path">modules/signup/preparing_for_screen.dart · Route.preparingForScreen</p>
+    <p class="ba-sub">Radio group today. Upgrade to chip grid with exam icons, short "why we ask" help text.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Preparing for</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field">○ NEET PG</div>
+          <div class="mini-field">● NEET SS</div>
+          <div class="mini-field">○ INI CET</div>
+          <div class="mini-field">○ FMGE</div>
+          <div class="mini-field">○ USMLE</div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Save</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">What are you preparing for?</span></div>
+        <div class="bd" style="gap:12px;">
+          <div style="font-size:13px;color:var(--muted);">We'll personalise your home feed, test suggestions and notifications around your target exam.</div>
+          <div class="grid-2-mini">
+            <div class="mini-card"><div style="font-size:22px;">🩺</div><div class="t">NEET PG</div><div class="s">MDS / MD post-grad</div></div>
+            <div class="mini-card sel"><div style="font-size:22px;">🎓</div><div class="t">NEET SS</div><div class="s">Super-specialty</div></div>
+            <div class="mini-card"><div style="font-size:22px;">🧪</div><div class="t">INI CET</div><div class="s">AIIMS / JIPMER</div></div>
+            <div class="mini-card"><div style="font-size:22px;">🌏</div><div class="t">FMGE</div><div class="s">For foreign grads</div></div>
+            <div class="mini-card"><div style="font-size:22px;">🇺🇸</div><div class="t">USMLE</div><div class="s">Step 1 / 2 CK</div></div>
+            <div class="mini-card"><div style="font-size:22px;">📚</div><div class="t">Others</div><div class="s">Browse all exams</div></div>
+          </div>
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:6px;">Target year</label>
+          <div class="chip-row"><span class="chip on">2026</span><span class="chip">2027</span><span class="chip">2028</span></div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Save &amp; continue</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div><h5>Visual polish</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Visual grid replaces radio list</li>
+      <li>Emoji icon per exam for fast scan</li>
+      <li>Selected state uses accent border + soft fill</li>
+    </ul></div>
+    <div><h5>Functional</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Target-year chip row appended</li>
+      <li>"Others" link opens a searchable long list</li>
+      <li>Inline help text (one sentence, removable later)</li>
+    </ul></div>
+    <div><h5>Unchanged</h5><ul class="ba-deltas kept" style="margin:0;">
+      <li><code>Route.preparingForScreen</code></li>
+      <li>Enum values sent to backend</li>
+      <li>API call in <code>ProfileStore</code></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- Summary -->
+<section class="section-title">Area summary · what changes in <code>lib/</code></section>
+<div class="quilt" style="grid-template-columns: repeat(auto-fill, minmax(260px,1fr));">
+  <div class="card"><p class="card-title">New shared widget</p><p class="card-sub" style="margin-top:6px;"><code>lib/modules/widgets/otp_field.dart</code> — consumed by all three OTP routes.</p></div>
+  <div class="card"><p class="card-title">New shared widget</p><p class="card-sub" style="margin-top:6px;"><code>lib/modules/widgets/stepper_bar.dart</code> — drives the dot stepper in signup + forgot flows.</p></div>
+  <div class="card"><p class="card-title">Updated widget</p><p class="card-sub" style="margin-top:6px;"><code>lib/modules/widgets/custom_button.dart</code> — loading state + press scale + ghost variant.</p></div>
+  <div class="card"><p class="card-title">Design tokens</p><p class="card-sub" style="margin-top:6px;">New accent-soft, warning, success-soft, border, surface-2/3 tokens in <code>lib/helpers/colors.dart</code>.</p></div>
+  <div class="card"><p class="card-title">Chip grid</p><p class="card-sub" style="margin-top:6px;">Shared <code>ChipGrid</code> used in Preparing-for + Edit-profile + future Filter screens.</p></div>
+  <div class="card"><p class="card-title">Zero route changes</p><p class="card-sub" style="margin-top:6px;">All 13 auth routes keep their names and arguments.</p></div>
+  <div class="card"><p class="card-title">Zero API changes</p><p class="card-sub" style="margin-top:6px;"><code>ApiService.sendOtp/verify/register/login/findEmail</code> unchanged.</p></div>
+  <div class="card"><p class="card-title">Store stability</p><p class="card-sub" style="margin-top:6px;"><code>LoginStore</code> + <code>ProfileStore</code> gain a <code>signupDraft</code> observable only.</p></div>
+</div>
+
+</main>
+
+<script>
+  const root = document.documentElement;
+  const key = 'sushrutaTheme';
+  const saved = localStorage.getItem(key);
+  if (saved) root.setAttribute('data-theme', saved);
+  document.getElementById('tt').addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem(key, next);
+  });
+</script>
+</body>
+</html>

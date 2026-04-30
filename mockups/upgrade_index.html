@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sushruta · In-place UI Upgrade Mockups</title>
+<link rel="stylesheet" href="_styles.css" />
+<link rel="stylesheet" href="_upgrade_styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · Upgrade</div>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="upgrade_index.html" class="active">Upgrade set</a>
+    <a href="../UI_UPGRADE_PLAN.md">Plan (MD)</a>
+  </nav>
+  <button class="theme-toggle" id="tt" aria-label="Toggle dark mode">
+    <span class="sun">☀</span><span class="moon">☾</span>
+  </button>
+</header>
+
+<main class="page">
+
+<section class="up-hero">
+  <h1 class="display">Same app. <span class="grad">Sharper app.</span></h1>
+  <p class="lead">
+    Every screen of the real Sushruta student app, paired side-by-side as <b>Today</b> and <b>Upgraded</b>.
+    No new routes, no renamed files, no API changes — just the polish and absorbed mockup features landing
+    on the exact widgets you already ship. Pick an area below.
+  </p>
+  <div class="pill-row">
+    <span class="chip">80+ screens</span>
+    <span class="chip">12 mockup clusters absorbed</span>
+    <span class="chip">0 route changes</span>
+    <span class="chip">0 API signature changes</span>
+    <span class="chip">Flags for backend-dependent bits</span>
+  </div>
+</section>
+
+<section class="section-title">Upgrade areas</section>
+<div class="up-toc">
+  <a href="up_01_auth.html">
+    <span class="num">Area 01 · Auth</span>
+    <h3>Splash, login, OTP, signup, recovery</h3>
+    <p>Phone-first login polish, OTP cell unification, searchable state dropdown, chip-grid exam picker.</p>
+    <span class="count">11 screens</span>
+  </a>
+  <a href="up_02_dashboard_home.html">
+    <span class="num">Area 02 · Dashboard &amp; Home</span>
+    <h3>Tab bar, home, profile tab, search, notifications</h3>
+    <p>Collapse 10-carousel wall, resume banner, glass tab bar, date-grouped notifications, empty states.</p>
+    <span class="count">7 screens</span>
+  </a>
+  <a href="up_03_video.html">
+    <span class="num">Area 03 · Video lectures</span>
+    <h3>Category → subject → chapter → player</h3>
+    <p>Chapter progress %, inline download with live %, buffering indicator, tablet chapter panel.</p>
+    <span class="count">6 screens</span>
+  </a>
+  <a href="up_04_notes.html">
+    <span class="num">Area 04 · Notes</span>
+    <h3>Notes browse + PSPDFKit reader + offline</h3>
+    <p>Reader TOC drawer, in-doc search, last-read persistence, offline flat view replaces 4-level tree.</p>
+    <span class="count">10 screens</span>
+  </a>
+  <a href="up_05_tests.html">
+    <span class="num">Area 05 · Tests &amp; Exams</span>
+    <h3>Test list → in-exam → palette → report</h3>
+    <p>Timer ring + &lt;5min warning, calculator + scratchpad tools, save-on-exit, collapsible report.</p>
+    <span class="count">17 screens</span>
+  </a>
+  <a href="up_06_custom_tests.html">
+    <span class="num">Area 06 · Custom Tests</span>
+    <h3>Builder → preview → exam → report</h3>
+    <p>Step progress, live question-count estimate, draft autosave, preview summary card.</p>
+    <span class="count">10 screens</span>
+  </a>
+  <a href="up_07_progress_reports.html">
+    <span class="num">Area 07 · Progress &amp; Reports</span>
+    <h3>Dashboard + report stack + SPR + Master reports</h3>
+    <p>Readiness gauge, percentile bar, rank history (SVG), TPQ histogram, concept heatmap — all behind flags.</p>
+    <span class="count">13 screens</span>
+  </a>
+  <a href="up_08_bookmarks.html">
+    <span class="num">Area 08 · Bookmarks</span>
+    <h3>Main list, master bookmarks, new-flow</h3>
+    <p>Collapse 4-level tree to a single flat list with chip filters. Badge counts. Jump-to-question.</p>
+    <span class="count">10 screens</span>
+  </a>
+  <a href="up_09_subscription_store.html">
+    <span class="num">Area 09 · Subscription &amp; Store</span>
+    <h3>Plans, checkout, orders, hardcopy, flipbook</h3>
+    <p>Unified three-step checkout, CSS flipbook preview (mobile + iPad spread), vertical order timeline.</p>
+    <span class="count">20 screens</span>
+  </a>
+  <a href="up_10_live_classes.html">
+    <span class="num">Area 10 · Live Classes</span>
+    <h3>Hub, upcoming, live, recordings</h3>
+    <p>Countdown chips, subscription-gated Join, calendar add-on, recording quality chip.</p>
+    <span class="count">4 screens</span>
+  </a>
+  <a href="up_11_master_tests.html">
+    <span class="num">Area 11 · Master Tests</span>
+    <h3>Category → section-wise → leaderboard</h3>
+    <p>Section-based mode polish, per-section timer + lock, user-row sticky leaderboard with percentile.</p>
+    <span class="count">10 screens</span>
+  </a>
+  <a href="up_12_profile_misc.html">
+    <span class="num">Area 12 · Profile &amp; Misc</span>
+    <h3>Profile, active sub, blog, testimonials, about, review queue</h3>
+    <p>Grouped settings, live theme preview, blog typography, testimonial pause-on-hover, AppEmptyState.</p>
+    <span class="count">11 screens</span>
+  </a>
+</div>
+
+<section class="section-title">How to read a screen pair</section>
+<div class="card" style="max-width: 820px; margin: 0 auto;">
+  <div class="card-title" style="margin-bottom: 8px;">What "Today" means</div>
+  <div class="card-sub" style="margin-bottom: 14px;">A faithful approximation of the current Flutter UI based on the actual <code>lib/modules/*</code> files — same hierarchy, same widgets (<code>CustomButton</code>, <code>SearchFiled</code>, <code>ListView</code>, <code>CarouselSlider</code>), same spacing. Issues visible in code (blank-screen loading, hidden filters, crowded carousels, silent errors) are reflected honestly.</div>
+  <div class="card-title" style="margin-bottom: 8px;">What "Upgraded" means</div>
+  <div class="card-sub" style="margin-bottom: 14px;">Same widget tree, same MobX store, same route, same API call — just with the new design-system tokens, tighter spacing, the absorbed mockup features where relevant, and skeleton/empty/error states filled in.</div>
+  <div class="card-title" style="margin-bottom: 8px;">The "What changes" box under each pair</div>
+  <div class="card-sub">Lists the concrete deltas: new tokens applied, which mockup cluster landed, which feature flag gates the new bit (if any), which existing widget file is the target.</div>
+</div>
+
+<section class="section-title">Legend</section>
+<div class="quilt" style="grid-template-columns: repeat(auto-fill, minmax(200px,1fr));">
+  <div class="card"><p class="card-title"><span class="ba-tag today" style="margin-bottom:0;">Today</span></p><p class="card-sub" style="margin-top:8px;">Approximation of the current shipping UI.</p></div>
+  <div class="card"><p class="card-title"><span class="ba-tag after" style="margin-bottom:0;">Upgraded</span></p><p class="card-sub" style="margin-top:8px;">In-place upgrade. Same routes, same APIs.</p></div>
+  <div class="card"><p class="card-title"><span class="ba-tag tablet" style="margin-bottom:0;">Tablet / iPad</span></p><p class="card-sub" style="margin-top:8px;">Responsive variant at ≥744px.</p></div>
+  <div class="card"><p class="card-title"><span class="ba-tag laptop" style="margin-bottom:0;">Laptop / macOS</span></p><p class="card-sub" style="margin-top:8px;">Responsive variant at ≥1024px.</p></div>
+  <div class="card"><p class="card-title"><span class="flag-chip">feature flag</span></p><p class="card-sub" style="margin-top:8px;">Renders only when the backend endpoint exists. Off by default until API ships.</p></div>
+</div>
+
+</main>
+
+<script>
+  const root = document.documentElement;
+  const key = 'sushrutaTheme';
+  const saved = localStorage.getItem(key);
+  if (saved) root.setAttribute('data-theme', saved);
+  document.getElementById('tt').addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem(key, next);
+  });
+</script>
+</body>
+</html>

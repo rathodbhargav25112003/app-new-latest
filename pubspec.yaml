@@ -1,0 +1,212 @@
+name: shusruta_lms
+description: Sushruta LGS - Learning & Growth System
+
+publish_to: 'none'
+
+version: 12.1.1
+
+environment:
+  sdk: '>=3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_svg:
+  overlay_pop_up:
+  flutter_mobx: ^2.2.0
+  connectivity_plus: ^6.0.3
+  internet_connection_checker: ^3.0.1
+  mobx: ^2.3.0
+  provider: ^6.1.2
+  get: ^4.6.6
+  otp_text_field: ^1.1.3
+  # SMS-Retriever-API-based OTP autofill on Android (no SMS permission
+  # required). On iOS we rely on the platform's built-in QuickType
+  # AutofillHints.oneTimeCode handling — no plugin needed.
+  sms_autofill: ^2.4.0
+  # Biometric (Face ID / Touch ID / fingerprint) — used by
+  # services/biometric_auth_service.dart to gate app open after the
+  # student opts into "remember me on this device".
+  local_auth: ^2.3.0
+  # Root / jailbreak detection — used by services/jailbreak_guard.dart
+  # to flag tampered devices on cold-boot. Soft warning, not a hard
+  # block (per medical-education product policy).
+  flutter_jailbreak_detection: ^1.10.0
+  # In-app immediate / flexible update flow on Android (Google Play
+  # in-app updates API). iOS has no equivalent, so we fall back to
+  # opening the App Store via url_launcher.
+  in_app_update: ^4.2.3
+  # SHA-256 + salt for the PIN-lock service. Not crypto-grade KDF —
+  # the PIN is a convenience layer; real auth is the JWT.
+  crypto: ^3.0.3
+  intl: ^0.20.2
+  mobx_codegen: ^2.4.0
+  http: ^1.2.1
+  firebase_core: ^4.4.0
+  firebase_messaging: ^16.1.1
+  firebase_crashlytics: ^5.0.7
+  shared_preferences: ^2.2.3
+  vimeo_player_flutter: ^0.1.0
+  video_player: ^2.8.6
+  html: ^0.15.6
+  csslib: ^1.0.2
+  expandable_text: ^2.3.0
+  animated_toggle_switch: ^0.8.5
+  flutter_downloader: ^1.11.6
+  path_provider: ^2.1.3
+  permission_handler: ^12.0.0+1
+  # flutter_windowmanager: ^0.2.0
+  photo_view: ^0.15.0
+  timezone: ^0.10.1
+  nuts_activity_indicator: ^1.0.0
+  url_launcher: ^6.2.6
+  super_tooltip: ^2.0.6
+  sqflite: ^2.3.3
+  encrypt: ^5.0.3
+  screen_protector: ^1.4.2+1
+  socket_io_client: ^3.1.2
+  flutter_html: ^3.0.0
+  otpless_flutter: ^2.2.4
+  store_redirect: ^2.0.2
+  pie_chart: ^5.4.0
+  external_app_launcher: ^4.0.3
+  auto_scroll_text: ^0.0.7
+  font_awesome_flutter: ^10.7.0
+  typewritertext: ^3.0.9
+  flutter_chat_ui: ^2.9.0
+  showcaseview: ^5.0.1
+  upgrader: ^12.5.0
+  progress_border: ^0.1.5
+  gradient_borders: ^1.0.1
+  flutter_rating_bar: ^4.0.1
+  flutter_staggered_grid_view: ^0.7.0
+  vibration: ^3.1.3
+  sqflite_common_ffi: ^2.3.4+4
+  webview_flutter: ^4.5.0
+  webview_flutter_web: ^0.2.3+4
+  window_manager: ^0.5.1
+  webview_windows: ^0.4.0
+  ffi: ^2.1.2
+  msix: ^3.16.8
+  cached_video_player_plus: ^4.0.3
+  flick_video_player: ^0.9.0
+  # razorpay_flutter: ^1.4.0
+  circular_chart_flutter: ^0.0.2
+  package_info_plus: ^9.0.0
+  flutter_upgrade_version: ^1.1.8
+  chewie: ^1.8.6
+  flutter_local_notifications: ^19.2.0
+  flutter_markdown: ^0.7.7+1
+  swipeable_button_view: ^0.0.2
+  carousel_slider: ^5.0.0
+  markdown_widget: ^2.3.2+8
+  flutter_quill: ^11.4.1
+  markdown_quill: ^4.3.0
+  better_player_plus: ^1.0.8
+  # compdfkit_flutter: ^2.1.3
+  lottie: ^3.1.4
+  flutter_inappwebview: ^6.0.0
+  video_player_macos: ^2.0.1
+  video_player_win: ^3.1.1
+  visibility_detector: ^0.4.0+2
+  syncfusion_flutter_charts: ^32.1.24
+  syncfusion_flutter_pdfviewer: ^32.1.24
+  syncfusion_flutter_pdf: ^32.1.24
+  #  overlay_screen: ^1.2.0+1-nullsafety.0
+  cryptography: ^2.7.0
+  flutter_secure_storage: ^10.0.0
+  #  overlay_screen: ^1.2.0+1-nullsafety.0
+  # pspdfkit_flutter:
+  #   path: forked_packages/pspdfkit_flutter
+  # pspdfkit_flutter:
+  #   path: plugins/pspdfkit_flutter
+  razorpay_flutter: ^1.4.0
+  device_info_plus: ^12.3.0
+  nutrient_flutter: ^5.5.1
+  in_app_purchase: ^3.1.13
+  flutter_keyboard_visibility: ^6.0.0
+  flutter_keyboard_visibility_temp_fork: ^0.1.5
+  keyboard_actions: ^4.2.0
+  flutter_tts: ^4.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.8
+  json_annotation: ^4.9.0
+  hive_generator: ^2.0.1
+  json_serializable: ^6.7.1
+  flutter_launcher_icons: ^0.14.3
+  cached_network_image: ^3.3.0
+  flutter_cache_manager: ^3.3.0
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/image/app_icon.jpg"
+  windows:
+    generate: true
+    image_path: "assets/image/app_icon.jpg"
+    icon_size: 256 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/image/app_icon.jpg"  
+    
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - images/pdf_viewer/
+    - assets/image/
+
+  fonts:
+    - family: Jost
+      fonts:
+        - asset: assets/fonts/Jost-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Jost-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Jost-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Jost-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Jost-Black.ttf
+          weight: 900
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Black.ttf
+          weight: 900
+
+dependency_overrides:
+  circular_chart_flutter:
+    path: lib/helpers/forked_packages/circular_chart_flutter
+  # Pin foundation packages to pre-FFI versions to avoid objective_c.framework
+  # load failures on iOS simulator. These versions use method channels instead
+  # of the objective_c native-assets FFI that fails to bundle on iOS 26 sim.
+  path_provider_foundation: 2.4.0
+  shared_preferences_foundation: 2.4.0
+
+msix_config:
+  display_name: SushrutaLGS
+  publisher_display_name: Sushruta Educations LLP
+  identity_name: SushrutaEducationsLLP.SushrutaLGS
+  msix_version: 1.0.0.0
+  publisher: CN=8290C9A8-7081-45B8-BC02-CF15E1CB73F6
+  logo_path: D:\shusruta_lms_phase3\assets\image\app_icon.jpg
+  capabilities: "internetClient"
+  store: true

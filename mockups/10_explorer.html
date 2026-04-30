@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>10 · Content Explorer — shorter hierarchy flow</title>
+<link rel="stylesheet" href="_styles.css"/>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · UI 2.0</div>
+  <nav>
+    <a href="index.html">Overview</a><a href="01_auth.html">Auth</a><a href="02_home.html">Home</a>
+    <a href="03_profile.html">Profile</a><a href="04_video.html">Video</a>
+    <a href="05_notes.html">Notes</a><a href="06_tests.html">Tests</a>
+    <a href="07_progress.html">Progress</a><a href="08_subscription.html">Plans</a>
+    <a href="09_bonus.html">Extras</a><a href="10_explorer.html" class="active">Explorer</a>
+  </nav>
+  <button class="theme-toggle" id="tt"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+
+<h1 class="display">10 · <span class="grad">Content Explorer</span> — a shorter drill</h1>
+<p class="lead">
+  Today: <b>Category → Subcategory → Topic → Content list → Content</b> (4–5 taps). New design:
+  one screen, instant narrowing. Same <code>/api/category</code>, <code>/api/subcategory</code>, <code>/api/topic</code>, <code>/api/questions</code>
+  endpoints — no backend work required. Works identically for MCQs, Videos, and Notes.
+</p>
+
+<!-- BEFORE / AFTER -->
+<section class="section-title">Before &amp; after — from 4 taps to 2</section>
+<div class="row">
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen" style="background:var(--surface-2);">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Categories</h2></div>
+        <div style="padding:6px 16px;">
+          <p style="margin:4px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Step 1 · pick a category</p>
+          <div class="row-list"><div class="icon accent">🏥</div><div style="flex:1;"><div class="t">General Surgery</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list"><div class="icon purple">🧠</div><div style="flex:1;"><div class="t">Neurosurgery</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list"><div class="icon teal">🦴</div><div style="flex:1;"><div class="t">Ortho</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list"><div class="icon pink">💗</div><div style="flex:1;"><div class="t">Breast</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list" style="border:0;"><div class="icon warn">🔥</div><div style="flex:1;"><div class="t">Burns</div></div><span style="color:var(--ink-3);">›</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="cap" style="color:var(--bad);">❌ Before — Step 1 of 4<small>User taps General Surgery…</small></p>
+  </div>
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen" style="background:var(--surface-2);">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="appbar"><div class="back">←</div><h2>General Surgery</h2></div>
+        <div style="padding:6px 16px;">
+          <p style="margin:4px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Step 2 · subcategory</p>
+          <div class="row-list"><div class="icon warn">🩸</div><div style="flex:1;"><div class="t">Shock</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list"><div class="icon ok">🔰</div><div style="flex:1;"><div class="t">Wound healing</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list"><div class="icon pink">💗</div><div style="flex:1;"><div class="t">Breast</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list" style="border:0;"><div class="icon teal">🫁</div><div style="flex:1;"><div class="t">Esophagus</div></div><span style="color:var(--ink-3);">›</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="cap" style="color:var(--bad);">❌ Before — Step 2 of 4<small>Tap again…</small></p>
+  </div>
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen" style="background:var(--surface-2);">
+        <div class="statusbar"><span>9:41</span><span>●●●●</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Shock</h2></div>
+        <div style="padding:6px 16px;">
+          <p style="margin:4px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Step 3 · topic</p>
+          <div class="row-list"><div class="icon" style="background:var(--surface-3); color:var(--ink-2);">●</div><div style="flex:1;"><div class="t">Hypovolemic</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list"><div class="icon" style="background:var(--surface-3); color:var(--ink-2);">●</div><div style="flex:1;"><div class="t">Septic / distributive</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list"><div class="icon" style="background:var(--surface-3); color:var(--ink-2);">●</div><div style="flex:1;"><div class="t">Cardiogenic</div></div><span style="color:var(--ink-3);">›</span></div>
+          <div class="row-list" style="border:0;"><div class="icon" style="background:var(--surface-3); color:var(--ink-2);">●</div><div style="flex:1;"><div class="t">Obstructive</div></div><span style="color:var(--ink-3);">›</span></div>
+        </div>
+        <p style="color:var(--bad); margin:30px 16px 0; font-size:12px; text-align:center; font-weight:700;">… still another tap to see the actual MCQs 😤</p>
+      </div>
+    </div>
+    <p class="cap" style="color:var(--bad);">❌ Before — Step 3 of 4<small>Then one more tap to see content. 4 screen loads.</small></p>
+  </div>
+</div>
+
+<!-- AFTER -->
+<div class="row" style="margin-top:30px;">
+
+  <!-- UNIFIED EXPLORER — MCQ -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar">
+          <div class="back">←</div>
+          <h2>Browse MCQs</h2>
+          <div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">🔍</div></div>
+        </div>
+
+        <!-- STICKY CATEGORY CHIP ROW -->
+        <div style="position:sticky; top:0; z-index:2; background:var(--glass-bg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); padding:6px 0; border-bottom:1px solid var(--glass-brd);">
+          <div style="display:flex; gap:6px; overflow-x:auto; padding:4px 16px;">
+            <span class="chip accent" style="font-weight:700;">🏥 General Surgery</span>
+            <span class="chip">🧠 Neuro</span>
+            <span class="chip">🦴 Ortho</span>
+            <span class="chip">💗 Breast</span>
+            <span class="chip">🔥 Burns</span>
+          </div>
+          <div style="display:flex; gap:6px; overflow-x:auto; padding:4px 16px 6px;">
+            <span class="chip">All subcategories</span>
+            <span class="chip" style="background:var(--ink); color:#fff;">🩸 Shock</span>
+            <span class="chip">🔰 Wound</span>
+            <span class="chip">💗 Breast</span>
+            <span class="chip">🫁 Esophagus</span>
+          </div>
+        </div>
+
+        <div class="scroll" style="padding-bottom:90px; max-height:calc(720px - 180px);">
+          <!-- breadcrumb -->
+          <p style="margin:10px 2px; font-size:11px; color:var(--ink-3);">
+            General Surgery <b style="color:var(--ink-3);">›</b> <b style="color:var(--ink);">Shock</b>
+            <span style="float:right; font-weight:700; color:var(--accent);">84 MCQs</span>
+          </p>
+
+          <!-- Topic sections — content inline, expandable -->
+          <div class="card" style="padding:0; margin-bottom:10px; overflow:hidden;">
+            <div style="padding:12px 14px; display:flex; align-items:center; gap:10px; background:var(--surface-2);">
+              <span style="width:6px; height:6px; border-radius:50%; background:var(--bad);"></span>
+              <p style="margin:0; flex:1; font-size:13.5px; font-weight:700;">Hypovolemic shock</p>
+              <span class="chip">24 Qs</span>
+              <span style="color:var(--ink-3); font-size:14px;">⌄</span>
+            </div>
+            <!-- expanded content (inline MCQ previews) -->
+            <div class="row-list" style="padding:10px 14px;">
+              <span style="width:28px; height:28px; border-radius:50%; background:var(--warn-soft); color:var(--warn); display:grid; place-items:center; font-size:11px; font-weight:700;">Q</span>
+              <div style="flex:1;">
+                <p style="margin:0; font-size:12.5px; font-weight:600; line-height:1.35;">A 45-yo trauma victim with BP 80/50…</p>
+                <p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Bailey · medium</p>
+              </div>
+              <span style="color:var(--ink-3);">›</span>
+            </div>
+            <div class="row-list" style="padding:10px 14px;">
+              <span style="width:28px; height:28px; border-radius:50%; background:var(--ok-soft); color:var(--ok); display:grid; place-items:center; font-size:11px; font-weight:700;">Q</span>
+              <div style="flex:1;">
+                <p style="margin:0; font-size:12.5px; font-weight:600; line-height:1.35;">Parkland formula — total fluid for…</p>
+                <p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Sabiston · easy · ✓ done</p>
+              </div>
+              <span style="color:var(--ink-3);">›</span>
+            </div>
+            <div class="row-list" style="padding:10px 14px; border:0;">
+              <span style="width:28px; height:28px; border-radius:50%; background:var(--bad-soft); color:var(--bad); display:grid; place-items:center; font-size:11px; font-weight:700;">Q</span>
+              <div style="flex:1;">
+                <p style="margin:0; font-size:12.5px; font-weight:600; line-height:1.35;">Class IV hemorrhage definition…</p>
+                <p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Schwartz · hard · ✗ got wrong</p>
+              </div>
+              <span style="color:var(--ink-3);">›</span>
+            </div>
+            <div style="text-align:center; padding:6px 0 10px; font-size:11.5px; color:var(--accent); font-weight:700;">+ 21 more · Practice all 24 →</div>
+          </div>
+
+          <div class="card" style="padding:12px 14px; display:flex; align-items:center; gap:10px; margin:0 0 8px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--ok);"></span>
+            <p style="margin:0; flex:1; font-size:13.5px; font-weight:700;">Septic / distributive</p>
+            <span class="chip">18 Qs</span>
+            <span style="color:var(--ink-3); font-size:14px;">›</span>
+          </div>
+          <div class="card" style="padding:12px 14px; display:flex; align-items:center; gap:10px; margin:0 0 8px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--warn);"></span>
+            <p style="margin:0; flex:1; font-size:13.5px; font-weight:700;">Cardiogenic</p>
+            <span class="chip">16 Qs</span>
+            <span style="color:var(--ink-3); font-size:14px;">›</span>
+          </div>
+          <div class="card" style="padding:12px 14px; display:flex; align-items:center; gap:10px; margin:0;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--accent);"></span>
+            <p style="margin:0; flex:1; font-size:13.5px; font-weight:700;">Obstructive</p>
+            <span class="chip">12 Qs</span>
+            <span style="color:var(--ink-3); font-size:14px;">›</span>
+          </div>
+
+          <!-- smart action at bottom -->
+          <div class="card" style="margin-top:14px; padding:14px; border:1px dashed var(--accent); background:linear-gradient(135deg, var(--accent-soft), transparent);">
+            <div class="card-head"><div class="icon accent">⚡</div><div><p class="card-title">Practice all 84 MCQs in Shock</p><p class="card-sub">Mixed topics · est. 65 min</p></div></div>
+            <button class="btn primary block" style="margin-top:6px;">Start mixed drill →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap" style="color:var(--ok);">✅ After — MCQ Explorer<small>Sticky chip rows (cat + sub) · inline expandable topic cards · 2 taps to any question</small></p>
+  </div>
+
+  <!-- VIDEO EXPLORER -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Browse Videos</h2></div>
+
+        <div style="position:sticky; top:0; z-index:2; background:var(--glass-bg); backdrop-filter:blur(14px); padding:6px 0; border-bottom:1px solid var(--glass-brd);">
+          <div style="display:flex; gap:6px; overflow-x:auto; padding:4px 16px;">
+            <span class="chip accent" style="font-weight:700;">🏥 General Surgery</span>
+            <span class="chip">🧠 Neuro</span>
+            <span class="chip">🦴 Ortho</span>
+            <span class="chip">💗 Breast</span>
+          </div>
+          <div style="display:flex; gap:6px; overflow-x:auto; padding:4px 16px 6px;">
+            <span class="chip" style="background:var(--ink); color:#fff;">🔰 Wound healing</span>
+            <span class="chip">🩸 Shock</span>
+            <span class="chip">🫁 Upper GI</span>
+            <span class="chip">💗 Breast</span>
+          </div>
+        </div>
+
+        <div class="scroll" style="padding-bottom:90px; max-height:calc(720px - 180px);">
+          <p style="margin:10px 2px; font-size:11px; color:var(--ink-3);">
+            General Surgery <b style="color:var(--ink-3);">›</b> <b style="color:var(--ink);">Wound healing</b>
+            <span style="float:right; font-weight:700; color:var(--accent);">12 lectures · 4h 18m</span>
+          </p>
+
+          <!-- topic as header + content list -->
+          <p style="margin:8px 2px 8px; font-size:12px; font-weight:700; color:var(--ink-2);">Phases &amp; basics</p>
+          <div class="row-list">
+            <div class="thumb v" style="width:54px; height:54px; font-size:16px;">▶</div>
+            <div style="flex:1;"><p style="margin:0; font-size:13px; font-weight:700;">Phases &amp; cytokines</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">28 min · 68% · 4.9★</p></div>
+            <div class="bar" style="width:40px;"><span class="acc" style="width:68%;"></span></div>
+          </div>
+          <div class="row-list">
+            <div class="thumb v" style="width:54px; height:54px; font-size:16px;">▶</div>
+            <div style="flex:1;"><p style="margin:0; font-size:13px; font-weight:700;">Growth factors deep-dive</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">18 min · 4.7★</p></div>
+            <span class="chip">New</span>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:12px; font-weight:700; color:var(--ink-2);">Pathology</p>
+          <div class="row-list">
+            <div class="thumb v" style="width:54px; height:54px; font-size:16px;">▶</div>
+            <div style="flex:1;"><p style="margin:0; font-size:13px; font-weight:700;">Delayed healing</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">22 min · DIDN'T HEAL mnemonic</p></div>
+            <span style="color:var(--ok);">✓</span>
+          </div>
+          <div class="row-list">
+            <div class="thumb v" style="width:54px; height:54px; font-size:16px;">▶</div>
+            <div style="flex:1;"><p style="margin:0; font-size:13px; font-weight:700;">Keloid vs hypertrophic</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">14 min · clinical</p></div>
+            <span class="chip accent">↓</span>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:12px; font-weight:700; color:var(--ink-2);">Clinical scenarios</p>
+          <div class="row-list" style="border:0;">
+            <div class="thumb v" style="width:54px; height:54px; font-size:16px;">▶</div>
+            <div style="flex:1;"><p style="margin:0; font-size:13px; font-weight:700;">Diabetic foot — stepwise</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">26 min · 4.9★</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap" style="color:var(--ok);">✅ After — Video Explorer<small>Same 2-chip filter rows · topic as subheader · videos inline with progress dots</small></p>
+  </div>
+
+  <!-- NOTES EXPLORER -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Browse Notes</h2></div>
+
+        <div style="position:sticky; top:0; z-index:2; background:var(--glass-bg); backdrop-filter:blur(14px); padding:6px 0; border-bottom:1px solid var(--glass-brd);">
+          <div style="display:flex; gap:6px; overflow-x:auto; padding:4px 16px;">
+            <span class="chip accent" style="font-weight:700;">🏥 General Surgery</span>
+            <span class="chip">🧠 Neuro</span>
+            <span class="chip">🦴 Ortho</span>
+          </div>
+          <div style="display:flex; gap:6px; overflow-x:auto; padding:4px 16px 6px;">
+            <span class="chip" style="background:var(--ink); color:#fff;">🩸 Shock</span>
+            <span class="chip">🔰 Wound</span>
+            <span class="chip">🫁 Upper GI</span>
+            <span class="chip">💗 Breast</span>
+          </div>
+        </div>
+
+        <div class="scroll" style="padding-bottom:90px; max-height:calc(720px - 180px);">
+          <p style="margin:10px 2px; font-size:11px; color:var(--ink-3);">General Surgery <b style="color:var(--ink-3);">›</b> <b style="color:var(--ink);">Shock</b><span style="float:right; font-weight:700; color:var(--accent);">6 notes</span></p>
+
+          <div class="card" style="padding:12px; display:flex; gap:10px; align-items:center;">
+            <div class="thumb n" style="width:48px; height:48px; font-size:16px; border-radius:10px;">📖</div>
+            <div style="flex:1;">
+              <p style="margin:0; font-size:13px; font-weight:700;">Shock — vasopressor ladder</p>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">1-pager · 3 min read</p>
+            </div>
+            <span class="chip accent">Pinned</span>
+          </div>
+          <div class="card" style="padding:12px; display:flex; gap:10px; align-items:center;">
+            <div class="thumb n" style="width:48px; height:48px; font-size:16px; border-radius:10px;">📖</div>
+            <div style="flex:1;">
+              <p style="margin:0; font-size:13px; font-weight:700;">MAP targets &amp; lactate</p>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">4 min · updated 2d ago</p>
+            </div>
+            <span style="color:var(--ok);">✓</span>
+          </div>
+          <div class="card" style="padding:12px; display:flex; gap:10px; align-items:center;">
+            <div class="thumb n" style="width:48px; height:48px; font-size:16px; border-radius:10px;">📖</div>
+            <div style="flex:1;">
+              <p style="margin:0; font-size:13px; font-weight:700;">Classification table</p>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Table · 1 min scan</p>
+            </div>
+          </div>
+          <div class="card" style="padding:12px; display:flex; gap:10px; align-items:center;">
+            <div class="thumb n" style="width:48px; height:48px; font-size:16px; border-radius:10px;">📖</div>
+            <div style="flex:1;">
+              <p style="margin:0; font-size:13px; font-weight:700;">ATLS hemorrhage classes</p>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Mnemonic · 2 min</p>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:10px; padding:14px; border:1px dashed var(--accent); background:linear-gradient(135deg, var(--accent-soft), transparent);">
+            <div class="card-head"><div class="icon accent">📑</div><div><p class="card-title">Combined PDF of all Shock notes</p><p class="card-sub">24 pages · offline-ready</p></div></div>
+            <button class="btn primary block" style="margin-top:6px;">Download &amp; open →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap" style="color:var(--ok);">✅ After — Notes Explorer<small>Same pattern · pinned badge · "combined PDF" as smart primary action</small></p>
+  </div>
+</div>
+
+<!-- INTERACTION DETAIL -->
+<section class="section-title">How the shorter flow works (same endpoints)</section>
+<div class="quilt">
+  <a href="#" onclick="return false;"><span class="num">Mount</span><h3>One request fans out</h3><p>On open, fire <code>/category</code> + <code>/subcategory?category_id</code> + <code>/topic?subcategory_id</code> in parallel. All three chip rows + topic sections render together.</p></a>
+  <a href="#" onclick="return false;"><span class="num">Tap chip</span><h3>Client-side filter, no re-navigate</h3><p>Switching category just swaps the subcategory chip row (already cached) and re-fetches topics. No new route, no loading state flash.</p></a>
+  <a href="#" onclick="return false;"><span class="num">Tap topic</span><h3>Inline expand</h3><p>Expanded card fetches <code>/questions?topic_id</code> (or <code>/videos</code> / <code>/notes</code>). First 3 render inline with "see all" trailer.</p></a>
+  <a href="#" onclick="return false;"><span class="num">Offline</span><h3>Pre-cache subcategories</h3><p>We already fetch the full hierarchy at app start. The Explorer just reads from the cached tree — no extra round trips for the chip rows.</p></a>
+</div>
+
+<section class="section-title">📱 iPad — master-detail (true single screen)</section>
+<div class="row">
+  <div>
+    <div class="device tablet" style="width:820px;">
+      <div class="screen" style="display:grid; grid-template-columns:240px 280px 1fr; height:600px;">
+        <!-- Category rail -->
+        <div style="background:var(--surface-2); border-right:1px solid var(--border); padding:18px 12px; overflow-y:auto;">
+          <p style="margin:0 6px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Categories</p>
+          <div style="padding:10px 12px; border-radius:10px; background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:13px; display:flex; gap:10px;"><span>🏥</span>General Surgery<span style="margin-left:auto; font-size:11px;">324</span></div>
+          <div style="padding:10px 12px; border-radius:10px; color:var(--ink-2); font-size:13px; font-weight:600; display:flex; gap:10px;"><span>🧠</span>Neurosurgery<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">128</span></div>
+          <div style="padding:10px 12px; border-radius:10px; color:var(--ink-2); font-size:13px; font-weight:600; display:flex; gap:10px;"><span>🦴</span>Ortho<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">156</span></div>
+          <div style="padding:10px 12px; border-radius:10px; color:var(--ink-2); font-size:13px; font-weight:600; display:flex; gap:10px;"><span>💗</span>Breast<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">88</span></div>
+          <div style="padding:10px 12px; border-radius:10px; color:var(--ink-2); font-size:13px; font-weight:600; display:flex; gap:10px;"><span>🔥</span>Burns<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">42</span></div>
+          <div style="padding:10px 12px; border-radius:10px; color:var(--ink-2); font-size:13px; font-weight:600; display:flex; gap:10px;"><span>🫁</span>Upper GI<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">112</span></div>
+        </div>
+        <!-- Subcategory + topic -->
+        <div style="border-right:1px solid var(--border); padding:18px 14px; overflow-y:auto;">
+          <p style="margin:0 6px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">General Surgery · subcategories</p>
+          <div style="padding:10px 12px; border-radius:10px; background:var(--surface-2); font-size:13px; font-weight:700; display:flex; gap:8px; align-items:center; margin-bottom:4px;"><span style="width:6px; height:6px; border-radius:50%; background:var(--bad);"></span>Shock<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">84</span></div>
+          <div style="padding:10px 12px; border-radius:10px; font-size:13px; color:var(--ink-2); font-weight:600; display:flex; gap:8px; align-items:center;"><span style="width:6px; height:6px; border-radius:50%; background:var(--ok);"></span>Wound healing<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">74</span></div>
+          <div style="padding:10px 12px; border-radius:10px; font-size:13px; color:var(--ink-2); font-weight:600; display:flex; gap:8px; align-items:center;"><span style="width:6px; height:6px; border-radius:50%; background:var(--pink);"></span>Breast<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">62</span></div>
+
+          <p style="margin:18px 6px 10px; font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.08em;">Shock · topics</p>
+          <div style="padding:10px 12px; border-radius:10px; background:var(--accent-soft); color:var(--accent); font-weight:700; font-size:13px; display:flex; gap:8px; align-items:center;">Hypovolemic<span style="margin-left:auto; font-size:11px;">24</span></div>
+          <div style="padding:10px 12px; border-radius:10px; color:var(--ink-2); font-size:13px; font-weight:600; display:flex; gap:8px;">Septic<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">18</span></div>
+          <div style="padding:10px 12px; border-radius:10px; color:var(--ink-2); font-size:13px; font-weight:600; display:flex; gap:8px;">Cardiogenic<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">16</span></div>
+          <div style="padding:10px 12px; border-radius:10px; color:var(--ink-2); font-size:13px; font-weight:600; display:flex; gap:8px;">Obstructive<span style="margin-left:auto; font-size:11px; color:var(--ink-3);">12</span></div>
+        </div>
+        <!-- Content list -->
+        <div style="padding:18px 22px; overflow-y:auto;">
+          <p style="margin:0; font-size:11px; color:var(--ink-3);">General Surgery › Shock › Hypovolemic</p>
+          <h2 style="margin:4px 0 14px; font-size:22px; letter-spacing:-0.02em;">24 MCQs · Hypovolemic shock</h2>
+
+          <div style="display:flex; gap:8px; margin-bottom:14px;">
+            <button class="btn primary">▶ Start drill (all 24)</button>
+            <button class="btn ghost">Wrong ones only</button>
+          </div>
+
+          <div class="row-list">
+            <span style="width:26px; height:26px; border-radius:50%; background:var(--bad-soft); color:var(--bad); display:grid; place-items:center; font-size:11px; font-weight:700;">Q</span>
+            <div style="flex:1; margin-left:4px;"><p style="margin:0; font-size:13px; font-weight:600;">Class IV hemorrhage definition and fluid resuscitation sequence?</p><p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Schwartz · hard · ✗ got wrong</p></div>
+            <span class="chip">Open</span>
+          </div>
+          <div class="row-list">
+            <span style="width:26px; height:26px; border-radius:50%; background:var(--ok-soft); color:var(--ok); display:grid; place-items:center; font-size:11px; font-weight:700;">Q</span>
+            <div style="flex:1; margin-left:4px;"><p style="margin:0; font-size:13px; font-weight:600;">Parkland formula — total fluid in first 24h for 50% TBSA burn?</p><p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Sabiston · easy · ✓ done</p></div>
+            <span class="chip">Review</span>
+          </div>
+          <div class="row-list">
+            <span style="width:26px; height:26px; border-radius:50%; background:var(--warn-soft); color:var(--warn); display:grid; place-items:center; font-size:11px; font-weight:700;">Q</span>
+            <div style="flex:1; margin-left:4px;"><p style="margin:0; font-size:13px; font-weight:600;">Young trauma victim, BP 80/50 systolic pulse 120 — class of hemorrhage?</p><p style="margin:2px 0 0; font-size:11px; color:var(--ink-3);">Bailey · medium</p></div>
+            <span class="chip">Open</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">iPad master-detail explorer<small>3 panes: category · subcategory+topic · content — zero navigation hops</small></p>
+  </div>
+</div>
+
+<section class="section-title">Key UX wins</section>
+<div class="quilt">
+  <a href="#" onclick="return false;"><span class="num">4 → 2 taps</span><h3>Same destination, half the friction</h3><p>Average 50% fewer taps to reach a question / video / note. Back button never used.</p></a>
+  <a href="#" onclick="return false;"><span class="num">Lateral speed</span><h3>Switch siblings without going up</h3><p>Chip rows mean jumping from Shock to Wound healing is one tap, not back-back-tap.</p></a>
+  <a href="#" onclick="return false;"><span class="num">Visible state</span><h3>"What have I already done"</h3><p>Progress rings on topic chips (42% attempted) and per-MCQ icons (✓ done / ✗ wrong / ○ untouched) eliminate ambiguity.</p></a>
+  <a href="#" onclick="return false;"><span class="num">Smart defaults</span><h3>The student's last subcategory pre-selected</h3><p>On reopen, the chip row remembers where they were — one tap to resume context.</p></a>
+  <a href="#" onclick="return false;"><span class="num">Bulk actions</span><h3>"Drill all · Wrong only · Unseen only"</h3><p>Topic headers expose batch practice buttons so students don't drill one question at a time when they meant 20.</p></a>
+  <a href="#" onclick="return false;"><span class="num">Zero API changes</span><h3>Same endpoints as today</h3><p>Uses existing category / subcategory / topic / questions endpoints. Only the client structure changes.</p></a>
+</div>
+
+</main>
+<script>
+  const r=document.documentElement,k='sushrutaTheme',s=localStorage.getItem(k);
+  if(s)r.setAttribute('data-theme',s);
+  document.getElementById('tt').onclick=()=>{const n=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',n);localStorage.setItem(k,n);};
+</script>
+</body>
+</html>

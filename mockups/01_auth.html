@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>01 · Onboarding &amp; Auth — Sushruta UI 2.0</title>
+<link rel="stylesheet" href="_styles.css"/>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · UI 2.0</div>
+  <nav>
+    <a href="index.html">Overview</a>
+    <a href="01_auth.html" class="active">Auth</a>
+    <a href="02_home.html">Home</a>
+    <a href="03_profile.html">Profile</a>
+    <a href="04_video.html">Video</a>
+    <a href="05_notes.html">Notes</a>
+    <a href="06_tests.html">Tests</a>
+    <a href="07_progress.html">Progress</a>
+    <a href="08_subscription.html">Plans</a>
+    <a href="09_bonus.html">Extras</a>
+  </nav>
+  <button class="theme-toggle" id="tt"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+
+<h1 class="display">01 · <span class="grad">Onboarding &amp; Auth</span></h1>
+<p class="lead">
+  Four screens, one calm flow. Generous blank space, single-primary-action buttons,
+  large inputs for thumb typing, and a persistent progress dot row so students always know where they are.
+</p>
+
+<section class="section-title">📱 Mobile — splash · login · OTP · signup</section>
+<div class="row">
+
+  <!-- SPLASH -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen" style="background:linear-gradient(160deg, var(--accent) 0%, var(--indigo) 70%, var(--purple) 100%);">
+        <div class="statusbar" style="color:rgba(255,255,255,.92)"><span>9:41</span><span>●●●● 5G</span></div>
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:calc(100% - 46px); padding:0 30px; text-align:center; color:#fff;">
+          <div style="width:96px; height:96px; border-radius:28px; background:rgba(255,255,255,.18); backdrop-filter:blur(14px); display:grid; place-items:center; font-size:42px; font-weight:800; box-shadow:0 20px 40px rgba(0,0,0,.25); margin-bottom:30px;">S</div>
+          <h2 style="margin:0; font-size:30px; letter-spacing:-0.03em; font-weight:800;">Sushruta</h2>
+          <p style="margin:8px 0 40px; opacity:.85; font-size:15px; font-weight:500;">General Surgery · NEET-SS · INI-SS</p>
+          <button class="btn lg block" style="background:#fff; color:var(--accent); box-shadow:0 10px 30px rgba(0,0,0,.2);">Get started →</button>
+          <button class="btn block" style="background:rgba(255,255,255,.14); color:#fff; margin-top:10px;">I already have an account</button>
+          <p style="margin-top:24px; font-size:11px; opacity:.75;">v4.2.0 · 2026</p>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Splash / welcome<small>Single hero + two clearly ranked CTAs</small></p>
+  </div>
+
+  <!-- LOGIN -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Sign in</h2></div>
+        <div class="scroll">
+          <div style="display:flex; gap:6px; margin:8px 0 28px;">
+            <div style="flex:1; height:4px; background:var(--accent); border-radius:2px;"></div>
+            <div style="flex:1; height:4px; background:var(--border); border-radius:2px;"></div>
+            <div style="flex:1; height:4px; background:var(--border); border-radius:2px;"></div>
+          </div>
+
+          <h2 style="margin:0 0 6px; font-size:26px; letter-spacing:-0.02em;">Welcome back 👋</h2>
+          <p style="margin:0 0 24px; color:var(--ink-3); font-size:14px;">Sign in with your phone to continue.</p>
+
+          <div class="input-wrap">
+            <span class="leading">📱</span>
+            <input class="input with-icon" placeholder="+91  ·  98123 45678" value="+91  98123 45678"/>
+          </div>
+
+          <button class="btn primary lg block">Send OTP</button>
+
+          <div style="display:flex; align-items:center; gap:10px; margin:22px 0;">
+            <div style="flex:1; height:1px; background:var(--border);"></div>
+            <span style="color:var(--ink-3); font-size:11px; font-weight:700; letter-spacing:.08em;">OR</span>
+            <div style="flex:1; height:1px; background:var(--border);"></div>
+          </div>
+
+          <button class="btn ghost block"><span>🔑</span> Continue with Google</button>
+          <button class="btn ghost block" style="margin-top:8px;"><span></span> Continue with Apple</button>
+
+          <p style="text-align:center; margin-top:28px; font-size:12px; color:var(--ink-3);">
+            New here? <b style="color:var(--accent);">Create account →</b>
+          </p>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Phone login<small>OTP-first, social fallback, step dots at top</small></p>
+  </div>
+
+  <!-- OTP -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Verify</h2></div>
+        <div class="scroll">
+          <div style="display:flex; gap:6px; margin:8px 0 28px;">
+            <div style="flex:1; height:4px; background:var(--accent); border-radius:2px;"></div>
+            <div style="flex:1; height:4px; background:var(--accent); border-radius:2px;"></div>
+            <div style="flex:1; height:4px; background:var(--border); border-radius:2px;"></div>
+          </div>
+
+          <h2 style="margin:0 0 6px; font-size:26px; letter-spacing:-0.02em;">Enter the code</h2>
+          <p style="margin:0 0 26px; color:var(--ink-3); font-size:14px;">We just sent a 6-digit code to <b style="color:var(--ink);">+91 98123 45678</b>.</p>
+
+          <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-bottom:22px;">
+            <input class="input" value="4" style="text-align:center; font-weight:700; font-size:20px; padding:14px 0;"/>
+            <input class="input" value="2" style="text-align:center; font-weight:700; font-size:20px; padding:14px 0;"/>
+            <input class="input" value="9" style="text-align:center; font-weight:700; font-size:20px; padding:14px 0;"/>
+            <input class="input" value="1" style="text-align:center; font-weight:700; font-size:20px; padding:14px 0; border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft);"/>
+            <input class="input" placeholder="_" style="text-align:center; font-weight:700; font-size:20px; padding:14px 0;"/>
+            <input class="input" placeholder="_" style="text-align:center; font-weight:700; font-size:20px; padding:14px 0;"/>
+          </div>
+
+          <button class="btn primary lg block">Verify &amp; continue</button>
+
+          <p style="text-align:center; margin-top:20px; font-size:13px; color:var(--ink-3);">
+            Didn't get it?  <b style="color:var(--accent);">Resend in 0:24</b>
+          </p>
+
+          <div style="margin-top:40px; padding:14px; background:var(--accent-soft); border-radius:12px; display:flex; gap:10px; align-items:flex-start;">
+            <div class="icon accent" style="background:rgba(255,255,255,.6);">ⓘ</div>
+            <div>
+              <p style="margin:0; font-size:12.5px; font-weight:700; color:var(--ink);">Auto-read enabled</p>
+              <p style="margin:2px 0 0; font-size:12px; color:var(--ink-2);">We'll fill in the code from your SMS inbox the moment it arrives.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">OTP verification<small>Auto-fill hint, resend countdown, 4/6 entered with active slot highlighted</small></p>
+  </div>
+
+  <!-- SIGNUP -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Your details</h2></div>
+        <div class="scroll">
+          <div style="display:flex; gap:6px; margin:8px 0 24px;">
+            <div style="flex:1; height:4px; background:var(--accent); border-radius:2px;"></div>
+            <div style="flex:1; height:4px; background:var(--accent); border-radius:2px;"></div>
+            <div style="flex:1; height:4px; background:var(--accent); border-radius:2px;"></div>
+          </div>
+
+          <h2 style="margin:0 0 6px; font-size:26px; letter-spacing:-0.02em;">Tell us who you are</h2>
+          <p style="margin:0 0 22px; color:var(--ink-3); font-size:14px;">We'll personalize the plan for your exam.</p>
+
+          <div class="input-wrap"><span class="leading">👤</span><input class="input with-icon" placeholder="Full name" value="Dr. Ruchir Sharma"/></div>
+          <div class="input-wrap"><span class="leading">✉</span><input class="input with-icon" placeholder="Email" value="ruchir@example.com"/></div>
+
+          <p style="margin:18px 0 8px; font-size:12px; font-weight:700; color:var(--ink-3); letter-spacing:.08em; text-transform:uppercase;">Target exam</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <button class="btn ghost" style="padding:14px 8px; font-size:12px; flex-direction:column; border-color:var(--accent); background:var(--accent-soft); color:var(--accent);">🏥<br>NEET-SS</button>
+            <button class="btn ghost" style="padding:14px 8px; font-size:12px; flex-direction:column;">🎓<br>INI-SS</button>
+            <button class="btn ghost" style="padding:14px 8px; font-size:12px; flex-direction:column;">📚<br>MS General</button>
+            <button class="btn ghost" style="padding:14px 8px; font-size:12px; flex-direction:column;">🌍<br>FRCS</button>
+          </div>
+
+          <p style="margin:18px 0 8px; font-size:12px; font-weight:700; color:var(--ink-3); letter-spacing:.08em; text-transform:uppercase;">Exam date (optional)</p>
+          <div class="input-wrap"><span class="leading">📅</span><input class="input with-icon" value="June 2026"/></div>
+
+          <button class="btn primary lg block" style="margin-top:16px;">Finish setup →</button>
+
+          <p style="font-size:11px; color:var(--ink-3); text-align:center; margin:18px 0 0; line-height:1.5;">
+            By continuing you accept our <b style="color:var(--accent);">Terms</b> &amp; <b style="color:var(--accent);">Privacy</b>.
+          </p>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Signup · personalization<small>Exam selection with emoji affordances — drives home feed tailoring</small></p>
+  </div>
+
+</div>
+
+<section class="section-title">💻 Laptop — auth on larger screens (responsive)</section>
+<div class="row">
+  <div>
+    <div class="laptop">
+      <div class="screen" style="background:linear-gradient(135deg, var(--accent), var(--purple)); display:grid; grid-template-columns:1fr 420px;">
+        <div style="padding:50px; color:#fff; display:flex; flex-direction:column; justify-content:center;">
+          <div style="width:56px; height:56px; border-radius:14px; background:rgba(255,255,255,.18); backdrop-filter:blur(10px); display:grid; place-items:center; font-size:22px; font-weight:800; margin-bottom:28px;">S</div>
+          <h1 style="margin:0; font-size:42px; letter-spacing:-0.03em; font-weight:800; line-height:1.1;">Prepare smarter.<br/>Not longer.</h1>
+          <p style="margin:18px 0 32px; opacity:.85; font-size:16px; max-width:420px; line-height:1.5;">
+            AI-classified MCQs. Spaced-repetition review queue. 300+ hours of lectures from Bailey, Sabiston and Schwartz aligned to NEET-SS syllabus.
+          </p>
+          <div style="display:flex; gap:28px; font-size:12px; opacity:.85;">
+            <span>✓ 8,400+ MCQs</span><span>✓ 320+ hrs video</span><span>✓ AI explanations</span>
+          </div>
+        </div>
+        <div style="background:var(--surface); padding:50px 40px; display:flex; flex-direction:column; justify-content:center;">
+          <h2 style="margin:0 0 6px; font-size:24px; letter-spacing:-0.02em;">Sign in</h2>
+          <p style="margin:0 0 22px; color:var(--ink-3); font-size:13px;">Use the phone number linked to your account.</p>
+          <div class="input-wrap"><span class="leading">📱</span><input class="input with-icon" value="+91  98123 45678"/></div>
+          <button class="btn primary lg block">Send OTP</button>
+          <div style="display:flex; align-items:center; gap:10px; margin:18px 0;">
+            <div style="flex:1; height:1px; background:var(--border);"></div>
+            <span style="color:var(--ink-3); font-size:11px; font-weight:700;">OR</span>
+            <div style="flex:1; height:1px; background:var(--border);"></div>
+          </div>
+          <button class="btn ghost block"><span>🔑</span> Continue with Google</button>
+          <p style="font-size:12px; color:var(--ink-3); margin-top:18px;">New here? <b style="color:var(--accent);">Create an account →</b></p>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Laptop / macOS window<small>Marketing left, form right — single primary action preserved</small></p>
+  </div>
+</div>
+
+</main>
+<script>
+  const r=document.documentElement,k='sushrutaTheme',s=localStorage.getItem(k);
+  if(s)r.setAttribute('data-theme',s);
+  document.getElementById('tt').onclick=()=>{const n=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',n);localStorage.setItem(k,n);};
+</script>
+</body>
+</html>

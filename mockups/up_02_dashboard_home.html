@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Area 02 · Dashboard &amp; Home upgrade</title>
+<link rel="stylesheet" href="_styles.css" />
+<link rel="stylesheet" href="_upgrade_styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · Upgrade</div>
+  <nav>
+    <a href="upgrade_index.html">All areas</a>
+    <a href="up_01_auth.html">01 Auth</a>
+    <a href="up_02_dashboard_home.html" class="active">02 Home</a>
+    <a href="up_03_video.html">03 Video</a>
+    <a href="up_04_notes.html">04 Notes</a>
+  </nav>
+  <button class="theme-toggle" id="tt"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+
+<section class="up-hero">
+  <h1 class="display">02 · Dashboard &amp; Home <span class="grad">upgrade</span></h1>
+  <p class="lead">The biggest perceived win of the entire upgrade. Home today is a wall of 10+ carousels with no breathing room; we collapse it into 4 high-signal sections while keeping <b>every data source</b> and <b>every store observable</b> intact.</p>
+  <div class="area-stats">
+    <div class="s"><div class="v">7</div><div class="l">Screens covered</div></div>
+    <div class="s"><div class="v">10→4</div><div class="l">Home carousels</div></div>
+    <div class="s"><div class="v">0</div><div class="l">API changes</div></div>
+    <div class="s"><div class="v">5</div><div class="l">Tabs kept</div></div>
+    <div class="s"><div class="v">2</div><div class="l">New shared widgets</div></div>
+  </div>
+  <div class="up-subnav">
+    <a href="#dashboard">Dashboard shell</a><a href="#home">Home</a><a href="#profile">Profile tab</a>
+    <a href="#search">Search</a><a href="#notifications">Notifications</a>
+    <a href="#continue">Continue watching</a><a href="#featured">Featured test</a>
+  </div>
+</section>
+
+<!-- 1. DASHBOARD SHELL -->
+<section class="ba-block" id="dashboard">
+  <div class="ba-head">
+    <h3>1 · Dashboard shell · bottom tab bar</h3>
+    <p class="ba-path">modules/dashboard/dashboard_screen.dart · Route.dashboard, Route.home</p>
+    <p class="ba-sub">Same 5 tabs. Glass-blur bar, better icon alignment, accent dot badge on Cortex.ai when there's an unread reply. Safe-area respected on iPhone X+.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="bd" style="background:var(--surface-2);align-items:center;justify-content:center;color:var(--muted);font-size:11px;">(home content)</div>
+        <div class="tb" style="padding: 10px 0;">
+          <div class="ti on"><div style="font-size:16px;">🏠</div>Home</div>
+          <div class="ti"><div style="font-size:16px;">💳</div>Subscribe</div>
+          <div class="ti"><div style="font-size:16px;">📈</div>Progress</div>
+          <div class="ti"><div style="font-size:16px;">🏆</div>Leaders</div>
+          <div class="ti"><div style="font-size:16px;">🤖</div>Cortex</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="bd" style="background:var(--surface-2);align-items:center;justify-content:center;color:var(--muted);font-size:11px;">(home content)</div>
+        <div class="tb" style="border-top:0;padding: 10px 6px 14px;margin: 0 8px 8px;border-radius:18px;background:rgba(255,255,255,.72);backdrop-filter: saturate(160%) blur(18px);box-shadow: var(--shadow-2);">
+          <div class="ti on" style="position:relative;">
+            <div style="font-size:17px;">🏠</div>Home
+            <div style="position:absolute;top:-2px;left:50%;width:16px;height:2px;background:var(--accent);border-radius:2px;transform:translateX(-50%);"></div>
+          </div>
+          <div class="ti"><div style="font-size:17px;">💳</div>Store</div>
+          <div class="ti"><div style="font-size:17px;">📈</div>Progress</div>
+          <div class="ti"><div style="font-size:17px;">🏆</div>Leaders</div>
+          <div class="ti" style="position:relative;">
+            <div style="font-size:17px;">🤖</div>Cortex
+            <span style="position:absolute;top:4px;right:20%;width:7px;height:7px;border-radius:50%;background:#E23B3B;border:1.5px solid var(--surface);"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div><h5>Visual polish</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Floating rounded tab bar (18pt radius, 10pt inset)</li>
+      <li>Glass blur (sigma 18) + shadow-2</li>
+      <li>2pt accent top-indicator for active tab</li>
+      <li>Unread badge (7pt red dot) on Cortex</li>
+    </ul></div>
+    <div><h5>Functional</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Cortex unread dot reads from <code>CortexStore.hasUnread</code> (existing)</li>
+      <li>Safe-area bottom padding on iPhone X+</li>
+      <li>On iPad ≥1024: becomes a left rail instead of bottom bar</li>
+    </ul></div>
+    <div><h5>Unchanged</h5><ul class="ba-deltas kept" style="margin:0;">
+      <li>All 5 tabs + their order</li>
+      <li>"Subscribe" renamed only <i>visually</i> to "Store"</li>
+      <li>Routes: <code>Route.dashboard, Route.home</code></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- 2. HOME -->
+<section class="ba-block" id="home">
+  <div class="ba-head">
+    <h3>2 · Home — biggest win of the upgrade</h3>
+    <p class="ba-path">modules/dashboard/home_screen.dart</p>
+    <p class="ba-sub">Home today loads 10+ carousels stacked vertically — no hierarchy, no breathing room, dark-mode text overlays fail contrast. Upgrade keeps <b>all the same data</b> (via <code>HomeStore</code>) but renders only 4 high-signal sections by default with a "See all sections" affordance to expand the rest for power users.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today · typical first paint</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span style="font-weight:700;color:#0048D0;">Sushruta</span><span class="spacer"></span><span>🔍</span><span style="margin-left:8px;">🔔</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field" style="display:flex;align-items:center;gap:6px;"><span>🔍</span><span style="color:var(--muted);">Search videos, notes, tests…</span></div>
+          <div class="wire lbl" style="height:80px;" data-lbl="Banner carousel"></div>
+          <div style="font-size:13px;font-weight:700;">Featured videos</div>
+          <div style="display:flex;gap:6px;overflow:hidden;">
+            <div class="wire" style="height:80px;min-width:120px;border-radius:8px;"></div>
+            <div class="wire" style="height:80px;min-width:120px;border-radius:8px;"></div>
+            <div class="wire" style="height:80px;min-width:120px;border-radius:8px;"></div>
+          </div>
+          <div style="font-size:13px;font-weight:700;">New notes</div>
+          <div style="display:flex;gap:6px;overflow:hidden;">
+            <div class="wire" style="height:70px;min-width:110px;border-radius:8px;"></div>
+            <div class="wire" style="height:70px;min-width:110px;border-radius:8px;"></div>
+            <div class="wire" style="height:70px;min-width:110px;border-radius:8px;"></div>
+          </div>
+          <div style="font-size:13px;font-weight:700;">Trending tests</div>
+          <div style="display:flex;gap:6px;overflow:hidden;">
+            <div class="wire" style="height:70px;min-width:110px;border-radius:8px;"></div>
+            <div class="wire" style="height:70px;min-width:110px;border-radius:8px;"></div>
+          </div>
+          <div style="font-size:13px;font-weight:700;">Live classes</div>
+          <div class="wire" style="height:60px;"></div>
+          <div style="font-size:13px;font-weight:700;">Blog</div>
+          <div class="wire" style="height:60px;"></div>
+          <div style="text-align:center;font-size:10px;color:var(--muted);">(5 more carousels below fold)</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded · 4 focused sections</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab" style="padding:12px 14px;"><div style="flex:1;"><div style="font-size:11px;color:var(--muted);">Good morning, Rahul</div><div style="font-size:17px;font-weight:700;letter-spacing:-.01em;">Ready to study?</div></div><span style="position:relative;">🔔<span style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:#E23B3B;"></span></span></div>
+        <div class="bd" style="gap:14px;">
+          <!-- search -->
+          <div class="mini-field" style="display:flex;align-items:center;gap:8px;"><span>🔎</span><span style="color:var(--muted);">Search everything…</span></div>
+
+          <!-- resume -->
+          <div style="padding:14px;border-radius:16px;background:linear-gradient(135deg,#0048D0,#497BDC);color:#fff;">
+            <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.85;">Continue watching</div>
+            <div style="font-size:15px;font-weight:700;margin-top:4px;">Shock — Pathophysiology · Ch 2</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+              <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.24);"><div style="width:62%;height:100%;border-radius:3px;background:#fff;"></div></div>
+              <span style="font-size:11px;opacity:.9;">17:24 / 28:00</span>
+            </div>
+            <div class="mini-btn block" style="background:#fff;color:#0048D0;margin-top:10px;">▶ Resume</div>
+          </div>
+
+          <!-- quick grid -->
+          <div style="font-size:14px;font-weight:700;letter-spacing:-.01em;">Quick access</div>
+          <div class="grid-3-mini">
+            <div class="mini-card" style="text-align:center;padding:10px 6px;"><div style="font-size:22px;">🎥</div><div class="t" style="font-size:11.5px;">Videos</div></div>
+            <div class="mini-card" style="text-align:center;padding:10px 6px;"><div style="font-size:22px;">📄</div><div class="t" style="font-size:11.5px;">Notes</div></div>
+            <div class="mini-card" style="text-align:center;padding:10px 6px;"><div style="font-size:22px;">🧪</div><div class="t" style="font-size:11.5px;">Tests</div></div>
+            <div class="mini-card" style="text-align:center;padding:10px 6px;"><div style="font-size:22px;">🏅</div><div class="t" style="font-size:11.5px;">Mocks</div></div>
+            <div class="mini-card" style="text-align:center;padding:10px 6px;"><div style="font-size:22px;">⭐</div><div class="t" style="font-size:11.5px;">Bookmarks</div></div>
+            <div class="mini-card" style="text-align:center;padding:10px 6px;"><div style="font-size:22px;">🎙️</div><div class="t" style="font-size:11.5px;">Live</div></div>
+          </div>
+
+          <!-- today's plan -->
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;"><div style="font-size:14px;font-weight:700;letter-spacing:-.01em;flex:1;">Today's plan</div><span class="mini-chip acc">4 tasks</span></div>
+          <div class="mini-card" style="padding:10px;">
+            <div class="u-row" style="border-bottom:1px solid var(--border);padding:6px 0;"><span class="badge-dot acc"></span><div style="flex:1;"><div class="u-t">Watch · Shock Ch 2</div><div class="u-s">28 min</div></div><span class="mini-chip ok">Done</span></div>
+            <div class="u-row" style="border-bottom:1px solid var(--border);padding:6px 0;"><span class="badge-dot warn"></span><div style="flex:1;"><div class="u-t">Review · 18 SM-2 cards</div><div class="u-s">~20 min</div></div><span class="u-chev">›</span></div>
+            <div class="u-row" style="padding:6px 0;border-bottom:0;"><span class="badge-dot"></span><div style="flex:1;"><div class="u-t">Mock · Hernia MCQs</div><div class="u-s">45 min · 40 Qs</div></div><span class="u-chev">›</span></div>
+          </div>
+
+          <!-- featured -->
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px;"><div style="font-size:14px;font-weight:700;letter-spacing:-.01em;flex:1;">Featured</div><span style="font-size:11.5px;color:var(--accent);">See all</span></div>
+          <div style="display:flex;gap:8px;overflow-x:auto;">
+            <div class="mini-card" style="min-width:140px;"><div class="wire" style="height:66px;margin-bottom:6px;"></div><div class="t" style="font-size:11.5px;">Vascular emergencies</div><div class="s">6 videos · 82 min</div></div>
+            <div class="mini-card" style="min-width:140px;"><div class="wire" style="height:66px;margin-bottom:6px;"></div><div class="t" style="font-size:11.5px;">Bailey High-Yield</div><div class="s">220 MCQs</div></div>
+            <div class="mini-card" style="min-width:140px;"><div class="wire" style="height:66px;margin-bottom:6px;"></div><div class="t" style="font-size:11.5px;">Live · Thyroid Sx</div><div class="s">Tomorrow 7 pm</div></div>
+          </div>
+
+          <div style="text-align:center;font-size:12px;color:var(--accent);font-weight:600;">See all sections</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div><h5>Visual polish</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Personalised AppBar greeting</li>
+      <li>Resume banner promoted to hero card with gradient</li>
+      <li>Quick-access grid replaces flat carousel list</li>
+      <li>"Today's plan" section — fills if plan store has items, else hidden</li>
+      <li>Dark-mode scrim on featured thumbnails</li>
+    </ul></div>
+    <div><h5>Functional</h5><ul class="ba-deltas" style="margin:0;">
+      <li><code>HomeStore.visibleSections</code> computed observable (new)</li>
+      <li>"See all sections" reveals the legacy 10-carousel wall on-demand</li>
+      <li>Skeleton loader replaces blank first paint</li>
+      <li>Reads from <b>same</b> featured / trending / banner stores</li>
+    </ul></div>
+    <div><h5>Unchanged</h5><ul class="ba-deltas kept" style="margin:0;">
+      <li>All API calls in <code>ApiService</code></li>
+      <li><code>HomeStore</code> observables — added one computed</li>
+      <li>Route, tab order</li>
+      <li>Carousel library still <code>carousel_slider</code></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- iPad variant of home -->
+<section class="ba-block">
+  <div class="ba-head">
+    <h3>2b · Home on iPad / tablet (≥744pt)</h3>
+    <p class="ba-path">Same <code>home_screen.dart</code> — responsive via <code>LayoutBuilder</code></p>
+    <p class="ba-sub">Two-column layout: resume + plan on the left, quick-grid + featured on the right. Same sections, same data — wider canvas used.</p>
+  </div>
+  <div class="ba-pair" style="grid-template-columns: 1fr;">
+    <div class="ba-col">
+      <span class="ba-tag tablet">Upgraded · iPad</span>
+      <div class="sim tab" style="min-height:480px;">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab" style="padding:14px 18px;"><div style="flex:1;"><div style="font-size:11px;color:var(--muted);">Good morning, Rahul</div><div style="font-size:19px;font-weight:700;letter-spacing:-.01em;">Ready to study?</div></div><span>🔎</span><span style="margin-left:10px;position:relative;">🔔<span style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:#E23B3B;"></span></span></div>
+        <div class="bd" style="display:grid;grid-template-columns: 1.1fr 1fr; gap:14px;">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="padding:18px;border-radius:16px;background:linear-gradient(135deg,#0048D0,#497BDC);color:#fff;">
+              <div style="font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:.08em;">Continue watching</div>
+              <div style="font-size:18px;font-weight:700;margin-top:6px;">Shock — Pathophysiology · Ch 2</div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:10px;"><div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.24);"><div style="width:62%;height:100%;border-radius:3px;background:#fff;"></div></div><span style="font-size:12px;">17:24 / 28:00</span></div>
+              <div class="mini-btn" style="background:#fff;color:#0048D0;margin-top:12px;display:inline-block;">▶ Resume</div>
+            </div>
+            <div style="font-size:14px;font-weight:700;">Today's plan</div>
+            <div class="mini-card">
+              <div class="u-row" style="border-bottom:1px solid var(--border);"><span class="badge-dot acc"></span><div style="flex:1;"><div class="u-t">Watch · Shock Ch 2</div><div class="u-s">28 min</div></div><span class="mini-chip ok">Done</span></div>
+              <div class="u-row" style="border-bottom:1px solid var(--border);"><span class="badge-dot warn"></span><div style="flex:1;"><div class="u-t">Review · 18 cards</div><div class="u-s">~20 min</div></div><span class="u-chev">›</span></div>
+              <div class="u-row"><span class="badge-dot"></span><div style="flex:1;"><div class="u-t">Mock · Hernia MCQs</div><div class="u-s">45 min</div></div><span class="u-chev">›</span></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div style="font-size:14px;font-weight:700;">Quick access</div>
+            <div class="grid-3-mini">
+              <div class="mini-card" style="text-align:center;padding:14px 8px;"><div style="font-size:24px;">🎥</div><div class="t">Videos</div></div>
+              <div class="mini-card" style="text-align:center;padding:14px 8px;"><div style="font-size:24px;">📄</div><div class="t">Notes</div></div>
+              <div class="mini-card" style="text-align:center;padding:14px 8px;"><div style="font-size:24px;">🧪</div><div class="t">Tests</div></div>
+              <div class="mini-card" style="text-align:center;padding:14px 8px;"><div style="font-size:24px;">🏅</div><div class="t">Mocks</div></div>
+              <div class="mini-card" style="text-align:center;padding:14px 8px;"><div style="font-size:24px;">⭐</div><div class="t">Bookmarks</div></div>
+              <div class="mini-card" style="text-align:center;padding:14px 8px;"><div style="font-size:24px;">🎙️</div><div class="t">Live</div></div>
+            </div>
+            <div style="font-size:14px;font-weight:700;">Featured</div>
+            <div class="grid-2-mini">
+              <div class="mini-card"><div class="wire" style="height:80px;margin-bottom:6px;"></div><div class="t">Vascular Sx</div><div class="s">6 videos</div></div>
+              <div class="mini-card"><div class="wire" style="height:80px;margin-bottom:6px;"></div><div class="t">Bailey HY</div><div class="s">220 MCQs</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="tb" style="background:rgba(255,255,255,.72);backdrop-filter: blur(18px);border-radius:22px;margin:0 10px 10px;padding:10px;">
+          <div class="ti on">🏠 Home</div><div class="ti">💳 Store</div><div class="ti">📈 Progress</div><div class="ti">🏆 Leaders</div><div class="ti">🤖 Cortex</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-foot">Same widget, same store, same API — just a different grid at the tablet breakpoint.</div>
+</section>
+
+<!-- 3. PROFILE TAB -->
+<section class="ba-block" id="profile">
+  <div class="ba-head">
+    <h3>3 · Profile tab (from dashboard)</h3>
+    <p class="ba-path">modules/dashboard/profile_screen.dart</p>
+    <p class="ba-sub">Dense single-form today. Group into sections: Account, Preferences, Subscription, Support, About. Surface logout (was in overflow), add live theme preview.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span style="font-weight:600;">Profile</span><span class="spacer"></span><span>⋯</span></div>
+        <div class="bd" style="gap:10px;">
+          <div style="width:70px;height:70px;border-radius:50%;background:var(--surface-3);margin:0 auto;"></div>
+          <div style="text-align:center;font-size:15px;font-weight:600;">Rahul Mehta</div>
+          <div style="text-align:center;font-size:12px;color:var(--muted);">rahul.m@mail.com</div>
+          <div class="mini-field">Full name</div>
+          <div class="mini-field">Email</div>
+          <div class="mini-field">Phone</div>
+          <div class="mini-field">Date of birth</div>
+          <div class="mini-field">State</div>
+          <div class="mini-field">Preparing for</div>
+          <div class="mini-field">Change password</div>
+          <div class="mini-field">Theme · Light</div>
+          <div class="mini-btn block" style="background:#0048D0;">Save</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span style="font-weight:700;">You</span><span class="spacer"></span><span class="act">Edit</span></div>
+        <div class="bd" style="gap:12px;">
+          <div style="display:flex;gap:12px;align-items:center;padding:12px;background:var(--surface-2);border-radius:14px;border:1px solid var(--border);">
+            <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#0048D0,#497BDC);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;">RM</div>
+            <div style="flex:1;"><div style="font-size:15px;font-weight:700;">Rahul Mehta</div><div style="font-size:11.5px;color:var(--muted);">rahul.m@mail.com</div><div style="font-size:11px;color:var(--accent);margin-top:2px;">NEET SS · 2026</div></div>
+            <span class="mini-chip acc">Pro</span>
+          </div>
+
+          <div class="mini-card" style="padding:0;">
+            <div style="padding:8px 12px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);">Account</div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">👤</div><div style="flex:1;"><div class="u-t">Personal details</div><div class="u-s">Name · DOB · state</div></div><span class="u-chev">›</span></div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">🔒</div><div style="flex:1;"><div class="u-t">Security</div><div class="u-s">Change password · 2FA</div></div><span class="u-chev">›</span></div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">📱</div><div style="flex:1;"><div class="u-t">Phone number</div><div class="u-s">+91 98765 43210</div></div><span class="u-chev">›</span></div>
+          </div>
+
+          <div class="mini-card" style="padding:0;">
+            <div style="padding:8px 12px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);">Preferences</div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">🌙</div><div style="flex:1;"><div class="u-t">Theme</div><div class="u-s">Light · Dark · System</div></div><div style="width:36px;height:20px;border-radius:99px;background:var(--accent);position:relative;"><div style="position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#fff;"></div></div></div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">🔔</div><div style="flex:1;"><div class="u-t">Notifications</div><div class="u-s">FCM reminders · Live alerts</div></div><span class="u-chev">›</span></div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">🎯</div><div style="flex:1;"><div class="u-t">Preparing for</div><div class="u-s">NEET SS · 2026</div></div><span class="u-chev">›</span></div>
+          </div>
+
+          <div class="mini-card" style="padding:0;">
+            <div style="padding:8px 12px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);">Subscription &amp; orders</div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">💳</div><div style="flex:1;"><div class="u-t">Active plan</div><div class="u-s">Pro · renews 14 Aug</div></div><span class="u-chev">›</span></div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">📦</div><div style="flex:1;"><div class="u-t">Orders</div><div class="u-s">2 books shipping</div></div><span class="u-chev">›</span></div>
+          </div>
+
+          <div class="mini-card" style="padding:0;">
+            <div style="padding:8px 12px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);">Support</div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">❓</div><div style="flex:1;"><div class="u-t">Help &amp; feedback</div></div><span class="u-chev">›</span></div>
+            <div class="u-row"><div style="width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:13px;">📄</div><div style="flex:1;"><div class="u-t">About · Terms · Privacy</div></div><span class="u-chev">›</span></div>
+          </div>
+
+          <div class="mini-btn ghost block" style="color:#E23B3B;border-color:#E23B3B;">Log out</div>
+          <div style="text-align:center;font-size:10.5px;color:var(--muted);">v2.4.1 · build 2411</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div><h5>Visual polish</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Profile hero card with avatar + plan chip</li>
+      <li>Grouped sections (Account / Preferences / Subscription / Support)</li>
+      <li>Icon-led rows, 44pt tap targets</li>
+      <li>Visible Log out + version</li>
+    </ul></div>
+    <div><h5>Functional</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Theme switch has live preview (tint animation)</li>
+      <li>Notification settings deep-linked to existing FCM UI</li>
+      <li>Active plan row links to <code>Route.newSubscription</code></li>
+      <li>Orders row links to <code>Route.orderedBookListScreen</code></li>
+    </ul></div>
+    <div><h5>Unchanged</h5><ul class="ba-deltas kept" style="margin:0;">
+      <li>All form edits still save via <code>ProfileStore.save()</code></li>
+      <li>Existing overflow menu still available on 3-dot</li>
+      <li>Tab order in <code>DashboardScreen</code></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- 4. SEARCH -->
+<section class="ba-block" id="search">
+  <div class="ba-head">
+    <h3>4 · Search</h3>
+    <p class="ba-path">modules/dashboard/search_screen.dart · Route.searchScreen</p>
+    <p class="ba-sub">Global search — today lacks a "no results" state and mixes all content types. Add sticky category chips, recent searches, typed suggestions, and proper empty state.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today · empty query</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Search</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field">Search…</div>
+          <div class="mini-field">All categories ▾</div>
+          <div style="flex:1;background:var(--surface-2);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;">(blank until you type)</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded · empty query</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><div class="mini-field focus" style="flex:1;display:flex;align-items:center;gap:8px;margin:0 10px;"><span>🔎</span><span style="color:var(--muted);">Search videos, notes, tests…</span></div><span style="color:var(--accent);font-size:12px;font-weight:600;">Cancel</span></div>
+        <div class="bd" style="gap:14px;">
+          <div class="chip-row" style="position:sticky;top:0;padding:4px 0;background:var(--surface);"><span class="chip on">All</span><span class="chip">Videos</span><span class="chip">Notes</span><span class="chip">Tests</span><span class="chip">Mocks</span><span class="chip">Bookmarks</span></div>
+          <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);">Recent</div>
+          <div class="chip-row"><span class="chip">shock types</span><span class="chip">anatomy inguinal</span><span class="chip">pancreatitis</span><span class="chip">bailey 14</span><span class="chip">× Clear</span></div>
+          <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);">Trending today</div>
+          <div class="lrow"><div class="av acc"></div><div class="lt"><b>Hernia types</b><s>in Notes · 12 results</s></div><span class="u-chev">›</span></div>
+          <div class="lrow"><div class="av warn"></div><div class="lt"><b>Thyroid storm</b><s>in Videos · 4 results</s></div><span class="u-chev">›</span></div>
+          <div class="lrow"><div class="av ok"></div><div class="lt"><b>Bailey Test 14</b><s>in Tests · 220 Qs</s></div><span class="u-chev">›</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-pair" style="margin-top:14px;">
+    <div class="ba-col">
+      <span class="ba-tag today">Today · no results</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Search</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-field filled">horsesurgery</div>
+          <div style="flex:1;background:var(--surface-2);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;">(blank — silent)</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded · no results</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><div class="mini-field focus filled" style="flex:1;display:flex;align-items:center;gap:8px;margin:0 10px;"><span>🔎</span><span>horsesurgery</span><span style="margin-left:auto;color:var(--muted);">✕</span></div></div>
+        <div class="bd" style="gap:12px;">
+          <div class="chip-row"><span class="chip on">All</span><span class="chip">Videos</span><span class="chip">Notes</span><span class="chip">Tests</span></div>
+          <div style="margin-top:auto;text-align:center;padding:30px 10px;">
+            <div style="font-size:36px;margin-bottom:6px;">🔍</div>
+            <div style="font-size:15px;font-weight:700;">No matches for "horsesurgery"</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;max-width:220px;margin-left:auto;margin-right:auto;">Try a shorter or different spelling, or remove category filters.</div>
+            <div class="mini-btn ghost" style="margin-top:12px;">Clear filters</div>
+          </div>
+          <div style="margin-top:auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-deltas-row">
+    <div><h5>Visual polish</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Search field lives inside the AppBar</li>
+      <li>Sticky category chip row</li>
+      <li>Recent / Trending blocks on empty state</li>
+      <li>Proper empty state illustration + CTA</li>
+    </ul></div>
+    <div><h5>Functional</h5><ul class="ba-deltas" style="margin:0;">
+      <li>Typeahead suggestions (debounced 250ms)</li>
+      <li>Recent searches persisted in <code>HomeStore.recentSearches</code></li>
+      <li>"Clear filters" resets chip + search</li>
+    </ul></div>
+    <div><h5>Unchanged</h5><ul class="ba-deltas kept" style="margin:0;">
+      <li><code>Route.searchScreen</code></li>
+      <li><code>ApiService.globalSearch()</code></li>
+      <li>Same result model shapes</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- 5. NOTIFICATIONS -->
+<section class="ba-block" id="notifications">
+  <div class="ba-head">
+    <h3>5 · Notifications</h3>
+    <p class="ba-path">modules/dashboard/notifications_screen.dart · Route.notificationScreen</p>
+    <p class="ba-sub">Flat timestamped list today. Add date groups, swipe actions, "mark all read" and empty state.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Notifications</span></div>
+        <div class="bd" style="gap:6px;">
+          <div class="mini-card" style="padding:10px;"><div class="t">New mock · Bailey 14</div><div class="s">2 hours ago</div></div>
+          <div class="mini-card" style="padding:10px;"><div class="t">Your streak is at risk</div><div class="s">Yesterday 9 pm</div></div>
+          <div class="mini-card" style="padding:10px;"><div class="t">Live class reminder</div><div class="s">2 days ago</div></div>
+          <div class="mini-card" style="padding:10px;"><div class="t">Note download complete</div><div class="s">3 days ago</div></div>
+          <div class="mini-card" style="padding:10px;"><div class="t">Payment received</div><div class="s">5 days ago</div></div>
+          <div class="mini-card" style="padding:10px;"><div class="t">Welcome offer</div><div class="s">1 week ago</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone-lg">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Notifications</span><span class="spacer"></span><span class="act">Mark all</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="chip-row"><span class="chip on">All</span><span class="chip">Unread · 3</span><span class="chip">Mocks</span><span class="chip">Live</span><span class="chip">Orders</span></div>
+
+          <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);">Today</div>
+          <div class="mini-card" style="padding:10px;border:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;">
+            <span class="badge-dot acc" style="margin-top:4px;"></span>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Bailey Test 14 is live</div><div style="font-size:11.5px;color:var(--muted);">220 MCQs · 45 min · Take now</div></div>
+            <span style="font-size:11px;color:var(--muted);">2h</span>
+          </div>
+          <div class="mini-card" style="padding:10px;display:flex;gap:10px;align-items:flex-start;">
+            <span class="badge-dot warn" style="margin-top:4px;"></span>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Your 8-day streak is at risk</div><div style="font-size:11.5px;color:var(--muted);">Watch 1 video to keep it alive</div></div>
+            <span style="font-size:11px;color:var(--muted);">12h</span>
+          </div>
+
+          <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);">Yesterday</div>
+          <div class="mini-card" style="padding:10px;display:flex;gap:10px;align-items:flex-start;opacity:.75;">
+            <span class="badge-dot" style="margin-top:4px;background:var(--surface-3);"></span>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Live · Thyroid surgery with Dr Das</div><div style="font-size:11.5px;color:var(--muted);">Tomorrow 7 pm · Added to calendar</div></div>
+            <span style="font-size:11px;color:var(--muted);">1d</span>
+          </div>
+
+          <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;color:var(--muted);">Earlier</div>
+          <div class="mini-card" style="padding:10px;display:flex;gap:10px;align-items:flex-start;opacity:.75;">
+            <span class="badge-dot" style="margin-top:4px;background:var(--surface-3);"></span>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Note downloaded · GI Surgery</div><div style="font-size:11.5px;color:var(--muted);">Available offline</div></div>
+            <span style="font-size:11px;color:var(--muted);">3d</span>
+          </div>
+          <div class="mini-card" style="padding:10px;display:flex;gap:10px;align-items:flex-start;opacity:.75;">
+            <span class="badge-dot" style="margin-top:4px;background:var(--surface-3);"></span>
+            <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Payment received · ₹3 499</div><div style="font-size:11.5px;color:var(--muted);">Pro plan renewed</div></div>
+            <span style="font-size:11px;color:var(--muted);">5d</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-foot">Swipe left on any row reveals "Mark read / Dismiss". Counts on the Unread chip come from existing <code>NotificationStore.unreadCount</code>.</div>
+</section>
+
+<!-- 6. CONTINUE WATCHING -->
+<section class="ba-block" id="continue">
+  <div class="ba-head">
+    <h3>6 · Continue watching</h3>
+    <p class="ba-path">modules/dashboard/continue_watching_screen.dart · Route.continueWatchingScreen</p>
+    <p class="ba-sub">Videos with resume % already exists in data. Expose it visually: progress bar on thumbnail, last-watched timestamp, subject chip, remove button.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Continue watching</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-card" style="padding:8px;"><div class="wire" style="height:80px;margin-bottom:6px;"></div><div class="t">Shock Ch 2</div><div class="s">28 min</div></div>
+          <div class="mini-card" style="padding:8px;"><div class="wire" style="height:80px;margin-bottom:6px;"></div><div class="t">Wound healing</div><div class="s">22 min</div></div>
+          <div class="mini-card" style="padding:8px;"><div class="wire" style="height:80px;margin-bottom:6px;"></div><div class="t">Thyroid anatomy</div><div class="s">19 min</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Pick up where you left off</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="mini-card" style="padding:0;overflow:hidden;">
+            <div style="position:relative;height:110px;">
+              <div class="wire" style="height:100%;border-radius:0;"></div>
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%, rgba(0,0,0,.72) 100%);"></div>
+              <div style="position:absolute;left:10px;top:10px;display:flex;gap:4px;"><span class="mini-chip acc" style="background:rgba(255,255,255,.92);">GS · Shock</span></div>
+              <div style="position:absolute;left:10px;right:10px;bottom:8px;color:#fff;">
+                <div style="font-size:13px;font-weight:700;">Shock — Pathophysiology · Ch 2</div>
+                <div style="font-size:10.5px;opacity:.85;">17:24 / 28:00 · today 9:12 am</div>
+              </div>
+              <div style="position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);">▶</div>
+              <div style="position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.25);"><div style="width:62%;height:100%;background:var(--accent);"></div></div>
+            </div>
+          </div>
+          <div class="mini-card" style="padding:0;overflow:hidden;">
+            <div style="position:relative;height:90px;">
+              <div class="wire" style="height:100%;border-radius:0;"></div>
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%, rgba(0,0,0,.7) 100%);"></div>
+              <div style="position:absolute;left:10px;top:8px;"><span class="mini-chip" style="background:rgba(255,255,255,.9);">GS · Wound Healing</span></div>
+              <div style="position:absolute;left:10px;right:10px;bottom:6px;color:#fff;font-size:12px;font-weight:600;">Wound healing · Ch 1 <span style="opacity:.8;">· 4:12 / 22:00</span></div>
+              <div style="position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.25);"><div style="width:18%;height:100%;background:var(--accent);"></div></div>
+            </div>
+          </div>
+          <div class="mini-card" style="padding:0;overflow:hidden;">
+            <div style="position:relative;height:90px;">
+              <div class="wire" style="height:100%;border-radius:0;"></div>
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%, rgba(0,0,0,.7) 100%);"></div>
+              <div style="position:absolute;left:10px;top:8px;"><span class="mini-chip" style="background:rgba(255,255,255,.9);">H&amp;N · Thyroid</span></div>
+              <div style="position:absolute;left:10px;right:10px;bottom:6px;color:#fff;font-size:12px;font-weight:600;">Thyroid anatomy · Ch 1 <span style="opacity:.8;">· 12:48 / 19:00</span></div>
+              <div style="position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.25);"><div style="width:67%;height:100%;background:var(--accent);"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ba-foot">Progress, subject chip and last-watched time come from <code>VideoCategoryStore</code>'s existing <code>progressPercent</code> + <code>lastWatched</code> fields. Nothing new on the server.</div>
+</section>
+
+<!-- 7. FEATURED TEST -->
+<section class="ba-block" id="featured">
+  <div class="ba-head">
+    <h3>7 · Featured test launcher</h3>
+    <p class="ba-path">modules/dashboard/featured_test_exam_screen.dart · Route.featuredTestExamPage</p>
+    <p class="ba-sub">Full-screen launcher from the home carousel. Add chip metadata, secondary "Instructions" CTA, clearer duration/marks summary.</p>
+  </div>
+  <div class="ba-pair">
+    <div class="ba-col">
+      <span class="ba-tag today">Today</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:600;">Bailey Test 14</span></div>
+        <div class="bd" style="gap:10px;">
+          <div class="wire" style="height:120px;"></div>
+          <div style="font-size:15px;font-weight:700;">Bailey Test 14</div>
+          <div style="font-size:12px;color:var(--muted);">220 questions · 45 min</div>
+          <div style="font-size:12px;">Instructions:<br/>• +4 for correct<br/>• -1 for wrong<br/>• Single best answer</div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Start</div>
+        </div>
+      </div>
+    </div>
+    <div class="ba-col">
+      <span class="ba-tag after">Upgraded</span>
+      <div class="sim phone">
+        <div class="sb"><span>9:41</span><span>●●●●</span></div>
+        <div class="ab"><span class="back">←</span><span style="font-weight:700;">Featured mock</span><span class="spacer"></span><span>⋯</span></div>
+        <div class="bd" style="gap:12px;">
+          <div style="position:relative;border-radius:16px;overflow:hidden;height:150px;">
+            <div class="wire" style="height:100%;border-radius:0;"></div>
+            <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(0,72,208,.85) 0%, rgba(73,123,220,.7) 100%);"></div>
+            <div style="position:absolute;inset:0;padding:14px;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;">
+              <span class="mini-chip" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.3);align-self:flex-start;">Featured</span>
+              <div style="font-size:20px;font-weight:800;letter-spacing:-.01em;margin-top:6px;">Bailey Test 14</div>
+              <div style="font-size:12px;opacity:.85;">General Surgery · Bailey &amp; Love</div>
+            </div>
+          </div>
+          <div class="grid-3-mini">
+            <div class="mini-card" style="text-align:center;padding:10px 6px;"><div style="font-size:16px;font-weight:800;">220</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Questions</div></div>
+            <div class="mini-card" style="text-align:center;padding:10px 6px;"><div style="font-size:16px;font-weight:800;">45m</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Duration</div></div>
+            <div class="mini-card" style="text-align:center;padding:10px 6px;"><div style="font-size:16px;font-weight:800;">+4 / -1</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Marking</div></div>
+          </div>
+          <div class="mini-card" style="padding:10px 12px;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;">What's inside</div>
+            <div style="font-size:12px;line-height:1.6;margin-top:4px;color:var(--ink-2);">Shock · Wound Healing · Infections · Esophagus · GI · Breast · Thyroid.</div>
+          </div>
+          <div class="mini-btn block" style="background:#0048D0;margin-top:auto;">Start mock</div>
+          <div class="mini-btn ghost block">Read instructions</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Summary -->
+<section class="section-title">Area summary · what changes in <code>lib/</code></section>
+<div class="quilt" style="grid-template-columns: repeat(auto-fill, minmax(260px,1fr));">
+  <div class="card"><p class="card-title">New shared widget</p><p class="card-sub" style="margin-top:6px;"><code>widgets/resume_hero.dart</code> — the gradient continue-watching card used on Home + Continue Watching.</p></div>
+  <div class="card"><p class="card-title">New shared widget</p><p class="card-sub" style="margin-top:6px;"><code>widgets/app_skeleton.dart</code> — Shimmer-based loading for Home, Search, Notifications.</p></div>
+  <div class="card"><p class="card-title">New shared widget</p><p class="card-sub" style="margin-top:6px;"><code>widgets/app_empty_state.dart</code> — illustration + copy + CTA pattern for every empty list.</p></div>
+  <div class="card"><p class="card-title">Updated store</p><p class="card-sub" style="margin-top:6px;"><code>HomeStore</code> gets one computed <code>visibleSections</code>; <code>NotificationStore</code> stays untouched; <code>SearchStore</code> gains a <code>recentSearches</code> observable.</p></div>
+  <div class="card"><p class="card-title">Glass tab bar</p><p class="card-sub" style="margin-top:6px;">Wrap existing <code>BottomNavigationBar</code> in a <code>ClipRRect + BackdropFilter</code> — no structural change.</p></div>
+  <div class="card"><p class="card-title">Zero API calls changed</p><p class="card-sub" style="margin-top:6px;">All existing endpoints still used. No new endpoint needed in this area.</p></div>
+</div>
+
+</main>
+
+<script>
+  const root = document.documentElement; const key='sushrutaTheme'; const s=localStorage.getItem(key);
+  if(s) root.setAttribute('data-theme', s);
+  document.getElementById('tt').onclick = () => { const n = root.getAttribute('data-theme')==='dark'?'light':'dark'; root.setAttribute('data-theme', n); localStorage.setItem(key, n); };
+</script>
+</body>
+</html>

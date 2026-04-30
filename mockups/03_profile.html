@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>03 · Profile &amp; Settings — Sushruta UI 2.0</title>
+<link rel="stylesheet" href="_styles.css"/>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · UI 2.0</div>
+  <nav>
+    <a href="index.html">Overview</a><a href="01_auth.html">Auth</a><a href="02_home.html">Home</a>
+    <a href="03_profile.html" class="active">Profile</a><a href="04_video.html">Video</a>
+    <a href="05_notes.html">Notes</a><a href="06_tests.html">Tests</a>
+    <a href="07_progress.html">Progress</a><a href="08_subscription.html">Plans</a>
+    <a href="09_bonus.html">Extras</a>
+  </nav>
+  <button class="theme-toggle" id="tt"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+<h1 class="display">03 · <span class="grad">Profile &amp; Settings</span></h1>
+<p class="lead">
+  Settings rearranged around student intent — study, account, preferences. The new reminder controls
+  (wired to the FCM cron) get their own first-class screen instead of being buried three levels deep.
+</p>
+
+<section class="section-title">📱 Profile · preferences · reminders · appearance</section>
+<div class="row">
+
+  <!-- PROFILE -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><h2>Profile</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⚙</div></div></div>
+        <div class="scroll" style="padding-bottom:90px;">
+          <div style="text-align:center; padding:12px 0 18px;">
+            <div class="avatar" style="width:86px; height:86px; margin:0 auto; font-size:32px; box-shadow:var(--shadow-2);">R</div>
+            <h2 style="margin:12px 0 2px; font-size:20px; letter-spacing:-0.02em;">Dr. Ruchir Sharma</h2>
+            <p style="margin:0; font-size:13px; color:var(--ink-3);">ruchir@example.com · +91 98123 45678</p>
+            <div style="display:inline-flex; align-items:center; gap:8px; margin-top:10px; padding:6px 14px; background:linear-gradient(135deg, var(--accent-soft), var(--purple-soft)); border-radius:999px;">
+              <span style="font-size:13px;">💎</span>
+              <span style="font-size:12px; font-weight:700; color:var(--accent);">Plus · annual</span>
+            </div>
+          </div>
+
+          <div class="grid-3" style="margin-bottom:20px;">
+            <div class="stat"><p class="v">14</p><p class="l">Streak</p></div>
+            <div class="stat"><p class="v">612</p><p class="l">MCQs</p></div>
+            <div class="stat"><p class="v">74%</p><p class="l">Accuracy</p></div>
+          </div>
+
+          <p style="margin:8px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Study</p>
+          <div class="card flat" style="padding:4px; margin-bottom:14px;">
+            <div class="row-list"><div class="icon accent">🎯</div><div style="flex:1;"><div class="t">Target exam</div><div class="s">NEET-SS · June 2026</div></div><span class="chip">Edit</span></div>
+            <div class="row-list"><div class="icon warn">🔥</div><div style="flex:1;"><div class="t">Study goal</div><div class="s">20 questions / day</div></div><span class="chip">Edit</span></div>
+            <div class="row-list" style="border:0;"><div class="icon purple">📚</div><div style="flex:1;"><div class="t">Primary textbook</div><div class="s">Bailey &amp; Love</div></div><span class="chip">Edit</span></div>
+          </div>
+
+          <p style="margin:8px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Preferences</p>
+          <div class="card flat" style="padding:4px; margin-bottom:14px;">
+            <div class="row-list"><div class="icon teal">🔔</div><div style="flex:1;"><div class="t">Reminders</div><div class="s">19:00 · Mon–Fri</div></div><span style="color:var(--ink-3); font-size:18px;">›</span></div>
+            <div class="row-list"><div class="icon indigo">🎨</div><div style="flex:1;"><div class="t">Appearance</div><div class="s">System</div></div><span style="color:var(--ink-3); font-size:18px;">›</span></div>
+            <div class="row-list"><div class="icon ok">📥</div><div style="flex:1;"><div class="t">Downloads</div><div class="s">Wi-Fi only · 2.4 GB used</div></div><span style="color:var(--ink-3); font-size:18px;">›</span></div>
+            <div class="row-list" style="border:0;"><div class="icon pink">🔒</div><div style="flex:1;"><div class="t">Privacy &amp; security</div><div class="s">Biometric unlock on</div></div><span style="color:var(--ink-3); font-size:18px;">›</span></div>
+          </div>
+
+          <p style="margin:8px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Account</p>
+          <div class="card flat" style="padding:4px;">
+            <div class="row-list"><div class="icon accent">💎</div><div style="flex:1;"><div class="t">Subscription</div><div class="s">Renews 12 Aug 2026</div></div><span style="color:var(--ink-3); font-size:18px;">›</span></div>
+            <div class="row-list"><div class="icon" style="background:var(--surface-3); color:var(--ink-2);">🎧</div><div style="flex:1;"><div class="t">Help &amp; support</div></div><span style="color:var(--ink-3); font-size:18px;">›</span></div>
+            <div class="row-list" style="border:0;"><div class="icon bad">↩</div><div style="flex:1;"><div class="t" style="color:var(--bad);">Sign out</div></div></div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><span class="i">🏠</span>Home</div>
+          <div class="tab"><span class="i">🎞</span>Videos</div>
+          <div class="tab"><span class="i">📝</span>Tests</div>
+          <div class="tab"><span class="i">📊</span>Progress</div>
+          <div class="tab active"><span class="i">☰</span>More</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Profile main<small>Hero + stat strip + grouped rows with iOS-style disclosure</small></p>
+  </div>
+
+  <!-- REMINDERS -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Study reminders</h2></div>
+        <div class="scroll">
+          <div class="card" style="background:linear-gradient(135deg, var(--warn) 0%, var(--bad) 100%); border:none; color:#fff;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="font-size:30px;">🔔</div>
+              <div style="flex:1;">
+                <p style="margin:0; font-size:15px; font-weight:700;">Daily nudge</p>
+                <p style="margin:2px 0 0; font-size:12px; opacity:.9;">Delivered via push notification</p>
+              </div>
+              <label style="position:relative; display:inline-block; width:52px; height:30px;">
+                <input type="checkbox" checked style="opacity:0; width:0; height:0;"/>
+                <span style="position:absolute; inset:0; background:#fff; border-radius:999px; cursor:pointer;">
+                  <span style="position:absolute; left:24px; top:3px; width:24px; height:24px; background:var(--warn); border-radius:50%; transition:left var(--t-fast); box-shadow:0 2px 6px rgba(0,0,0,.3);"></span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <p style="margin:6px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Time</p>
+          <div class="card" style="padding:18px 14px; text-align:center;">
+            <p style="margin:0; font-size:46px; font-weight:800; letter-spacing:-0.03em; color:var(--accent);">19:00</p>
+            <p style="margin:4px 0 12px; font-size:12px; color:var(--ink-3);">Based on your phone's timezone</p>
+            <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+              <span class="chip">17:00</span>
+              <span class="chip">18:00</span>
+              <span class="chip accent">19:00</span>
+              <span class="chip">20:00</span>
+              <span class="chip">21:00</span>
+              <span class="chip">Custom</span>
+            </div>
+          </div>
+
+          <p style="margin:8px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Days</p>
+          <div class="card" style="display:flex; gap:6px; justify-content:space-between; padding:14px;">
+            <div style="flex:1; aspect-ratio:1; display:grid; place-items:center; border-radius:10px; background:var(--surface-3); font-size:12px; font-weight:700; color:var(--ink-3);">S</div>
+            <div style="flex:1; aspect-ratio:1; display:grid; place-items:center; border-radius:10px; background:var(--accent); color:#fff; font-size:12px; font-weight:700;">M</div>
+            <div style="flex:1; aspect-ratio:1; display:grid; place-items:center; border-radius:10px; background:var(--accent); color:#fff; font-size:12px; font-weight:700;">T</div>
+            <div style="flex:1; aspect-ratio:1; display:grid; place-items:center; border-radius:10px; background:var(--accent); color:#fff; font-size:12px; font-weight:700;">W</div>
+            <div style="flex:1; aspect-ratio:1; display:grid; place-items:center; border-radius:10px; background:var(--accent); color:#fff; font-size:12px; font-weight:700;">T</div>
+            <div style="flex:1; aspect-ratio:1; display:grid; place-items:center; border-radius:10px; background:var(--accent); color:#fff; font-size:12px; font-weight:700;">F</div>
+            <div style="flex:1; aspect-ratio:1; display:grid; place-items:center; border-radius:10px; background:var(--surface-3); font-size:12px; font-weight:700; color:var(--ink-3);">S</div>
+          </div>
+          <p style="font-size:11px; color:var(--ink-3); margin:-6px 2px 14px;">Tap to toggle each day</p>
+
+          <p style="margin:8px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Timezone</p>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="icon accent">🌐</div>
+              <div style="flex:1;">
+                <p style="margin:0; font-size:13.5px; font-weight:700;">Asia / Kolkata</p>
+                <p style="margin:2px 0 0; font-size:12px; color:var(--ink-3);">UTC +05:30 · auto-detected</p>
+              </div>
+              <span style="color:var(--ink-3);">›</span>
+            </div>
+          </div>
+
+          <div style="background:var(--accent-soft); border-radius:12px; padding:14px; margin-top:10px; display:flex; gap:12px;">
+            <div class="icon accent" style="background:#fff;">ⓘ</div>
+            <div>
+              <p style="margin:0; font-size:12.5px; font-weight:700;">Smart nudges</p>
+              <p style="margin:3px 0 0; font-size:12px; color:var(--ink-2); line-height:1.45;">
+                We skip the reminder if you've already studied today. Nothing more annoying than a "study!" buzz <i>during</i> a session.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Reminder preferences<small>Wired to <code>/api/user/user-preferences</code> and the FCM cron</small></p>
+  </div>
+
+  <!-- APPEARANCE -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Appearance</h2></div>
+        <div class="scroll">
+          <p style="margin:6px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Theme</p>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;">
+            <div>
+              <div style="aspect-ratio:.62; border-radius:12px; overflow:hidden; border:2px solid var(--border); background:#fff; position:relative;">
+                <div style="background:linear-gradient(135deg,#e5ecff,#fff); height:100%; padding:8px;">
+                  <div style="height:4px; width:30px; background:#0a84ff; border-radius:2px; margin-bottom:6px;"></div>
+                  <div style="height:3px; background:#e5e8ef; border-radius:2px; margin-bottom:3px;"></div>
+                  <div style="height:3px; width:60%; background:#e5e8ef; border-radius:2px;"></div>
+                </div>
+              </div>
+              <p style="margin:8px 0 0; font-size:12px; font-weight:700; text-align:center;">Light</p>
+            </div>
+            <div>
+              <div style="aspect-ratio:.62; border-radius:12px; overflow:hidden; border:2px solid var(--accent); background:#07080c; position:relative; box-shadow:0 0 0 4px var(--accent-soft);">
+                <div style="background:linear-gradient(135deg,#16204b,#07080c); height:100%; padding:8px;">
+                  <div style="height:4px; width:30px; background:#409cff; border-radius:2px; margin-bottom:6px;"></div>
+                  <div style="height:3px; background:#242835; border-radius:2px; margin-bottom:3px;"></div>
+                  <div style="height:3px; width:60%; background:#242835; border-radius:2px;"></div>
+                </div>
+              </div>
+              <p style="margin:8px 0 0; font-size:12px; font-weight:700; text-align:center; color:var(--accent);">Dark</p>
+            </div>
+            <div>
+              <div style="aspect-ratio:.62; border-radius:12px; overflow:hidden; border:2px solid var(--border); background:linear-gradient(180deg, #fff 50%, #07080c 50%); position:relative;">
+                <div style="height:50%; background:linear-gradient(135deg,#e5ecff,#fff); padding:8px;">
+                  <div style="height:4px; width:26px; background:#0a84ff; border-radius:2px;"></div>
+                </div>
+                <div style="height:50%; background:linear-gradient(135deg,#16204b,#07080c); padding:8px;">
+                  <div style="height:4px; width:26px; background:#409cff; border-radius:2px;"></div>
+                </div>
+              </div>
+              <p style="margin:8px 0 0; font-size:12px; font-weight:700; text-align:center;">System</p>
+            </div>
+          </div>
+
+          <p style="margin:8px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Accent color</p>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex; gap:10px; justify-content:space-between;">
+              <div style="width:36px; height:36px; border-radius:50%; background:#0a84ff; box-shadow:0 0 0 3px var(--surface), 0 0 0 5px #0a84ff;"></div>
+              <div style="width:36px; height:36px; border-radius:50%; background:#bf5af2;"></div>
+              <div style="width:36px; height:36px; border-radius:50%; background:#30c954;"></div>
+              <div style="width:36px; height:36px; border-radius:50%; background:#ff9f0a;"></div>
+              <div style="width:36px; height:36px; border-radius:50%; background:#ff375f;"></div>
+              <div style="width:36px; height:36px; border-radius:50%; background:#5ac8fa;"></div>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Text size</p>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+              <span style="font-size:12px; color:var(--ink-3);">A</span>
+              <div style="flex:1; height:4px; background:var(--border); border-radius:2px; position:relative;">
+                <div style="position:absolute; left:0; right:40%; top:0; bottom:0; background:var(--accent); border-radius:2px;"></div>
+                <div style="position:absolute; left:60%; top:-6px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.2); border:2px solid var(--accent);"></div>
+              </div>
+              <span style="font-size:20px; font-weight:700;">A</span>
+            </div>
+            <p style="margin:12px 0 0; font-size:13px; color:var(--ink-2); line-height:1.5;">Preview: <i>A 45-year-old presents with epigastric pain radiating to the back…</i></p>
+          </div>
+
+          <p style="margin:14px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Motion</p>
+          <div class="card flat" style="padding:4px;">
+            <div class="row-list"><div style="flex:1;"><div class="t">Reduce motion</div><div class="s">Cross-fades replace slide transitions</div></div>
+              <label style="position:relative; display:inline-block; width:46px; height:26px;"><input type="checkbox" style="opacity:0; width:0; height:0;"/>
+                <span style="position:absolute; inset:0; background:var(--border); border-radius:999px;"><span style="position:absolute; left:3px; top:3px; width:20px; height:20px; background:#fff; border-radius:50%; box-shadow:0 2px 4px rgba(0,0,0,.15);"></span></span>
+              </label>
+            </div>
+            <div class="row-list" style="border:0;"><div style="flex:1;"><div class="t">Haptic feedback</div><div class="s">Subtle taps on rate/toggle</div></div>
+              <label style="position:relative; display:inline-block; width:46px; height:26px;"><input type="checkbox" checked style="opacity:0; width:0; height:0;"/>
+                <span style="position:absolute; inset:0; background:var(--accent); border-radius:999px;"><span style="position:absolute; right:3px; top:3px; width:20px; height:20px; background:#fff; border-radius:50%; box-shadow:0 2px 4px rgba(0,0,0,.15);"></span></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Appearance settings<small>Theme picker (Light / Dark / System), accent color, type size, motion preferences</small></p>
+  </div>
+
+  <!-- DOWNLOADS -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Downloads</h2></div>
+        <div class="scroll">
+          <div class="card" style="padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px;">
+              <p style="margin:0; font-size:13px; color:var(--ink-3); font-weight:600;">Used on this device</p>
+              <p style="margin:0; font-size:13px; font-weight:700;"><b style="color:var(--accent); font-size:18px;">2.4</b>  / 10 GB</p>
+            </div>
+            <div class="bar"><span class="acc" style="width:24%;"></span></div>
+          </div>
+
+          <p style="margin:14px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Quality</p>
+          <div class="card flat" style="padding:4px;">
+            <div class="row-list"><div style="flex:1;"><div class="t">Wi-Fi only downloads</div><div class="s">Recommended</div></div>
+              <label style="position:relative; display:inline-block; width:46px; height:26px;"><input type="checkbox" checked style="opacity:0; width:0; height:0;"/><span style="position:absolute; inset:0; background:var(--accent); border-radius:999px;"><span style="position:absolute; right:3px; top:3px; width:20px; height:20px; background:#fff; border-radius:50%;"></span></span></label>
+            </div>
+            <div class="row-list" style="border:0;"><div style="flex:1;"><div class="t">Default quality</div><div class="s">720p · ~280MB/hr</div></div><span class="chip">Change</span></div>
+          </div>
+
+          <p style="margin:14px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Downloaded (18)</p>
+
+          <div class="row-list">
+            <div class="thumb v">▶</div>
+            <div style="flex:1;">
+              <p style="margin:0; font-size:13.5px; font-weight:600;">Wound healing — phases</p>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">28 min · 168 MB · 720p</p>
+            </div>
+            <span style="color:var(--ok); font-size:18px;">✓</span>
+          </div>
+          <div class="row-list">
+            <div class="thumb v">▶</div>
+            <div style="flex:1;">
+              <p style="margin:0; font-size:13.5px; font-weight:600;">Shock — MAP targets</p>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Downloading · 62%</p>
+              <div class="bar" style="margin-top:6px;"><span class="acc" style="width:62%;"></span></div>
+            </div>
+            <span style="color:var(--ink-3); font-size:16px;">⏸</span>
+          </div>
+          <div class="row-list">
+            <div class="thumb n">📖</div>
+            <div style="flex:1;">
+              <p style="margin:0; font-size:13.5px; font-weight:600;">Hernia — concise notes</p>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">18 pages · 2.1 MB</p>
+            </div>
+            <span style="color:var(--ok); font-size:18px;">✓</span>
+          </div>
+          <div class="row-list" style="border:0;">
+            <div class="thumb t">📝</div>
+            <div style="flex:1;">
+              <p style="margin:0; font-size:13.5px; font-weight:600;">Bailey Test 14 — offline</p>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">30 Qs · 1.4 MB</p>
+            </div>
+            <span style="color:var(--ok); font-size:18px;">✓</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Downloads<small>Storage gauge · Wi-Fi toggle · downloaded list with in-progress row</small></p>
+  </div>
+</div>
+
+</main>
+<script>
+  const r=document.documentElement,k='sushrutaTheme',s=localStorage.getItem(k);
+  if(s)r.setAttribute('data-theme',s);
+  document.getElementById('tt').onclick=()=>{const n=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',n);localStorage.setItem(k,n);};
+</script>
+</body>
+</html>

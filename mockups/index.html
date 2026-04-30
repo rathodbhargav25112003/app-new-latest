@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sushruta LMS — Full UI Redesign · Apple-grade</title>
+<link rel="stylesheet" href="_styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · UI 2.0</div>
+  <nav>
+    <a href="index.html" class="active">Overview</a>
+    <a href="01_auth.html">Auth</a>
+    <a href="02_home.html">Home</a>
+    <a href="03_profile.html">Profile</a>
+    <a href="04_video.html">Video</a>
+    <a href="05_notes.html">Notes</a>
+    <a href="06_tests.html">Tests</a>
+    <a href="07_progress.html">Progress</a>
+    <a href="08_subscription.html">Store</a>
+    <a href="09_bonus.html">Extras</a>
+    <a href="10_explorer.html">Explorer</a>
+    <a href="11_exam_engine.html">Exam engine</a>
+    <a href="12_analytics.html">Analytics+</a>
+  </nav>
+  <button class="theme-toggle" id="tt" aria-label="Toggle dark mode">
+    <span class="sun">☀</span><span class="moon">☾</span>
+  </button>
+</header>
+
+<main class="page">
+
+<h1 class="display">A calmer, sharper <span class="grad">Sushruta</span>.</h1>
+<p class="lead">
+  Full student-app redesign &mdash; twelve clusters covering onboarding, home, video, notes, tests,
+  progress, store (digital + hardcopy + flipbook), explorer, advanced exam engine, and advanced
+  analytics. Apple-grade polish, responsive across phone / tablet / iPad / laptop, first-class dark
+  mode. Toggle the theme top-right &mdash; every mockup responds.
+</p>
+
+<div class="breakpoint-labels">
+  <span class="b">📱 360–414</span>
+  <span class="b">📱 iPad mini 744</span>
+  <span class="b">📱 iPad Pro 1024</span>
+  <span class="b">💻 1280+</span>
+</div>
+
+<section class="section-title">UX principles applied across the redesign</section>
+<div class="quilt">
+  <a href="#" onclick="return false;">
+    <span class="num">01 · Clarity</span>
+    <h3>One primary action per screen</h3>
+    <p>Ambiguity gone. Every screen has one unmistakable next step, one accent button, and a clear hierarchy.</p>
+  </a>
+  <a href="#" onclick="return false;">
+    <span class="num">02 · Continuity</span>
+    <h3>Resume-first home</h3>
+    <p>The thing the student was doing last is the first thing they see. No more "where was I?".</p>
+  </a>
+  <a href="#" onclick="return false;">
+    <span class="num">03 · Feedback</span>
+    <h3>Micro-interactions &amp; haptics</h3>
+    <p>Taps feel alive. Ratings, toggles and loading states all have real transitions, not cuts.</p>
+  </a>
+  <a href="#" onclick="return false;">
+    <span class="num">04 · Typography</span>
+    <h3>SF-style tightened type</h3>
+    <p>Negative tracking on display sizes, optical sizing, feature flags for numerals. Reads like iOS.</p>
+  </a>
+  <a href="#" onclick="return false;">
+    <span class="num">05 · Surfaces</span>
+    <h3>Soft depth, not heavy shadows</h3>
+    <p>Three shadow tiers, glass/blur on floating bars, generous radii. Dark mode uses true blacks.</p>
+  </a>
+  <a href="#" onclick="return false;">
+    <span class="num">06 · Accessibility</span>
+    <h3>44pt targets, WCAG AA contrast</h3>
+    <p>Rating buttons, FABs, list rows — all tap-friendly on every device. Dark mode passes AA too.</p>
+  </a>
+</div>
+
+<section class="section-title">The new information architecture</section>
+<div class="quilt">
+  <a href="01_auth.html"><span class="num">Cluster 01</span><h3>Onboarding &amp; auth</h3><p>Splash, login, OTP, signup. Simplified, single-column, step indicators throughout.</p></a>
+  <a href="02_home.html"><span class="num">Cluster 02</span><h3>Home, search, notifications</h3><p>Resume banner, quick actions, streak-forward home. Plus responsive tablet/laptop layouts.</p></a>
+  <a href="03_profile.html"><span class="num">Cluster 03</span><h3>Profile &amp; settings</h3><p>Reminder controls (the new FCM preferences UI), subscription status, accessibility.</p></a>
+  <a href="04_video.html"><span class="num">Cluster 04</span><h3>Video lectures</h3><p>List view, player, bookmark FAB + sheet, tablet landscape layout with side panel.</p></a>
+  <a href="05_notes.html"><span class="num">Cluster 05</span><h3>Notes &amp; reader</h3><p>Category grid, notes reader with table-of-contents and highlight tools.</p></a>
+  <a href="06_tests.html"><span class="num">Cluster 06</span><h3>Tests &amp; mocks</h3><p>Test list, taking view, review view, result with percentile and per-topic breakdown.</p></a>
+  <a href="07_progress.html"><span class="num">Cluster 07</span><h3>Progress &amp; review queue</h3><p>Streak card, analytics, topic mastery, SM-2 review flow in full Apple treatment.</p></a>
+  <a href="08_subscription.html"><span class="num">Cluster 08</span><h3>Unified store (plans + hardcopy + flipbook)</h3><p>Digital subscriptions and 5-volume hardcopy notes in one store, shared cart, CSS flipbook preview (mobile + iPad spread), unified checkout, order tracking, and a full admin panel for SKUs, preview assets and orders.</p></a>
+  <a href="09_bonus.html"><span class="num">Cluster 09</span><h3>Bonus screens</h3><p>Bookmarks library, history, live class, empty states, error states.</p></a>
+  <a href="10_explorer.html"><span class="num">Cluster 10</span><h3>Content explorer (shorter flow)</h3><p>Unified MCQ / video / notes explorer that replaces the deep category &rarr; subcategory &rarr; topic drill. Sticky chip rows, iPad 3-pane master-detail, zero API change.</p></a>
+  <a href="11_exam_engine.html"><span class="num">Cluster 11</span><h3>Advanced exam engine</h3><p>Normal + section-based + practice + grand mock modes. In-exam calculator, scratchpad, flag-and-return palette, laptop 3-pane with full keyboard shortcuts.</p></a>
+  <a href="12_analytics.html"><span class="num">Cluster 12</span><h3>Advanced analytics + new features</h3><p>Readiness gauge, percentile tracking, peer comparison, study calendar, AI study plan, flashcard decks, mock rank history (SVG), time-per-question histogram, concept map, readiness forecast &mdash; plus endpoint sketches for backend.</p></a>
+</div>
+
+<section class="section-title">Responsive strategy</section>
+<div class="quilt">
+  <a href="#" onclick="return false;">
+    <span class="num">Phone</span><h3>Single-column, bottom tab bar</h3>
+    <p>Glass bottom tab bar floats 10pt off screen edge. FAB cluster stacks vertically above the tab bar.</p>
+  </a>
+  <a href="#" onclick="return false;">
+    <span class="num">iPad mini (744)</span><h3>Expanded single pane</h3>
+    <p>Wider content, same navigation. Cards grow horizontally; Resume banner shows 4 cards instead of 2.5.</p>
+  </a>
+  <a href="#" onclick="return false;">
+    <span class="num">iPad Pro / tablet</span><h3>Split-view master-detail</h3>
+    <p>Sidebar navigation replaces bottom tabs. Video player + notes side-by-side. Progress is a 2-column dashboard.</p>
+  </a>
+  <a href="#" onclick="return false;">
+    <span class="num">Laptop / macOS</span><h3>Three-column app shell</h3>
+    <p>Rail (modules) · list (content) · detail (player/reader). Keyboard shortcuts surfaced in tooltips.</p>
+  </a>
+</div>
+
+</main>
+
+<script>
+  const root = document.documentElement;
+  const key = 'sushrutaTheme';
+  const saved = localStorage.getItem(key);
+  if (saved) root.setAttribute('data-theme', saved);
+  document.getElementById('tt').addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem(key, next);
+  });
+</script>
+</body>
+</html>

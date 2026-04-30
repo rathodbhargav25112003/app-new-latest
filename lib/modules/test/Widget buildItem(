@@ -1,0 +1,1029 @@
+  Widget buildItem(
+      BuildContext context, TestExamPaperListModel? testExamPaperListModel) {
+    TestExamPaperListModel? testExamPaper = testExamPaperListModel;
+    String fromTime = '';
+    String toTime = '';
+    DateTime currentDateTime = DateTime.now();
+    if ((testExamPaper?.fromtime?.isNotEmpty ?? false) &&
+        (testExamPaper?.totime?.isNotEmpty ?? false)) {
+      String fromString = testExamPaper?.fromtime ?? "";
+      String toString = testExamPaper?.totime ?? "";
+      DateTime datefromTime = DateTime.parse(fromString);
+      DateTime dateToTime = DateTime.parse(toString);
+
+      fromTime = DateFormat('dd/MM/yyyy hh:mm a').format(datefromTime);
+      toTime = DateFormat('dd/MM/yyyy hh:mm a').format(dateToTime);
+    }
+
+    if (query.isNotEmpty &&
+        (!testExamPaper!.examName!
+            .toLowerCase()
+            .contains(query.toLowerCase()))) {
+      return Container();
+    }
+    return Stack(
+      children: [
+        Container(
+          margin:
+              const EdgeInsets.only(bottom: Dimensions.PADDING_SIZE_DEFAULT),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(9.6),
+            color: ThemeManager.white,
+            border: Border.all(color: ThemeManager.mainBorder),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(9.6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(
+                    left: Dimensions.PADDING_SIZE_DEFAULT,
+                    top: Dimensions.PADDING_SIZE_DEFAULT * 1.2,
+                    right: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SizedBox(
+                            width: (Platform.isWindows || Platform.isMacOS)
+                                ? MediaQuery.of(context).size.width * 0.22
+                                : MediaQuery.of(context).size.width * 0.4,
+                            child: Text(
+                              testExamPaper?.examName ?? "",
+                              style: interSemiBold.copyWith(
+                                fontSize: Dimensions.fontSizeDefault,
+                                fontWeight: FontWeight.w600,
+                                color: ThemeManager.black,
+                              ),
+                            ),
+                          ),
+                          testExamPaper?.fromtime == ''
+                              ? Container(
+                                  height: Dimensions.PADDING_SIZE_LARGE,
+                                  padding: const EdgeInsets.only(
+                                    left: Dimensions.PADDING_SIZE_EXTRA_SMALL *
+                                        1.2,
+                                    right: Dimensions.PADDING_SIZE_EXTRA_SMALL *
+                                        1.6,
+                                    // top: Dimensions.PADDING_SIZE_EXTRA_SMALL*1.4,
+                                    // bottom: Dimensions.PADDING_SIZE_EXTRA_SMALL*1.4,
+                                  ),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: ThemeManager.backContainer,
+                                    borderRadius: BorderRadius.circular(
+                                        Dimensions.RADIUS_DEFAULT),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        height: Dimensions
+                                                .PADDING_SIZE_EXTRA_SMALL *
+                                            1.4,
+                                        width: Dimensions
+                                                .PADDING_SIZE_EXTRA_SMALL *
+                                            1.4,
+                                        decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: ThemeManager.correctChart),
+                                      ),
+                                      Text(
+                                        " Always Live",
+                                        style: interSemiBold.copyWith(
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w400,
+                                          color: ThemeManager.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : currentDateTime.isBefore(DateTime.parse(
+                                      testExamPaper?.fromtime ?? ''))
+                                  ? Container(
+                                      height: Dimensions.PADDING_SIZE_LARGE,
+                                      padding: const EdgeInsets.only(
+                                        left: Dimensions
+                                                .PADDING_SIZE_EXTRA_SMALL *
+                                            1.2,
+                                        right: Dimensions
+                                                .PADDING_SIZE_EXTRA_SMALL *
+                                            1.6,
+                                        // top: Dimensions.PADDING_SIZE_EXTRA_SMALL*1.4,
+                                        // bottom: Dimensions.PADDING_SIZE_EXTRA_SMALL*1.4,
+                                      ),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: ThemeManager.backContainer,
+                                        borderRadius: BorderRadius.circular(
+                                            Dimensions.RADIUS_DEFAULT),
+                                      ),
+                                      child: Text(
+                                        " Live From $fromTime",
+                                        style: interSemiBold.copyWith(
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w400,
+                                          color: ThemeManager.black,
+                                        ),
+                                      ),
+                                    )
+                                  : Container(
+                                      height: Dimensions.PADDING_SIZE_LARGE,
+                                      padding: const EdgeInsets.only(
+                                        left: Dimensions
+                                                .PADDING_SIZE_EXTRA_SMALL *
+                                            1.2,
+                                        right: Dimensions
+                                                .PADDING_SIZE_EXTRA_SMALL *
+                                            1.6,
+                                        // top: Dimensions.PADDING_SIZE_EXTRA_SMALL*1.4,
+                                        // bottom: Dimensions.PADDING_SIZE_EXTRA_SMALL*1.4,
+                                      ),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: ThemeManager.backContainer,
+                                        borderRadius: BorderRadius.circular(
+                                            Dimensions.RADIUS_DEFAULT),
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            height: Dimensions
+                                                    .PADDING_SIZE_EXTRA_SMALL *
+                                                1.4,
+                                            width: Dimensions
+                                                    .PADDING_SIZE_EXTRA_SMALL *
+                                                1.4,
+                                            decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: ThemeManager.redText),
+                                          ),
+                                          Text(
+                                            " Live Till $toTime",
+                                            style: interSemiBold.copyWith(
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w400,
+                                              color: ThemeManager.black,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                        ],
+                      ),
+                      const SizedBox(
+                        height: Dimensions.PADDING_SIZE_SMALL,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              SvgPicture.asset(
+                                "assets/image/testTime.svg",
+                                color:
+                                    ThemeManager.currentTheme == AppTheme.Dark
+                                        ? AppColors.white
+                                        : null,
+                              ),
+                              const SizedBox(
+                                width: 3,
+                              ),
+                              Text(
+                                testExamPaper?.timeDuration ?? "",
+                                style: interSemiBold.copyWith(
+                                  fontSize: Dimensions.fontSizeExtraSmall,
+                                  fontWeight: FontWeight.w700,
+                                  color: ThemeManager.black,
+                                ),
+                              ),
+                              const SizedBox(
+                                width: Dimensions.PADDING_SIZE_SMALL * 1.1,
+                              ),
+                              Text(
+                                "Q ${testExamPaper?.totalQuestions.toString()}",
+                                style: interSemiBold.copyWith(
+                                  fontSize: Dimensions.fontSizeExtraSmall,
+                                  fontWeight: FontWeight.w700,
+                                  color: ThemeManager.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              SvgPicture.asset(
+                                "assets/image/testAttempt.svg",
+                                color:
+                                    ThemeManager.currentTheme == AppTheme.Dark
+                                        ? AppColors.white
+                                        : null,
+                              ),
+                              const SizedBox(
+                                width: 3,
+                              ),
+                              // Expanded(
+                              //   child: Text.rich(
+                              //     TextSpan(
+                              //       text: 'Remaining Attempts ',
+                              //       children: [
+                              //         TextSpan(
+                              //           text: ' - ${testExamPaper?.remainingAttempts ?? ""}',
+                              //           style: interSemiBold.copyWith(
+                              //             fontSize: Dimensions.fontSizeSmall,
+                              //             fontWeight: FontWeight.w700,
+                              //             color: ThemeManager.black,
+                              //           ),
+                              //         ),
+                              //       ],
+                              //       style: interSemiBold.copyWith(
+                              //       fontSize: Dimensions.fontSizeSmall,
+                              //       fontWeight: FontWeight.w400,
+                              //       color: ThemeManager.black,
+                              //     ),
+                              //     ),
+                              //   ),
+                              // ),
+                              Text(
+                                "Remaining Attempts ",
+                                style: interSemiBold.copyWith(
+                                  fontSize: Dimensions.fontSizeExtraSmall,
+                                  fontWeight: FontWeight.w400,
+                                  color: ThemeManager.black,
+                                ),
+                              ),
+                              Text(
+                                " - ${testExamPaper?.remainingAttempts ?? ""}",
+                                style: interSemiBold.copyWith(
+                                  fontSize: Dimensions.fontSizeExtraSmall,
+                                  fontWeight: FontWeight.w700,
+                                  color: ThemeManager.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(
+                  height: Dimensions.PADDING_SIZE_SMALL * 1.2,
+                ),
+                Row(
+                  children: [
+                    if (testExamPaper?.isPracticeMode == true)
+                      Expanded(
+                        child: InkWell(
+                          onTap: () async {
+                            if (testExamPaper?.isAccess == true) {
+                              if (testExamPaper?.exitUserExamId == "") {
+                                if (Platform.isWindows || Platform.isMacOS) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        backgroundColor: Colors.transparent,
+                                        surfaceTintColor: Colors.transparent,
+                                        // insetPadding: const EdgeInsets
+                                        //     .symmetric(
+                                        //     horizontal:
+                                        //         100),
+                                        actionsPadding: EdgeInsets.zero,
+                                        actions: [
+                                          CustomTestBottomSheet(
+                                              context,
+                                              testExamPaper,
+                                              widget.id,
+                                              widget.type,
+                                              isUseHightWidthWindow: false,
+                                              true),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                } else {
+                                  showModalBottomSheet<void>(
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(25),
+                                      ),
+                                    ),
+                                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return CustomTestBottomSheet(
+                                          context,
+                                          testExamPaper,
+                                          widget.id,
+                                          widget.type,
+                                          true);
+                                    },
+                                  );
+                                }
+                              } else {
+                                if (Platform.isWindows || Platform.isMacOS) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        backgroundColor: Colors.transparent,
+                                        surfaceTintColor: Colors.transparent,
+                                        // insetPadding: const EdgeInsets
+                                        //     .symmetric(
+                                        //     horizontal:
+                                        //         100),
+                                        actionsPadding: EdgeInsets.zero,
+                                        actions: [
+                                          PracticeBottomSheet(
+                                              context,
+                                              testExamPaper,
+                                              widget.id,
+                                              widget.type,
+                                              true),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                } else {
+                                  showModalBottomSheet<void>(
+                                    isScrollControlled: true,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(25),
+                                      ),
+                                    ),
+                                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return PracticeBottomSheet(
+                                          context,
+                                          testExamPaper,
+                                          widget.id,
+                                          widget.type,
+                                          true);
+                                    },
+                                  );
+                                }
+                              }
+                            } else {
+                              if (Platform.isWindows || Platform.isMacOS) {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      backgroundColor:
+                                          ThemeManager.mainBackground,
+                                      insetPadding: const EdgeInsets.symmetric(
+                                          horizontal: 100),
+                                      actionsPadding: EdgeInsets.zero,
+                                      actions: const [
+                                        NoAccessAlertDialog(),
+                                      ],
+                                    );
+                                  },
+                                );
+                              } else {
+                                showModalBottomSheet<void>(
+                                  isScrollControlled: true,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(25),
+                                    ),
+                                  ),
+                                  clipBehavior: Clip.antiAliasWithSaveLayer,
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return const NoAccessBottomSheet();
+                                  },
+                                );
+                              }
+                              // BottomToast.showBottomToastOverlay(context: context,
+                              //     errorMessage: "Upgrade Your Plan",
+                              //     backgroundColor: ThemeManager.redAlert);
+                              // Navigator.of(context).pushNamed(Routes.subscriptionPlan);
+                            }
+                          },
+                          child: Container(
+                            height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                            color: ThemeManager.practiceColor,
+                            alignment: Alignment.center,
+                            child: Text(
+                              "Practice",
+                              style: interSemiBold.copyWith(
+                                fontSize: Dimensions.fontSizeExtraSmall,
+                                fontWeight: FontWeight.w500,
+                                color: ThemeManager.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    testExamPaper?.isGivenTest == true
+                        ? Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                if (testExamPaper?.isAccess == true) {
+                                  Navigator.of(context).pushNamed(
+                                      Routes.reportSubCategory,
+                                      arguments: {
+                                        'id': testExamPaper?.examId,
+                                        'title': testExamPaper?.examName,
+                                      });
+                                } else {
+                                  if (Platform.isWindows || Platform.isMacOS) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          backgroundColor:
+                                              ThemeManager.mainBackground,
+                                          insetPadding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 100),
+                                          actionsPadding: EdgeInsets.zero,
+                                          actions: const [
+                                            NoAccessAlertDialog(),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  } else {
+                                    showModalBottomSheet<void>(
+                                      isScrollControlled: true,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(25),
+                                        ),
+                                      ),
+                                      clipBehavior: Clip.antiAliasWithSaveLayer,
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return const NoAccessBottomSheet();
+                                      },
+                                    );
+                                  }
+                                  // BottomToast.showBottomToastOverlay(context: context,
+                                  //     errorMessage: "Upgrade Your Plan",
+                                  //     backgroundColor: ThemeManager.redAlert);
+                                  // Navigator.of(context).pushNamed(Routes.subscriptionPlan);
+                                }
+                              },
+                              child: Container(
+                                height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                                color: ThemeManager.solutionColor,
+                                alignment: Alignment.center,
+                                child: Text(
+                                  "Solutions",
+                                  style: interSemiBold.copyWith(
+                                    fontSize: Dimensions.fontSizeExtraSmall,
+                                    fontWeight: FontWeight.w500,
+                                    color: ThemeManager.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : const SizedBox(),
+                    (testExamPaper?.remainingAttempts ?? 0) > 0
+                        ? testExamPaper?.isAttempt == true
+                            ? Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    if (testExamPaper?.isAccess == true) {
+                                      if (Platform.isWindows ||
+                                          Platform.isMacOS) {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              surfaceTintColor:
+                                                  Colors.transparent,
+                                              actionsPadding: EdgeInsets.zero,
+                                              actions: [
+                                                CustomTestBottomSheet(
+                                                  context,
+                                                  testExamPaper,
+                                                  widget.id,
+                                                  widget.type,
+                                                  false,
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      } else {
+                                        showModalBottomSheet<void>(
+                                          shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(25),
+                                            ),
+                                          ),
+                                          clipBehavior:
+                                              Clip.antiAliasWithSaveLayer,
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return CustomTestBottomSheet(
+                                                context,
+                                                testExamPaper,
+                                                widget.id,
+                                                widget.type,
+                                                false);
+                                          },
+                                        );
+                                      }
+                                    } else {
+                                      if (Platform.isWindows ||
+                                          Platform.isMacOS) {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              backgroundColor:
+                                                  ThemeManager.mainBackground,
+                                              actionsPadding: EdgeInsets.zero,
+                                              insetPadding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 100),
+                                              actions: const [
+                                                NoAccessAlertDialog(),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      } else {
+                                        showModalBottomSheet<void>(
+                                          isScrollControlled: true,
+                                          shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(25),
+                                            ),
+                                          ),
+                                          clipBehavior:
+                                              Clip.antiAliasWithSaveLayer,
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return const NoAccessBottomSheet();
+                                          },
+                                        );
+                                      }
+                                      // BottomToast.showBottomToastOverlay(context: context,
+                                      //     errorMessage: "Upgrade Your Plan",
+                                      //     backgroundColor: ThemeManager.redAlert);
+                                      // Navigator.of(context).pushNamed(Routes.subscriptionPlan);
+                                    }
+                                  },
+                                  child: Container(
+                                    height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                                    color: ThemeManager.attemptColor,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      "Re-Attempt Test",
+                                      style: interSemiBold.copyWith(
+                                        fontSize: Dimensions.fontSizeExtraSmall,
+                                        fontWeight: FontWeight.w500,
+                                        color: ThemeManager.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Expanded(
+                                child: InkWell(
+                                  onTap: () async {
+                                    if (testExamPaper?.isAccess == true) {
+                                      if (Platform.isWindows ||
+                                          Platform.isMacOS) {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              surfaceTintColor:
+                                                  Colors.transparent,
+                                              actionsPadding: EdgeInsets.zero,
+                                              actions: [
+                                                CustomTestBottomSheet(
+                                                  context,
+                                                  testExamPaper,
+                                                  widget.id,
+                                                  widget.type,
+                                                  false,
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      } else {
+                                        showModalBottomSheet<void>(
+                                          shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(25),
+                                            ),
+                                          ),
+                                          clipBehavior:
+                                              Clip.antiAliasWithSaveLayer,
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return CustomTestBottomSheet(
+                                                context,
+                                                testExamPaper,
+                                                widget.id,
+                                                widget.type,
+                                                false);
+                                          },
+                                        );
+                                      }
+                                    } else {
+                                      if (Platform.isWindows ||
+                                          Platform.isMacOS) {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return AlertDialog(
+                                              backgroundColor:
+                                                  ThemeManager.mainBackground,
+                                              actionsPadding: EdgeInsets.zero,
+                                              insetPadding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 100),
+                                              actions: const [
+                                                NoAccessAlertDialog(),
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      } else {
+                                        showModalBottomSheet<void>(
+                                          isScrollControlled: true,
+                                          shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                              top: Radius.circular(25),
+                                            ),
+                                          ),
+                                          clipBehavior:
+                                              Clip.antiAliasWithSaveLayer,
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return const NoAccessBottomSheet();
+                                          },
+                                        );
+                                      }
+                                      // BottomToast.showBottomToastOverlay(context: context,
+                                      //     errorMessage: "Upgrade Your Plan",
+                                      //     backgroundColor: ThemeManager.redAlert);
+                                      // Navigator.of(context).pushNamed(Routes.subscriptionPlan);
+                                    }
+                                  },
+                                  child: Container(
+                                    height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                                    color: ThemeManager.attemptColor,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      "Attempt Test",
+                                      style: interSemiBold.copyWith(
+                                        fontSize: Dimensions.fontSizeExtraSmall,
+                                        fontWeight: FontWeight.w500,
+                                        color: ThemeManager.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                        : const SizedBox(),
+                  ],
+                ),
+                // Text("Total Questions : ${testExamPaper?.totalQuestions.toString() ?? "0"}",
+                //   style: interRegular.copyWith(
+                //     fontSize: Dimensions.fontSizeSmall,
+                //     fontWeight: FontWeight.w400,
+                //     color: Theme.of(context).hintColor,
+                //   ),),
+                // const SizedBox(height: Dimensions.PADDING_SIZE_SMALL,),
+                // Text("Exam Duration : ${testExamPaper?.timeDuration ?? ""}",
+                //   style: interRegular.copyWith(
+                //     fontSize: Dimensions.fontSizeSmall,
+                //     fontWeight: FontWeight.w400,
+                //     color: Theme.of(context).hintColor,
+                //   ),),
+                // const SizedBox(height: Dimensions.PADDING_SIZE_SMALL,),
+                // Text("Remaining Attempts : ${testExamPaper?.remainingAttempts ?? ""}",
+                //   style: interRegular.copyWith(
+                //     fontSize: Dimensions.fontSizeSmall,
+                //     fontWeight: FontWeight.w400,
+                //     color: Theme.of(context).hintColor,
+                //   ),),
+                // const SizedBox(height: Dimensions.PADDING_SIZE_SMALL,),
+                // if(fromTime.isNotEmpty&&toTime.isNotEmpty)
+                //   Column(
+                //     mainAxisAlignment: MainAxisAlignment.start,
+                //     crossAxisAlignment: CrossAxisAlignment.start,
+                //     children: [
+                //       Text("From Time : $fromTime",
+                //         style: interRegular.copyWith(
+                //           fontSize: Dimensions.fontSizeSmall,
+                //           fontWeight: FontWeight.w400,
+                //           color: Theme.of(context).hintColor,
+                //         ),),
+                //       const SizedBox(height: Dimensions.PADDING_SIZE_SMALL,),
+                //       Text("To Time : $toTime",
+                //         style: interRegular.copyWith(
+                //           fontSize: Dimensions.fontSizeSmall,
+                //           fontWeight: FontWeight.w400,
+                //           color: Theme.of(context).hintColor,
+                //         ),),
+                //       const SizedBox(height: Dimensions.PADDING_SIZE_SMALL,),
+                //     ],
+                //   ),
+                //
+                // //Normal Test
+                // Row(
+                //   children: [
+                //     (testExamPaper?.remainingAttempts??0) > 0?
+                //     Row(
+                //       mainAxisSize: MainAxisSize.min,
+                //       children: [
+                //         testExamPaper?.isAttempt==true?
+                //         //Re-attempt
+                //         OutlinedButton(
+                //           onPressed: () async {
+                //             if(testExamPaper?.isAccess==true){
+                //               showModalBottomSheet<void>(
+                //                 shape: const RoundedRectangleBorder(
+                //                   borderRadius: BorderRadius.vertical(
+                //                     top: Radius.circular(25),
+                //                   ),
+                //                 ),
+                //                 clipBehavior: Clip.antiAliasWithSaveLayer,
+                //                 context: context,
+                //                 builder: (BuildContext context) {
+                //                   return CustomTestBottomSheet(context, testExamPaper,
+                //                       widget.id, widget.type,false);
+                //                 },
+                //               );
+                //             }
+                //             else{
+                //               BottomToast.showBottomToastOverlay(context: context,
+                //                   errorMessage: "Upgrade Your Plan",
+                //                   backgroundColor: ThemeManager.redAlert);
+                //               Navigator.of(context).pushNamed(Routes.subscriptionPlan);
+                //             }
+                //           },
+                //           style: OutlinedButton.styleFrom(
+                //             side:  BorderSide(color: ThemeManager.greenSuccess),
+                //             shape: RoundedRectangleBorder(
+                //               borderRadius: BorderRadius.circular(Dimensions.RADIUS_DEFAULT),
+                //             ),
+                //           ),
+                //           child: Row(
+                //             children: [
+                //               Text(
+                //                 "Re-attempt",
+                //                 style: TextStyle(
+                //                   fontSize: Dimensions.fontSizeSmall,
+                //                   fontWeight: FontWeight.w400,
+                //                   color: ThemeManager.greenSuccess,
+                //                 ),
+                //               ),
+                //               // const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                //               // SvgPicture.asset(
+                //               //   "assets/image/forward_icon.svg",
+                //               //   color: ThemeManager.greenSuccess,
+                //               // ),
+                //             ],
+                //           ),
+                //         ) :
+                //         //Take a test
+                //         OutlinedButton(
+                //           onPressed: () async {
+                //             if(testExamPaper?.isAccess==true){
+                //               showModalBottomSheet<void>(
+                //                 shape: const RoundedRectangleBorder(
+                //                   borderRadius: BorderRadius.vertical(
+                //                     top: Radius.circular(25),
+                //                   ),
+                //                 ),
+                //                 clipBehavior: Clip.antiAliasWithSaveLayer,
+                //                 context: context,
+                //                 builder: (BuildContext context) {
+                //                   return CustomTestBottomSheet(context, testExamPaper,
+                //                       widget.id, widget.type,false);
+                //                 },
+                //               );
+                //             }else{
+                //               BottomToast.showBottomToastOverlay(context: context,
+                //                   errorMessage: "Upgrade Your Plan",
+                //                   backgroundColor: ThemeManager.redAlert);
+                //               Navigator.of(context).pushNamed(Routes.subscriptionPlan);
+                //             }
+                //           },
+                //           style: OutlinedButton.styleFrom(
+                //             backgroundColor: ThemeManager.borderBlue,
+                //             side:  BorderSide(color: ThemeManager.borderBlue),
+                //             shape: RoundedRectangleBorder(
+                //               borderRadius: BorderRadius.circular(Dimensions.RADIUS_DEFAULT),
+                //             ),
+                //           ),
+                //           child: Row(
+                //             children: [
+                //               Text(
+                //                 "Test Mode",
+                //                 style: TextStyle(
+                //                   fontSize: Dimensions.fontSizeSmall,
+                //                   fontWeight: FontWeight.w400,
+                //                   color: Theme.of(context).primaryColor,
+                //                 ),
+                //               ),
+                //               // const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                //               // SvgPicture.asset(
+                //               //   "assets/image/forward_icon.svg",
+                //               //   color: Theme.of(context).primaryColor,
+                //               // ),
+                //             ],
+                //           ),
+                //         ),
+                //       ],
+                //     ):
+                //     OutlinedButton(
+                //       onPressed: () async {
+                //         Navigator.of(context).pushNamed(Routes.reportSubCategory,
+                //             arguments: {
+                //               'id': testExamPaper?.examId,
+                //               'title': testExamPaper?.examName,
+                //             });
+                //       },
+                //       style: OutlinedButton.styleFrom(
+                //         backgroundColor: ThemeManager.white,
+                //         side:  BorderSide(color: ThemeManager.borderBlue),
+                //         shape: RoundedRectangleBorder(
+                //           borderRadius: BorderRadius.circular(Dimensions.RADIUS_DEFAULT),
+                //         ),
+                //       ),
+                //       child: Row(
+                //         children: [
+                //           Text(
+                //             "Solution",
+                //             style: TextStyle(
+                //               fontSize: Dimensions.fontSizeSmall,
+                //               fontWeight: FontWeight.w400,
+                //               color: ThemeManager.black,
+                //             ),
+                //           ),
+                //         ],
+                //       ),
+                //     ),
+                //     const Spacer(),
+                //     //Practice Test
+                //     if(testExamPaper?.isPracticeMode==true)
+                //     // testExamPaper?.isPracticeExamAttempt==false?
+                //     //Take a test
+                //       OutlinedButton(
+                //         onPressed: () async {
+                //           // if(testExamPaper?.isAccess==true){
+                //           showModalBottomSheet<void>(
+                //             shape: const RoundedRectangleBorder(
+                //               borderRadius: BorderRadius.vertical(
+                //                 top: Radius.circular(25),
+                //               ),
+                //             ),
+                //             clipBehavior: Clip.antiAliasWithSaveLayer,
+                //             context: context,
+                //             builder: (BuildContext context) {
+                //               return CustomTestBottomSheet(context, testExamPaper,
+                //                   widget.id, widget.type, true);
+                //             },
+                //           );
+                //           // }
+                //           // else{
+                //           //   BottomToast.showBottomToastOverlay(context: context,
+                //           //       errorMessage: "Upgrade Your Plan",
+                //           //       backgroundColor: ThemeManager.redAlert);
+                //           //   Navigator.of(context).pushNamed(Routes.subscriptionPlan);
+                //           // }
+                //         },
+                //         style: OutlinedButton.styleFrom(
+                //           backgroundColor: ThemeManager.white,
+                //           side:  BorderSide(color: ThemeManager.borderColor,width: 1),
+                //           shape: RoundedRectangleBorder(
+                //             borderRadius: BorderRadius.circular(Dimensions.RADIUS_DEFAULT), // You can adjust the border radius
+                //           ),
+                //         ),
+                //         child: Row(
+                //           children: [
+                //             Text(
+                //               "Practice Mode",
+                //               style: TextStyle(
+                //                 fontSize: Dimensions.fontSizeSmall,
+                //                 fontWeight: FontWeight.w400,
+                //                 color: ThemeManager.black,
+                //               ),
+                //             ),
+                //             // const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                //             // SvgPicture.asset(
+                //             //   "assets/image/forward_icon.svg",
+                //             //   color: Theme.of(context).primaryColor,
+                //             // ),
+                //           ],
+                //         ),
+                //       )
+                //     // :
+                //     //Re-attempt
+                //     // OutlinedButton(
+                //     //   onPressed: () async {
+                //     //     if(testExamPaper?.isAccess==true){
+                //     //       showModalBottomSheet<void>(
+                //     //         shape: const RoundedRectangleBorder(
+                //     //           borderRadius: BorderRadius.vertical(
+                //     //             top: Radius.circular(25),
+                //     //           ),
+                //     //         ),
+                //     //         clipBehavior: Clip
+                //     //             .antiAliasWithSaveLayer,
+                //     //         context: context,
+                //     //         builder: (BuildContext context) {
+                //     //           return CustomTestBottomSheet(
+                //     //               context, testExamPaper,
+                //     //               widget.id, widget.type, true);
+                //     //         },
+                //     //       );
+                //     //     }else{
+                //     //       BottomToast.showBottomToastOverlay(context: context,
+                //     //           errorMessage: "Upgrade Your Plan",
+                //     //           backgroundColor: ThemeManager.redAlert);
+                //     //       Navigator.of(context).pushNamed(Routes.subscriptionPlan);
+                //     //     }
+                //     //   },
+                //     //   style: OutlinedButton.styleFrom(
+                //     //     side: const BorderSide(color: ThemeManager.greenSuccess), // Border color
+                //     //     shape: RoundedRectangleBorder(
+                //     //       borderRadius: BorderRadius.circular(Dimensions.RADIUS_DEFAULT), // You can adjust the border radius
+                //     //     ),
+                //     //   ),
+                //     //   child: Row(
+                //     //     children: [
+                //     //       Text(
+                //     //         "Re-attempt",
+                //     //         style: TextStyle(
+                //     //           fontSize: Dimensions.fontSizeSmall,
+                //     //           fontWeight: FontWeight.w400,
+                //     //           color: ThemeManager.greenSuccess,
+                //     //         ),
+                //     //       ),
+                //     //       const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                //     //       SvgPicture.asset(
+                //     //         "assets/image/forward_icon.svg",
+                //     //         color: ThemeManager.greenSuccess,
+                //     //       ),
+                //     //     ],
+                //     //   ),
+                //     // ),
+                //   ],
+                // ),
+                // const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT,),
+                // SizedBox(
+                //   width: MediaQuery.of(context).size.width,
+                //   height:1,
+                //   child: Container(
+                //     color: const Color(0x0ffe6e4a),
+                //   ),
+                // )
+              ],
+            ),
+          ),
+        ),
+        if (testExamPaper?.isAccess == false)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Container(
+              height: Dimensions.PADDING_SIZE_LARGE,
+              width: Dimensions.PADDING_SIZE_LARGE,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                  color: ThemeManager.primaryColor,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(9.6),
+                    bottomLeft: Radius.circular(9.6),
+                  )),
+              child: const Icon(
+                Icons.lock,
+                color: AppColors.white,
+                size: 14,
+              ),
+            ),
+          ),
+      ],
+    );
+  }

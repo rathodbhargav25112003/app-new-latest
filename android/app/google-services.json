@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "393949825596",
+    "project_id": "sushruta-lgs-19d1c",
+    "storage_bucket": "sushruta-lgs-19d1c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:393949825596:android:56498a8a144accd4175139",
+        "android_client_info": {
+          "package_name": "com.ginger.sushruta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2qQSYkYdOwtxNN1vRWRcQN7AuEBRyY8E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:393949825596:android:cd2c064c085402a8175139",
+        "android_client_info": {
+          "package_name": "com.sushruta.shusruta_lms"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD2qQSYkYdOwtxNN1vRWRcQN7AuEBRyY8E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

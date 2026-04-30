@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>07 · Progress &amp; Review — Sushruta UI 2.0</title>
+<link rel="stylesheet" href="_styles.css"/>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · UI 2.0</div>
+  <nav>
+    <a href="index.html">Overview</a><a href="01_auth.html">Auth</a><a href="02_home.html">Home</a>
+    <a href="03_profile.html">Profile</a><a href="04_video.html">Video</a>
+    <a href="05_notes.html">Notes</a><a href="06_tests.html">Tests</a>
+    <a href="07_progress.html" class="active">Progress</a><a href="08_subscription.html">Plans</a>
+    <a href="09_bonus.html">Extras</a>
+  </nav>
+  <button class="theme-toggle" id="tt"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+<h1 class="display">07 · <span class="grad">Progress &amp; Review</span></h1>
+<p class="lead">
+  Progress is a proper dashboard now — streak, last-30 analytics, topic mastery ranked by need,
+  and a calendar heatmap. The review queue gets the SM-2 flow with big thumb-friendly rating buttons
+  and an "all caught up" celebration state.
+</p>
+
+<section class="section-title">📱 Mobile — progress overview · calendar · review flow</section>
+<div class="row">
+
+  <!-- PROGRESS OVERVIEW -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><h2>Progress</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">📤</div></div></div>
+        <div class="scroll" style="padding-bottom:90px;">
+
+          <!-- STREAK HERO -->
+          <div class="card" style="padding:0; overflow:hidden; margin-bottom:14px; background:linear-gradient(135deg, #ff9f0a 0%, #ff3b30 100%); border:none; color:#fff;">
+            <div style="padding:18px 16px;">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div style="font-size:38px; filter:drop-shadow(0 4px 8px rgba(0,0,0,.2));">🔥</div>
+                <div>
+                  <p style="margin:0; font-size:12px; opacity:.9; font-weight:600;">Streak</p>
+                  <p style="margin:0; font-size:30px; font-weight:800; letter-spacing:-0.02em; line-height:1;">14 days</p>
+                </div>
+                <div style="margin-left:auto; text-align:right;">
+                  <p style="margin:0; font-size:10px; opacity:.85;">Longest</p>
+                  <p style="margin:0; font-size:16px; font-weight:800;">21d</p>
+                </div>
+              </div>
+
+              <div style="display:flex; gap:6px; margin-top:14px;">
+                <div style="flex:1; aspect-ratio:1; border-radius:8px; background:rgba(255,255,255,.7); color:var(--bad); display:grid; place-items:center; font-weight:800; font-size:11px;">M</div>
+                <div style="flex:1; aspect-ratio:1; border-radius:8px; background:rgba(255,255,255,.7); color:var(--bad); display:grid; place-items:center; font-weight:800; font-size:11px;">T</div>
+                <div style="flex:1; aspect-ratio:1; border-radius:8px; background:rgba(255,255,255,.7); color:var(--bad); display:grid; place-items:center; font-weight:800; font-size:11px;">W</div>
+                <div style="flex:1; aspect-ratio:1; border-radius:8px; background:rgba(255,255,255,.18); color:#fff; display:grid; place-items:center; font-weight:800; font-size:11px;">T</div>
+                <div style="flex:1; aspect-ratio:1; border-radius:8px; background:rgba(255,255,255,.7); color:var(--bad); display:grid; place-items:center; font-weight:800; font-size:11px;">F</div>
+                <div style="flex:1; aspect-ratio:1; border-radius:8px; background:rgba(255,255,255,.7); color:var(--bad); display:grid; place-items:center; font-weight:800; font-size:11px;">S</div>
+                <div style="flex:1; aspect-ratio:1; border-radius:8px; background:rgba(255,255,255,.95); color:var(--bad); display:grid; place-items:center; font-weight:800; font-size:11px; box-shadow:0 0 0 3px rgba(255,255,255,.4);">S</div>
+              </div>
+              <p style="margin:12px 0 0; font-size:12px; opacity:.92; display:flex; justify-content:space-between;">
+                <span>12 review cards due today</span>
+                <span style="font-weight:700;">Open →</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- STATS -->
+          <div class="grid-2" style="margin-bottom:14px;">
+            <div class="stat"><p class="v">612</p><p class="l">Questions · 30d</p></div>
+            <div class="stat"><p class="v">74%</p><p class="l">Accuracy</p></div>
+            <div class="stat"><p class="v">8.7h</p><p class="l">Time · this week</p></div>
+            <div class="stat"><p class="v">+4%</p><p class="l">Vs last week</p></div>
+          </div>
+
+          <!-- HEATMAP -->
+          <div class="card">
+            <div class="card-head"><div class="icon indigo">🗓</div><div><p class="card-title">Activity — last 12 weeks</p><p class="card-sub">Darker = more questions</p></div></div>
+            <div style="display:grid; grid-template-columns:repeat(12,1fr); grid-template-rows:repeat(7,1fr); gap:3px; margin:8px 0;">
+              <!-- 7x12 dots, mostly light with sporadic darker -->
+              <!-- Row 1 -->
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.08);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.2);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.35);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.55);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.25);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.4);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.6);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.75);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.5);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.8);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.9);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.08);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.15);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.3);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.4);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.6);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.3);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.7);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.6);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.8);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.9);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.08);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.05);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.2);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.5);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.3);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.55);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.65);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.85);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.8);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.05);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.35);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.25);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.55);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.4);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.7);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.85);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.9);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent); box-shadow:0 0 0 2px var(--accent-soft);"></div>
+
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.15);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.25);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.4);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.5);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.6);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.75);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.8);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.9);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.08);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.22);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.35);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.45);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.55);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.7);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.85);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.95);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.05);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.1);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.2);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.35);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.5);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.65);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.8);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:rgba(10,132,255,.9);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+              <div style="aspect-ratio:1; border-radius:3px; background:var(--accent);"></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end; font-size:10px; color:var(--ink-3); margin-top:6px;">
+              Less
+              <span style="width:10px; height:10px; border-radius:2px; background:rgba(10,132,255,.08);"></span>
+              <span style="width:10px; height:10px; border-radius:2px; background:rgba(10,132,255,.3);"></span>
+              <span style="width:10px; height:10px; border-radius:2px; background:rgba(10,132,255,.6);"></span>
+              <span style="width:10px; height:10px; border-radius:2px; background:var(--accent);"></span>
+              More
+            </div>
+          </div>
+
+          <!-- TOPIC MASTERY -->
+          <div class="card">
+            <div class="card-head"><div class="icon purple">🎯</div><div><p class="card-title">Topic mastery</p><p class="card-sub">Based on your answered questions</p></div></div>
+
+            <p style="margin:10px 0 8px; font-size:10.5px; font-weight:700; color:var(--warn); text-transform:uppercase; letter-spacing:.08em;">⚠ Needs work</p>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;"><b>Esophagus — Motility</b><span style="color:var(--ink-3);">42% · 38 q</span></div>
+              <div class="bar bad"><span style="width:42%;"></span></div>
+            </div>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;"><b>Pancreas — Chronic</b><span style="color:var(--ink-3);">48% · 52 q</span></div>
+              <div class="bar bad"><span style="width:48%;"></span></div>
+            </div>
+
+            <p style="margin:14px 0 8px; font-size:10.5px; font-weight:700; color:var(--ok); text-transform:uppercase; letter-spacing:.08em;">🏆 Strongest</p>
+            <div style="margin-bottom:12px;">
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;"><b>Wound healing</b><span style="color:var(--ink-3);">92% · 74 q</span></div>
+              <div class="bar ok"><span style="width:92%;"></span></div>
+            </div>
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px;"><b>Shock</b><span style="color:var(--ink-3);">88% · 61 q</span></div>
+              <div class="bar ok"><span style="width:88%;"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><span class="i">🏠</span>Home</div>
+          <div class="tab"><span class="i">🎞</span>Videos</div>
+          <div class="tab"><span class="i">📝</span>Tests</div>
+          <div class="tab active"><span class="i">📊</span>Progress</div>
+          <div class="tab"><span class="i">☰</span>More</div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Progress overview<small>Streak hero · 4-stat grid · 7×12 heatmap · topic mastery grouped by need</small></p>
+  </div>
+
+  <!-- REVIEW Q -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Review queue</h2><div class="right"><span style="font-size:12px; font-weight:700; color:var(--ink-3);">8 / 20</span></div></div>
+        <div style="height:4px; background:var(--surface-3); margin:-2px 16px 10px; border-radius:2px;"><div style="width:40%; height:100%; background:var(--accent); border-radius:2px;"></div></div>
+        <div class="scroll">
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
+            <span class="chip">⏱ Interval 4d</span>
+            <span class="chip">📈 Ease 2.45</span>
+            <span class="chip purple">● Learning</span>
+          </div>
+
+          <div class="card" style="padding:16px;">
+            <p style="margin:0; font-size:14.5px; line-height:1.55;">
+              A 45-year-old woman presents with a rapidly enlarging breast lump. Biopsy shows phyllodes tumor.
+              Which of the following is the <b style="color:var(--accent);">most appropriate</b> initial management for a borderline phyllodes tumor &gt; 5 cm?
+            </p>
+
+            <label style="display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border:1px solid var(--border); border-radius:12px; margin-top:14px; font-size:13px; font-weight:500;">
+              <span style="width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:grid; place-items:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ink-2);">A</span>
+              Wide local excision with 1 cm margin
+            </label>
+            <label style="display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border:1px solid var(--border); border-radius:12px; margin-top:8px; font-size:13px; font-weight:500;">
+              <span style="width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:grid; place-items:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ink-2);">B</span>
+              Simple mastectomy
+            </label>
+            <label style="display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border:1px solid var(--border); border-radius:12px; margin-top:8px; font-size:13px; font-weight:500;">
+              <span style="width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:grid; place-items:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ink-2);">C</span>
+              Enucleation
+            </label>
+            <label style="display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border:1px solid var(--border); border-radius:12px; margin-top:8px; font-size:13px; font-weight:500;">
+              <span style="width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:grid; place-items:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ink-2);">D</span>
+              Radical mastectomy with axillary clearance
+            </label>
+          </div>
+
+          <button class="btn primary block lg" style="margin-top:14px;">Show answer</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Review — question<small>Interval + ease chips · clean stem · radio options · single primary action</small></p>
+  </div>
+
+  <!-- REVIEW ANSWER -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Review queue</h2><div class="right"><span style="font-size:12px; font-weight:700; color:var(--ink-3);">8 / 20</span></div></div>
+        <div style="height:4px; background:var(--surface-3); margin:-2px 16px 10px; border-radius:2px;"><div style="width:40%; height:100%; background:var(--accent); border-radius:2px;"></div></div>
+        <div class="scroll">
+          <div class="card" style="padding:16px;">
+            <p style="margin:0; font-size:14px; line-height:1.5;">Borderline phyllodes tumor &gt; 5 cm?</p>
+
+            <label style="display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border:2px solid var(--ok); background:var(--ok-soft); border-radius:12px; margin-top:14px; font-size:13px; font-weight:600;">
+              <span style="width:22px; height:22px; border-radius:50%; background:var(--ok); color:#fff; display:grid; place-items:center; flex-shrink:0; font-size:11px; font-weight:700;">A</span>
+              Wide local excision with 1 cm margin
+            </label>
+            <label style="display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border:1px solid var(--border); border-radius:12px; margin-top:8px; font-size:13px; opacity:.6;">
+              <span style="width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:grid; place-items:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ink-2);">B</span>
+              Simple mastectomy
+            </label>
+            <label style="display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border:1px solid var(--border); border-radius:12px; margin-top:8px; font-size:13px; opacity:.6;">
+              <span style="width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:grid; place-items:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ink-2);">C</span>
+              Enucleation
+            </label>
+            <label style="display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border:1px solid var(--border); border-radius:12px; margin-top:8px; font-size:13px; opacity:.6;">
+              <span style="width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:grid; place-items:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ink-2);">D</span>
+              Radical mastectomy + axillary clearance
+            </label>
+
+            <div style="background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:10px; padding:12px 14px; margin-top:14px;">
+              <p style="margin:0; font-size:11px; font-weight:700; color:var(--accent); letter-spacing:.06em; text-transform:uppercase;">Why A?</p>
+              <p style="margin:6px 0 0; font-size:12.5px; color:var(--ink-2); line-height:1.55;">
+                Borderline phyllodes requires wide local excision with at least 1 cm margin.
+                Mastectomy only if BCS infeasible. Axillary clearance is <i>not</i> indicated — phyllodes metastasizes hematogenously.
+              </p>
+            </div>
+          </div>
+
+          <!-- Rating row -->
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:14px;">
+            <button style="padding:14px 4px; border-radius:12px; background:var(--bad); color:#fff; border:none; font-weight:800; font-size:12px; box-shadow:0 6px 14px rgba(255,59,48,.3);">
+              Again<br/><span style="font-size:10px; opacity:.8; font-weight:500;">&lt; 1m</span>
+            </button>
+            <button style="padding:14px 4px; border-radius:12px; background:var(--warn); color:#fff; border:none; font-weight:800; font-size:12px; box-shadow:0 6px 14px rgba(255,159,10,.3);">
+              Hard<br/><span style="font-size:10px; opacity:.8; font-weight:500;">~2d</span>
+            </button>
+            <button style="padding:14px 4px; border-radius:12px; background:var(--ok); color:#fff; border:none; font-weight:800; font-size:12px; box-shadow:0 6px 14px rgba(48,201,84,.3);">
+              Good<br/><span style="font-size:10px; opacity:.8; font-weight:500;">~10d</span>
+            </button>
+            <button style="padding:14px 4px; border-radius:12px; background:var(--accent); color:#fff; border:none; font-weight:800; font-size:12px; box-shadow:0 6px 14px rgba(10,132,255,.3);">
+              Easy<br/><span style="font-size:10px; opacity:.8; font-weight:500;">~24d</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Review — answer revealed<small>Correct option green · wrong options dimmed · SM-2 4-way rating with next interval</small></p>
+  </div>
+
+  <!-- CAUGHT UP -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Review queue</h2></div>
+        <div class="scroll" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:calc(100% - 80px); text-align:center;">
+          <div style="width:96px; height:96px; border-radius:50%; background:linear-gradient(135deg, var(--ok) 0%, #16a34a 100%); box-shadow:0 20px 40px rgba(48,201,84,.35); color:#fff; display:grid; place-items:center; font-size:44px; margin-bottom:24px;">✓</div>
+          <h2 style="margin:0 0 8px; font-size:24px; letter-spacing:-0.02em;">All caught up!</h2>
+          <p style="margin:0 30px; color:var(--ink-3); font-size:14px; line-height:1.55;">
+            Your review queue is empty for today.<br/>
+            Come back tomorrow to keep the streak going. 🔥
+          </p>
+
+          <div class="card" style="width:80%; margin-top:28px; padding:14px; background:linear-gradient(135deg, var(--warn-soft), var(--pink-soft)); border:none;">
+            <p style="margin:0; font-size:11px; font-weight:700; color:var(--warn); letter-spacing:.06em; text-transform:uppercase;">Next up</p>
+            <p style="margin:4px 0 0; font-size:13px; color:var(--ink);">8 cards return <b>tomorrow at 9:00</b>.</p>
+          </div>
+
+          <button class="btn ghost" style="margin-top:20px;">📈 See progress →</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">All caught up state<small>Celebration checkmark · when-next card · no pressure to do more</small></p>
+  </div>
+</div>
+
+</main>
+<script>
+  const r=document.documentElement,k='sushrutaTheme',s=localStorage.getItem(k);
+  if(s)r.setAttribute('data-theme',s);
+  document.getElementById('tt').onclick=()=>{const n=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',n);localStorage.setItem(k,n);};
+</script>
+</body>
+</html>

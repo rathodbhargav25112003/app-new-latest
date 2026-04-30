@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ID used to track if OnAttachStateChangeListener has been added to a view -->
+    <item name="attach_state_listener_added" type="id"/>
+</resources> 

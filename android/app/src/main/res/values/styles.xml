@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="pspdf__mainToolbarStyle">@style/MainToolbarStyle</item>
+        <item name="android:selectableItemBackground">@android:color/transparent</item>
+        <item name="android:selectableItemBackgroundBorderless">@android:color/transparent</item>
+    </style>`
+
+    <style name="MainToolbarStyle">
+        <item name="pspdf__textColor">@color/black</item>
+        <item name="pspdf__toolbarTheme">@style/ThemeOverlay.AppCompat.Dark.ActionBar</item>
+        <item name="pspdf__toolbarPopupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+        <item name="android:background">@drawable/transparent_selector</item>
+    </style>
+
+    <style name="LaunchTheme" parent="AppTheme">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+
+    <style name="NormalTheme" parent="PSPDFKit.Theme.Default">
+        <item name="android:windowBackground">?android:colorBackground</item>
+        <!-- Disable ripple effects to prevent crashes on detached views -->
+        <item name="android:clickable">false</item>
+        <item name="android:focusable">false</item>
+        <item name="android:background">@android:color/transparent</item>
+        <!-- Completely disable ripple effects -->
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:foreground">@null</item>
+        <item name="android:splitMotionEvents">false</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+    
+    <!-- Custom theme for PlatformView containers to prevent ripple animation crashes -->
+    <style name="PlatformViewTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:clickable">false</item>
+        <item name="android:focusable">false</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:foreground">@null</item>
+        <item name="android:splitMotionEvents">false</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+    
+    <!-- Balanced theme that prevents crashes but maintains proper toolbar appearance -->
+    <style name="BalancedNutrientTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Maintain proper toolbar colors while preventing crashes -->
+        <item name="android:windowBackground">@android:color/white</item>
+        <item name="android:colorBackground">@android:color/white</item>
+        
+        <!-- Disable only problematic animations, not all UI elements -->
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        
+        <!-- Keep buttons clickable but disable ripple effects -->
+        <item name="android:buttonStyle">@style/SafeButtonStyle</item>
+        <item name="android:imageButtonStyle">@style/SafeImageButtonStyle</item>
+        <item name="android:toolbarStyle">@style/SafeToolbarStyle</item>
+    </style>
+    
+    <!-- Safe button style that prevents crashes but maintains appearance -->
+    <style name="SafeButtonStyle" parent="Widget.AppCompat.Button">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:foreground">@null</item>
+        <!-- Keep clickable for functionality -->
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    
+    <!-- Safe ImageButton style -->
+    <style name="SafeImageButtonStyle" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:foreground">@null</item>
+        <!-- Keep clickable for functionality -->
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    
+    <!-- Safe Toolbar style that maintains proper appearance -->
+    <style name="SafeToolbarStyle" parent="Widget.AppCompat.Toolbar">
+        <item name="android:background">@android:color/white</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:foreground">@null</item>
+        <!-- Maintain toolbar functionality -->
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <!-- Ensure proper toolbar appearance -->
+        <item name="android:minHeight">?attr/actionBarSize</item>
+    </style>
+    
+    <!-- Aggressive theme that completely disables all animations and ripple effects -->
+    <style name="NoAnimationTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:clickable">false</item>
+        <item name="android:focusable">false</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:foreground">@null</item>
+        <item name="android:splitMotionEvents">false</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <!-- Disable all button styles that might have ripple effects -->
+        <item name="android:buttonStyle">@style/NoRippleButtonStyle</item>
+        <item name="android:imageButtonStyle">@style/NoRippleImageButtonStyle</item>
+        <item name="android:toolbarStyle">@style/NoRippleToolbarStyle</item>
+    </style>
+    
+    <!-- Button style without ripple effects -->
+    <style name="NoRippleButtonStyle" parent="Widget.AppCompat.Button">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:foreground">@null</item>
+    </style>
+    
+    <!-- ImageButton style without ripple effects -->
+    <style name="NoRippleImageButtonStyle" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:foreground">@null</item>
+    </style>
+    
+    <!-- Toolbar style without ripple effects -->
+    <style name="NoRippleToolbarStyle" parent="Widget.AppCompat.Toolbar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:elevation">0dp</item>
+        <item name="android:foreground">@null</item>
+    </style>
+</resources>

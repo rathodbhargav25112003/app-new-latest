@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>08 · Unified Store — Plans · Hardcopy · Flipbook · Admin — Sushruta UI 2.0</title>
+<link rel="stylesheet" href="_styles.css"/>
+<style>
+  /* Cluster 08 · hardcopy + flipbook helpers */
+  .vol-cover { aspect-ratio:0.72/1; border-radius:10px; box-shadow:var(--shadow-2); background:linear-gradient(135deg, var(--accent), var(--indigo)); display:flex; flex-direction:column; justify-content:flex-end; padding:10px; color:#fff; position:relative; overflow:hidden; }
+  .vol-cover::before { content:""; position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.45) 100%); }
+  .vol-cover > * { position:relative; z-index:1; }
+  .vol-cover.v1 { background:linear-gradient(135deg, var(--pink), var(--bad)); }
+  .vol-cover.v2 { background:linear-gradient(135deg, var(--teal), var(--accent)); }
+  .vol-cover.v3 { background:linear-gradient(135deg, var(--purple), var(--indigo)); }
+  .vol-cover.v4 { background:linear-gradient(135deg, var(--ok), #16a34a); }
+  .vol-cover.v5 { background:linear-gradient(135deg, var(--warn), var(--pink)); }
+  .vol-cover .vnum { font:800 11px/1 ui-monospace,"SF Mono",monospace; letter-spacing:.08em; opacity:.85; margin-bottom:4px; }
+  .vol-cover .vttl { font-size:13px; font-weight:800; letter-spacing:-0.01em; line-height:1.2; }
+  .vol-cover .vsub { font-size:10px; opacity:.85; margin-top:4px; }
+
+  /* Flipbook */
+  .book { position:relative; background:#16181f; padding:14px; border-radius:14px; box-shadow: var(--shadow-3); }
+  .book .spread { display:grid; grid-template-columns:1fr 1fr; gap:2px; background:#2c313e; border-radius:8px; overflow:hidden; }
+  .book .page { background:#fdfaf3; color:#333; padding:18px 16px; min-height:380px; position:relative; font-family: "Iowan Old Style", Georgia, serif; }
+  [data-theme="dark"] .book .page { background:#e8e0cc; color:#1a1a1a; }
+  .book .page h4 { margin:0 0 8px; font-family: inherit; font-size:16px; letter-spacing:-0.01em; font-weight:700; border-bottom:1px solid rgba(0,0,0,.18); padding-bottom:6px; }
+  .book .page p { margin:0 0 8px; font-size:11.5px; line-height:1.6; }
+  .book .page .cap { font-size:10px; color:rgba(0,0,0,.5); position:absolute; bottom:10px; left:16px; right:16px; display:flex; justify-content:space-between; }
+  .book .page.left  { border-right:1px solid rgba(0,0,0,.12); box-shadow: inset -14px 0 20px -12px rgba(0,0,0,.18); }
+  .book .page.right { border-left:1px solid rgba(0,0,0,.12); box-shadow: inset 14px 0 20px -12px rgba(0,0,0,.18); }
+  .book .page .tag { display:inline-block; font-family: -apple-system, sans-serif; font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; background: var(--warn-soft); color: var(--warn); letter-spacing:.06em; text-transform:uppercase; }
+  .book .page .fig { background: rgba(0,0,0,.06); border:1px dashed rgba(0,0,0,.25); border-radius:6px; padding:20px; text-align:center; font-family: -apple-system, sans-serif; font-size:11px; color:rgba(0,0,0,.6); font-weight:600; margin:8px 0; }
+  .book-ctl { position:absolute; top:50%; transform:translateY(-50%); width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.12); color:#fff; display:grid; place-items:center; font-size:18px; backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.2); }
+  .book-ctl.l { left:-16px; }
+  .book-ctl.r { right:-16px; }
+  .book-hud { display:flex; gap:8px; align-items:center; padding:10px 2px 4px; color:#c2c6d4; font-size:11px; font-weight:700; }
+
+  .price-tag { display:inline-flex; align-items:baseline; gap:2px; }
+  .price-tag .big { font:800 20px/1 var(--font); letter-spacing:-0.02em; }
+  .price-tag .old { text-decoration:line-through; color:var(--ink-3); font-size:11px; margin-left:6px; font-weight:500; }
+
+  .step { display:flex; align-items:center; gap:10px; }
+  .step .dot { width:22px; height:22px; border-radius:50%; background:var(--surface-3); color:var(--ink-3); display:grid; place-items:center; font-size:10.5px; font-weight:800; flex-shrink:0; }
+  .step.on .dot { background:var(--accent); color:#fff; }
+  .step.done .dot { background:var(--ok); color:#fff; }
+  .step .line { flex:1; height:2px; background:var(--surface-3); border-radius:2px; }
+  .step.on .line, .step.done .line { background:var(--accent); }
+
+  .timeline { position:relative; padding-left:22px; }
+  .timeline::before { content:""; position:absolute; left:10px; top:6px; bottom:6px; width:2px; background:var(--surface-3); border-radius:2px; }
+  .timeline .tl { position:relative; padding:6px 0 14px; }
+  .timeline .tl::before { content:""; position:absolute; left:-16px; top:10px; width:12px; height:12px; border-radius:50%; background:var(--surface); border:2px solid var(--surface-3); }
+  .timeline .tl.ok::before { background:var(--ok); border-color:var(--ok); }
+  .timeline .tl.now::before { background:var(--accent); border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+
+  .admin-topbar { background:linear-gradient(180deg, #161a26, #0d1016); color:#fff; padding:12px 18px; display:flex; gap:14px; align-items:center; border-radius:10px 10px 0 0; }
+  .admin-topbar .brand { color:#fff; font-weight:800; font-size:13px; letter-spacing:-0.01em; display:flex; align-items:center; gap:8px; }
+  .admin-topbar .brand span.d { width:18px; height:18px; border-radius:5px; background:linear-gradient(135deg, var(--accent), var(--indigo)); }
+  .admin-chip { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:#e8ecf5; font-size:11.5px; padding:5px 10px; border-radius:999px; font-weight:600; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · UI 2.0</div>
+  <nav>
+    <a href="index.html">Overview</a><a href="01_auth.html">Auth</a><a href="02_home.html">Home</a>
+    <a href="03_profile.html">Profile</a><a href="04_video.html">Video</a>
+    <a href="05_notes.html">Notes</a><a href="06_tests.html">Tests</a>
+    <a href="07_progress.html">Progress</a><a href="08_subscription.html" class="active">Store</a>
+    <a href="09_bonus.html">Extras</a><a href="10_explorer.html">Explorer</a>
+    <a href="11_exam_engine.html">Exam engine</a><a href="12_analytics.html">Analytics</a>
+  </nav>
+  <button class="theme-toggle" id="tt"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+<h1 class="display">08 · <span class="grad">Unified Store — Plans · Hardcopy · Flipbook</span></h1>
+<p class="lead">
+  One store for everything Sushruta sells — digital subscriptions and printed volumes — in a single checkout.
+  Students preview volumes as browser flipbooks before ordering. Admins manage SKUs, preview assets, inventory
+  and orders in a dedicated back-office view.
+</p>
+
+<section class="section-title">📱 Paywall · plan card · checkout preview</section>
+<div class="row">
+
+  <!-- PAYWALL -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">×</div><h2>Upgrade</h2></div>
+        <div class="scroll" style="padding-bottom:90px;">
+          <div style="text-align:center; padding:10px 10px 18px;">
+            <div style="font-size:42px;">💎</div>
+            <h2 style="margin:8px 0 4px; font-size:22px; letter-spacing:-0.02em;">Unlock Sushruta Plus</h2>
+            <p style="margin:0; font-size:13px; color:var(--ink-3);">Full video library · review queue · mocks · AI explanations</p>
+          </div>
+
+          <!-- Plans -->
+          <div class="card" style="padding:14px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div><p style="margin:0; font-size:13px; font-weight:700;">Monthly</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Cancel anytime</p></div>
+              <div><p style="margin:0; font-size:18px; font-weight:800; letter-spacing:-0.01em;">₹999<span style="font-size:11px; color:var(--ink-3); font-weight:500;"> /mo</span></p></div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:14px; margin-bottom:10px; border:2px solid var(--accent); background:linear-gradient(135deg, var(--accent-soft), transparent); position:relative;">
+            <span class="chip accent" style="position:absolute; top:-10px; right:12px; background:var(--accent); color:#fff; font-weight:700;">★ Best value</span>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div><p style="margin:0; font-size:13px; font-weight:800;">Annual</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ok); font-weight:700;">Save 40% · ₹667/mo</p></div>
+              <div style="text-align:right;">
+                <p style="margin:0; font-size:11px; color:var(--ink-3); text-decoration:line-through;">₹11,988</p>
+                <p style="margin:2px 0 0; font-size:22px; font-weight:800; letter-spacing:-0.02em; color:var(--accent);">₹7,999<span style="font-size:11px; color:var(--ink-3); font-weight:500;"> /yr</span></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:14px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div><p style="margin:0; font-size:13px; font-weight:700;">6 months</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Save 20%</p></div>
+              <div><p style="margin:0; font-size:18px; font-weight:800; letter-spacing:-0.01em;">₹4,799<span style="font-size:11px; color:var(--ink-3); font-weight:500;"> /6mo</span></p></div>
+            </div>
+          </div>
+
+          <button class="btn primary lg block">Continue with Annual →</button>
+          <p style="text-align:center; font-size:11px; color:var(--ink-3); margin:10px 0 0;">Renews auto · cancel anytime in Profile</p>
+
+          <!-- Feature comparison -->
+          <p style="margin:20px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">What you'll get</p>
+          <div class="card flat" style="padding:4px;">
+            <div class="row-list"><span style="color:var(--ok); font-size:18px;">✓</span><div style="flex:1;"><div class="t">8,400+ MCQs with explanations</div></div></div>
+            <div class="row-list"><span style="color:var(--ok); font-size:18px;">✓</span><div style="flex:1;"><div class="t">320+ hours of video lectures</div></div></div>
+            <div class="row-list"><span style="color:var(--ok); font-size:18px;">✓</span><div style="flex:1;"><div class="t">AI review queue (spaced repetition)</div></div></div>
+            <div class="row-list"><span style="color:var(--ok); font-size:18px;">✓</span><div style="flex:1;"><div class="t">Grand mocks · rank &amp; percentile</div></div></div>
+            <div class="row-list"><span style="color:var(--ok); font-size:18px;">✓</span><div style="flex:1;"><div class="t">Offline downloads</div></div></div>
+            <div class="row-list" style="border:0;"><span style="color:var(--ok); font-size:18px;">✓</span><div style="flex:1;"><div class="t">Ask-AI on any question</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Paywall<small>3 tiers, annual recommended, no dark patterns · single primary CTA</small></p>
+  </div>
+
+  <!-- CURRENT PLAN -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Subscription</h2></div>
+        <div class="scroll">
+          <div class="card" style="padding:0; overflow:hidden; border:none; margin-bottom:14px;">
+            <div style="background:linear-gradient(135deg, var(--accent), var(--purple)); padding:20px 18px; color:#fff;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                  <p style="margin:0; font-size:12px; opacity:.9;">Current plan</p>
+                  <h2 style="margin:4px 0 0; font-size:22px; letter-spacing:-0.02em;">💎 Plus · Annual</h2>
+                </div>
+                <span class="chip" style="background:rgba(255,255,255,.2); color:#fff; backdrop-filter:blur(10px); font-weight:700;">Active</span>
+              </div>
+              <div style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,.2); display:flex; justify-content:space-between; font-size:12px;">
+                <div><p style="margin:0; opacity:.85;">Started</p><p style="margin:2px 0 0; font-weight:700;">12 Aug 2025</p></div>
+                <div><p style="margin:0; opacity:.85;">Renews</p><p style="margin:2px 0 0; font-weight:700;">12 Aug 2026</p></div>
+                <div><p style="margin:0; opacity:.85;">Amount</p><p style="margin:2px 0 0; font-weight:700;">₹7,999</p></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Usage meter -->
+          <div class="card">
+            <div class="card-head"><div class="icon accent">📊</div><div><p class="card-title">Your usage this year</p><p class="card-sub">No limits — just context</p></div></div>
+            <div class="grid-3">
+              <div class="stat"><p class="v">612</p><p class="l">MCQs</p></div>
+              <div class="stat"><p class="v">48h</p><p class="l">Video</p></div>
+              <div class="stat"><p class="v">14</p><p class="l">Mocks</p></div>
+            </div>
+          </div>
+
+          <!-- Billing -->
+          <p style="margin:16px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Payment method</p>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="width:40px; height:26px; border-radius:6px; background:linear-gradient(135deg, #1a365d, #2b5282); display:grid; place-items:center; color:#fff; font-size:10px; font-weight:800; letter-spacing:.04em;">VISA</div>
+              <div style="flex:1;">
+                <p style="margin:0; font-size:13px; font-weight:700;">•••• 6411</p>
+                <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Expires 08/27</p>
+              </div>
+              <span class="chip">Change</span>
+            </div>
+          </div>
+
+          <p style="margin:16px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Invoices</p>
+          <div class="card flat" style="padding:4px;">
+            <div class="row-list"><div class="icon" style="background:var(--surface-3); color:var(--ink-2);">🧾</div><div style="flex:1;"><div class="t">Aug 2025 · ₹7,999</div><div class="s">INV-2026-0081</div></div><span class="chip">↓</span></div>
+            <div class="row-list" style="border:0;"><div class="icon" style="background:var(--surface-3); color:var(--ink-2);">🧾</div><div style="flex:1;"><div class="t">Aug 2024 · ₹6,499</div><div class="s">INV-2025-0127</div></div><span class="chip">↓</span></div>
+          </div>
+
+          <button class="btn ghost block" style="margin-top:18px;">Manage subscription →</button>
+          <button class="btn ghost block" style="margin-top:8px; color:var(--bad);">Cancel auto-renew</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Current plan status<small>Gradient status card · usage meter · payment method · invoice history</small></p>
+  </div>
+
+  <!-- CHECKOUT -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Checkout</h2></div>
+        <div class="scroll">
+          <div class="card" style="padding:14px;">
+            <p style="margin:0 0 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Order</p>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+              <span>Sushruta Plus · Annual</span>
+              <span style="font-weight:700;">₹7,999</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; color:var(--ok);">
+              <span>Student discount · SUSHRUTA24</span>
+              <span style="font-weight:700;">–₹800</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:10px; color:var(--ink-3);">
+              <span>GST (18%)</span>
+              <span>₹1,296</span>
+            </div>
+            <div style="border-top:1px solid var(--border-2); padding-top:10px; display:flex; justify-content:space-between; align-items:baseline;">
+              <span style="font-size:14px; font-weight:700;">Total</span>
+              <span style="font-size:24px; font-weight:800; letter-spacing:-0.01em;">₹8,495</span>
+            </div>
+          </div>
+
+          <p style="margin:16px 2px 10px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Pay with</p>
+          <div class="card flat" style="padding:4px;">
+            <div class="row-list" style="border-color:var(--accent); background:var(--accent-soft);">
+              <div class="icon accent" style="background:#fff;">💳</div>
+              <div style="flex:1;"><div class="t">Visa •••• 6411</div><div class="s">Saved · expires 08/27</div></div>
+              <span style="color:var(--accent); font-size:20px;">●</span>
+            </div>
+            <div class="row-list"><div class="icon accent">📱</div><div style="flex:1;"><div class="t">UPI — Google Pay</div></div><span style="color:var(--ink-3);">○</span></div>
+            <div class="row-list"><div class="icon purple">💰</div><div style="flex:1;"><div class="t">Net banking</div></div><span style="color:var(--ink-3);">○</span></div>
+            <div class="row-list" style="border:0;"><div class="icon teal">🏦</div><div style="flex:1;"><div class="t">EMI · no-cost</div><div class="s">3/6/9 months</div></div><span style="color:var(--ink-3);">○</span></div>
+          </div>
+
+          <div style="background:var(--ok-soft); border-radius:12px; padding:12px 14px; display:flex; gap:10px; align-items:flex-start; margin-top:12px;">
+            <span style="color:var(--ok); font-size:16px;">🔒</span>
+            <p style="margin:0; font-size:12px; color:var(--ink-2); line-height:1.4;">Secured by Razorpay · 256-bit encryption · GDPR-grade privacy.</p>
+          </div>
+
+          <button class="btn primary lg block" style="margin-top:16px;">Pay ₹8,495 securely</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Checkout · digital-only (v1)<small>Itemized order · discount visible · payment radio list · trust panel · single primary action</small></p>
+  </div>
+</div>
+
+<!-- =============================================================== UNIFIED STORE -->
+<section class="section-title">📱 Unified store entry · digital + hardcopy · one catalog</section>
+<div class="row">
+
+  <!-- Store home -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Store</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">🛒</div></div></div>
+        <div class="scroll" style="padding-bottom:100px;">
+
+          <!-- Hero -->
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div style="background:linear-gradient(135deg, var(--accent), var(--purple)); color:#fff; padding:20px 16px;">
+              <p style="margin:0; font-size:11px; opacity:.85; letter-spacing:.06em; text-transform:uppercase; font-weight:700;">New this season</p>
+              <h2 style="margin:6px 0 4px; font-size:20px; font-weight:800; letter-spacing:-0.02em;">Plus Annual + Printed Set</h2>
+              <p style="margin:0 0 12px; font-size:12.5px; opacity:.9;">Digital Plus for 12 months + the 5-volume printed series · delivered to your door.</p>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <p style="margin:0; font-size:24px; font-weight:800; letter-spacing:-0.02em;">₹12,499</p>
+                <p style="margin:0; font-size:12px; opacity:.7; text-decoration:line-through;">₹15,988</p>
+                <span class="chip" style="background:rgba(255,255,255,.24); color:#fff; margin-left:auto; backdrop-filter:blur(10px);">Save 22%</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:6px; margin:14px 0 10px; overflow-x:auto;">
+            <span class="chip accent">All</span>
+            <span class="chip">Digital plans</span>
+            <span class="chip">Hardcopy books</span>
+            <span class="chip">Bundles</span>
+            <span class="chip">Mock series</span>
+          </div>
+
+          <!-- Digital -->
+          <p style="margin:6px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">💎 Digital plans</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list">
+              <div class="icon accent">💎</div>
+              <div style="flex:1;"><p class="card-title">Plus · Annual</p><p class="card-sub">All videos · MCQs · mocks · AI</p></div>
+              <div style="text-align:right;"><p style="margin:0; font-size:15px; font-weight:800;">₹7 999</p><p style="margin:2px 0 0; font-size:10.5px; color:var(--ok); font-weight:700;">★ best value</p></div>
+            </div>
+            <div class="row-list" style="border:0;">
+              <div class="icon purple">⚡</div>
+              <div style="flex:1;"><p class="card-title">Plus · Monthly</p><p class="card-sub">Cancel anytime</p></div>
+              <p style="margin:0; font-size:15px; font-weight:800;">₹999<span style="font-size:10.5px; color:var(--ink-3); font-weight:500;">/mo</span></p>
+            </div>
+          </div>
+
+          <!-- Hardcopy -->
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">📚 Printed volumes · preview before ordering</p>
+          <div class="grid-3" style="gap:8px; grid-template-columns:repeat(3,1fr);">
+            <div><div class="vol-cover v1"><div class="vnum">VOL I</div><div class="vttl">Surgical Basics</div><div class="vsub">ch. 1–8</div></div><p style="margin:6px 0 0; font-size:11px; font-weight:700; text-align:center;">₹699</p></div>
+            <div><div class="vol-cover v2"><div class="vnum">VOL II</div><div class="vttl">Upper GI &amp; HPB</div><div class="vsub">ch. 9–18</div></div><p style="margin:6px 0 0; font-size:11px; font-weight:700; text-align:center;">₹799</p></div>
+            <div><div class="vol-cover v3"><div class="vnum">VOL III</div><div class="vttl">Colorectal &amp; Hernia</div><div class="vsub">ch. 19–28</div></div><p style="margin:6px 0 0; font-size:11px; font-weight:700; text-align:center;">₹799</p></div>
+          </div>
+
+          <div class="grid-3" style="gap:8px; grid-template-columns:repeat(3,1fr); margin-top:10px;">
+            <div><div class="vol-cover v4"><div class="vnum">VOL IV</div><div class="vttl">Vascular · Endo · Uro</div><div class="vsub">ch. 29–38</div></div><p style="margin:6px 0 0; font-size:11px; font-weight:700; text-align:center;">₹799</p></div>
+            <div><div class="vol-cover v5"><div class="vnum">VOL V</div><div class="vttl">Peds · Plastics · CT</div><div class="vsub">ch. 39–45</div></div><p style="margin:6px 0 0; font-size:11px; font-weight:700; text-align:center;">₹699</p></div>
+            <div style="display:flex; align-items:center; justify-content:center; aspect-ratio:0.72/1; border:2px dashed var(--accent); border-radius:10px; background:var(--accent-soft); color:var(--accent); font-weight:800; font-size:12px; text-align:center; padding:10px;">5-volume<br>set<br>₹2 999</div>
+          </div>
+
+          <button class="btn primary block lg" style="margin-top:16px;">View all · 12 items</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Store home<small>Bundle hero · category chips · digital list + hardcopy grid with cover art</small></p>
+  </div>
+
+  <!-- Volume detail -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Vol II · Upper GI &amp; HPB</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">♡</div></div></div>
+        <div class="scroll" style="padding-bottom:110px;">
+
+          <div style="display:grid; grid-template-columns:120px 1fr; gap:14px; align-items:start;">
+            <div class="vol-cover v2" style="aspect-ratio:0.72/1;">
+              <div class="vnum">VOL II</div>
+              <div class="vttl">Upper GI &amp; HPB</div>
+              <div class="vsub">ch. 9–18</div>
+            </div>
+            <div>
+              <p style="margin:0; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">2026 Edition · 312 pages</p>
+              <h2 style="margin:4px 0 6px; font-size:18px; font-weight:800; letter-spacing:-0.02em;">Upper GI &amp; Hepatobiliary</h2>
+              <p style="margin:0; font-size:12px; color:var(--ink-3); line-height:1.5;">Esophagus · Stomach · Small intestine · Liver · Pancreas · Spleen</p>
+              <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+                <span class="chip">Glossy matte</span>
+                <span class="chip">Colour plates</span>
+                <span class="chip accent">In stock</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:baseline; gap:10px; margin-top:14px;">
+            <span class="price-tag"><span class="big">₹799</span><span class="old">₹999</span></span>
+            <span class="chip ok" style="margin-left:auto;">Free shipping ≥ ₹1 500</span>
+          </div>
+
+          <!-- Preview CTA -->
+          <button class="btn primary block lg" style="margin-top:12px;">📖 Preview first 24 pages</button>
+          <button class="btn ghost block" style="margin-top:8px;">Add to cart</button>
+
+          <p style="margin:16px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">What's inside</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list" style="padding:10px 6px;"><div class="icon" style="background:var(--surface-3); color:var(--ink-2); font-size:12px;">9</div><div style="flex:1;"><p class="card-title">Esophagus — GERD, motility, carcinoma</p><p class="card-sub">28 pages · 4 figures</p></div></div>
+            <div class="row-list" style="padding:10px 6px;"><div class="icon" style="background:var(--surface-3); color:var(--ink-2); font-size:12px;">10</div><div style="flex:1;"><p class="card-title">Stomach — PUD &amp; carcinoma</p><p class="card-sub">34 pages · 6 figures</p></div></div>
+            <div class="row-list" style="padding:10px 6px;"><div class="icon" style="background:var(--surface-3); color:var(--ink-2); font-size:12px;">12</div><div style="flex:1;"><p class="card-title">Bariatric &amp; metabolic surgery</p><p class="card-sub">22 pages · 3 figures</p></div></div>
+            <div class="row-list" style="padding:10px 6px; border:0;"><div class="icon" style="background:var(--surface-3); color:var(--ink-2); font-size:12px;">14</div><div style="flex:1;"><p class="card-title">Liver — tumours &amp; portal HTN</p><p class="card-sub">38 pages · 8 figures</p></div></div>
+          </div>
+
+          <div class="card" style="background:var(--accent-soft); border:none; display:flex; gap:10px; align-items:center;">
+            <div class="icon accent">🎯</div>
+            <div style="flex:1;"><p style="margin:0; font-size:12.5px; color:var(--accent); font-weight:700;">Own this digitally?</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--accent);">Plus subscribers unlock a full matching e-book free.</p></div>
+          </div>
+        </div>
+
+        <div style="position:absolute; left:10px; right:10px; bottom:10px; background:var(--glass-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-brd); border-radius:20px; padding:10px 12px; display:flex; gap:10px; align-items:center; box-shadow:var(--shadow-2);">
+          <div style="flex:1;">
+            <p style="margin:0; font-size:11px; color:var(--ink-3); font-weight:700;">Vol II</p>
+            <p style="margin:0; font-size:16px; font-weight:800; letter-spacing:-0.01em;">₹799</p>
+          </div>
+          <button class="btn ghost" style="padding:10px 14px; font-size:12.5px;">Preview</button>
+          <button class="btn primary" style="padding:10px 16px; font-size:12.5px;">Add to cart</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Volume detail<small>Cover hero · price with strike · preview + add-to-cart · chapter list · subscriber perk</small></p>
+  </div>
+
+  <!-- Unified cart -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Cart · 3 items</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⋯</div></div></div>
+        <div class="scroll" style="padding-bottom:100px;">
+
+          <p style="margin:4px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Digital</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list" style="border:0;">
+              <div class="icon accent" style="font-size:18px;">💎</div>
+              <div style="flex:1;"><p class="card-title">Plus · Annual</p><p class="card-sub">Auto-renews Aug 2027</p></div>
+              <p style="margin:0; font-weight:800;">₹7 999</p>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Hardcopy</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list">
+              <div class="vol-cover v2" style="width:44px; aspect-ratio:0.72/1; padding:4px; border-radius:6px;"><div style="font-size:8px; font-weight:800;">II</div></div>
+              <div style="flex:1;"><p class="card-title">Vol II · Upper GI</p><p class="card-sub">Qty 1 · in stock</p></div>
+              <p style="margin:0; font-weight:800;">₹799</p>
+            </div>
+            <div class="row-list" style="border:0;">
+              <div class="vol-cover v3" style="width:44px; aspect-ratio:0.72/1; padding:4px; border-radius:6px;"><div style="font-size:8px; font-weight:800;">III</div></div>
+              <div style="flex:1;"><p class="card-title">Vol III · Colorectal &amp; Hernia</p><p class="card-sub">Qty 1 · in stock</p></div>
+              <p style="margin:0; font-weight:800;">₹799</p>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Deliver to</p>
+          <div class="card" style="padding:14px; display:flex; gap:10px; align-items:flex-start;">
+            <div class="icon accent">🏠</div>
+            <div style="flex:1;"><p class="card-title">Ruchir Singh</p><p class="card-sub">Flat 304, Emerald Heights,<br>Sector 21, Bengaluru 560034</p></div>
+            <span class="chip">Edit</span>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Order summary</p>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;"><span>Items · 3</span><span>₹9 597</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; color:var(--ok);"><span>Bundle discount</span><span>–₹600</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;"><span>Shipping</span><span style="color:var(--ok); font-weight:700;">FREE</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:10px; color:var(--ink-3);"><span>GST (18% on digital)</span><span>₹1 296</span></div>
+            <div style="border-top:1px solid var(--border-2); padding-top:10px; display:flex; justify-content:space-between; align-items:baseline;">
+              <span style="font-size:14px; font-weight:700;">Total</span>
+              <span style="font-size:22px; font-weight:800; letter-spacing:-0.02em;">₹10 293</span>
+            </div>
+          </div>
+
+          <div class="card" style="background:var(--ok-soft); border:none; display:flex; gap:10px; align-items:center;">
+            <div class="icon ok">🚚</div>
+            <div style="flex:1;"><p style="margin:0; font-size:12.5px; font-weight:700; color:var(--ok);">Expected by Wed 23 Apr</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ok);">Digital items activate immediately on payment</p></div>
+          </div>
+        </div>
+
+        <div style="position:absolute; left:10px; right:10px; bottom:10px; background:var(--glass-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-brd); border-radius:20px; padding:10px 12px; display:flex; gap:10px; align-items:center; box-shadow:var(--shadow-2);">
+          <div style="flex:1;"><p style="margin:0; font-size:11px; color:var(--ink-3); font-weight:700;">Total</p><p style="margin:0; font-size:16px; font-weight:800;">₹10 293</p></div>
+          <button class="btn primary" style="padding:12px 18px; font-size:13px;">Checkout →</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Unified cart<small>Digital + hardcopy in one cart · address · instant activation + shipping ETA</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== FLIPBOOK PREVIEW -->
+<section class="section-title">📱 📱 📱 Flipbook preview — browser-rendered · before you order</section>
+<div class="row">
+
+  <!-- Mobile flipbook preview -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen" style="background:#0d1016;">
+        <div class="statusbar" style="color:#fff;"><span>9:41</span><span>●●●● 5G</span></div>
+        <div style="display:flex; align-items:center; padding:8px 12px; color:#fff; gap:10px;">
+          <div class="icon" style="background:rgba(255,255,255,.12); color:#fff; border:none;">×</div>
+          <div style="flex:1;">
+            <p style="margin:0; font-size:13px; font-weight:800;">Preview · Vol II</p>
+            <p style="margin:0; font-size:10.5px; opacity:.7;">Page 8 / 24 · unlocked for you</p>
+          </div>
+          <div class="icon" style="background:rgba(255,255,255,.12); color:#fff; border:none;">⇱</div>
+        </div>
+
+        <!-- Single page for mobile -->
+        <div style="padding:8px 12px;">
+          <div class="book" style="padding:10px;">
+            <div class="spread" style="grid-template-columns:1fr; background:none;">
+              <div class="page" style="min-height:470px; border-right:none; box-shadow:none;">
+                <h4>Gastro-oesophageal reflux disease</h4>
+                <p><b>Definition.</b> Pathological reflux of gastric contents into the oesophagus causing troublesome symptoms or complications.</p>
+                <p><b>Pathophysiology.</b> Transient LOS relaxation is the commonest mechanism; hiatus hernia, obesity and delayed gastric emptying all contribute.</p>
+                <div class="fig">Fig 9.2 · LOS anatomy diagram</div>
+                <p><b>Clinical features.</b> Heartburn and regurgitation are cardinal; dysphagia, chronic cough, laryngitis and dental erosion are extra-oesophageal.</p>
+                <p><span class="tag">Key fact</span> Long-standing GORD is a risk factor for Barrett's oesophagus and adenocarcinoma — surveillance endoscopy at 3-yearly intervals.</p>
+                <div class="cap"><span>Vol II · Upper GI</span><span>8</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom bar -->
+        <div style="position:absolute; left:10px; right:10px; bottom:10px; background:rgba(13,16,22,.7); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.08); border-radius:20px; padding:8px 10px; display:flex; gap:10px; align-items:center;">
+          <div class="icon" style="background:rgba(255,255,255,.08); color:#fff; border:none;">‹</div>
+          <div style="flex:1; height:4px; background:rgba(255,255,255,.12); border-radius:2px;"><div style="width:33%; height:100%; background:var(--accent); border-radius:2px;"></div></div>
+          <div class="icon" style="background:rgba(255,255,255,.08); color:#fff; border:none;">›</div>
+          <button class="btn primary" style="padding:8px 12px; font-size:11.5px;">Add · ₹799</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Mobile flipbook<small>Single-page read · bottom scrubber · add-to-cart chip inside preview</small></p>
+  </div>
+
+  <!-- Tablet / iPad flipbook -->
+  <div>
+    <div class="device tablet">
+      <div class="screen" style="background:#0d1016;">
+        <div class="statusbar" style="color:#fff;"><span>9:41</span><span>●●●● Wi-Fi</span></div>
+        <div style="display:flex; align-items:center; padding:10px 18px; color:#fff; gap:12px;">
+          <div class="icon" style="background:rgba(255,255,255,.12); color:#fff; border:none;">×</div>
+          <div>
+            <p style="margin:0; font-size:14px; font-weight:800;">Surgical Principles &amp; Practice · Volume II</p>
+            <p style="margin:0; font-size:11px; opacity:.65;">Upper GI &amp; HPB · Chapter 9 — Esophagus</p>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <span class="admin-chip" style="background:rgba(255,255,255,.08);">Page 8–9 of 24</span>
+            <span class="admin-chip" style="background:rgba(255,255,255,.08);">🔍 Search</span>
+            <span class="admin-chip" style="background:rgba(255,255,255,.08);">📑 TOC</span>
+          </div>
+        </div>
+
+        <!-- Spread -->
+        <div style="padding:14px 28px;">
+          <div class="book" style="padding:18px;">
+            <div class="spread">
+              <div class="page left">
+                <h4>Gastro-oesophageal reflux disease</h4>
+                <p><b>Definition.</b> Pathological reflux of gastric contents into the oesophagus causing troublesome symptoms or complications.</p>
+                <p><b>Pathophysiology.</b> Transient LOS relaxation is the commonest mechanism. Hiatus hernia, obesity and delayed gastric emptying all contribute.</p>
+                <div class="fig">Fig 9.2 · LOS anatomy</div>
+                <p><b>Clinical features.</b> Heartburn and regurgitation are cardinal; dysphagia, chronic cough, laryngitis and dental erosion are extra-oesophageal presentations.</p>
+                <p><span class="tag">Key fact</span> Long-standing GORD raises the risk of Barrett's oesophagus and adenocarcinoma — surveillance at 3-yearly intervals.</p>
+                <div class="cap"><span>Vol II · Upper GI</span><span>8</span></div>
+              </div>
+              <div class="page right">
+                <h4>Investigations</h4>
+                <p><b>Upper GI endoscopy.</b> First-line when alarm features are present — dysphagia, weight loss, GI bleeding, age &gt; 55.</p>
+                <p><b>pH studies.</b> 24-hour ambulatory pH monitoring quantifies acid exposure time; the gold standard for diagnosis when symptoms are atypical.</p>
+                <div class="fig">Fig 9.3 · 24-h pH tracing</div>
+                <p><b>Manometry.</b> Excludes motility disorders (e.g. achalasia) before anti-reflux surgery. LOS tone and peristalsis are mapped.</p>
+                <p><b>Barium swallow.</b> Limited role now, but still useful to outline hiatus hernia anatomy before operative planning.</p>
+                <div class="cap"><span>9</span><span>Ch 9 — Esophagus</span></div>
+              </div>
+            </div>
+            <div class="book-ctl l">‹</div>
+            <div class="book-ctl r">›</div>
+          </div>
+          <div class="book-hud">
+            <span>Page 8</span>
+            <div style="flex:1; height:4px; background:#2c313e; border-radius:2px;"><div style="width:33%; height:100%; background:var(--accent); border-radius:2px;"></div></div>
+            <span>Page 24 end</span>
+            <button class="btn primary" style="padding:8px 14px; font-size:12.5px; margin-left:8px;">Add to cart · ₹799</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">iPad · full 2-page spread<small>Two-page spread · TOC · search · page scrubber · embedded add-to-cart</small></p>
+  </div>
+
+  <!-- Preview paywall (end-of-preview) -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen" style="background:#0d1016;">
+        <div class="statusbar" style="color:#fff;"><span>9:41</span><span>●●●● 5G</span></div>
+        <div style="padding:14px 18px; color:#fff;">
+          <p style="margin:0; font-size:13px; font-weight:800;">Preview ends here</p>
+          <p style="margin:0; font-size:11px; opacity:.65;">Page 24 / 288 · 264 more pages inside</p>
+        </div>
+
+        <div style="padding:12px 14px;">
+          <div class="book" style="padding:10px;">
+            <div class="spread" style="grid-template-columns:1fr; background:none;">
+              <div class="page" style="min-height:240px; border-right:none; box-shadow:none; position:relative;">
+                <h4>Chapter 10 — Stomach</h4>
+                <p><b>Peptic ulcer disease.</b> Prevalence, pathophysiology of H. pylori infection…</p>
+                <p style="opacity:.3;"><b>Surgical management.</b> Indications for operation now restricted to…</p>
+                <p style="opacity:.15;"><b>Carcinoma of the stomach.</b> Risk factors include…</p>
+                <div style="position:absolute; left:0; right:0; bottom:0; top:40%; background:linear-gradient(180deg, transparent 0%, #fdfaf3 70%); pointer-events:none;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:10px 16px 0; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.08); color:#fff;">
+          <p style="margin:0 0 6px; font-size:14px; font-weight:800;">Own the full volume</p>
+          <p style="margin:0 0 12px; font-size:12px; opacity:.8; line-height:1.5;">288 pages · 45 figures · glossy matte finish · printed in India · arrives in 3–5 days.</p>
+          <div style="display:flex; gap:8px;">
+            <button class="btn ghost" style="flex:1; background:rgba(255,255,255,.12); color:#fff; border:none; font-size:12px;">Save preview</button>
+            <button class="btn primary" style="flex:1; font-size:12px;">Buy ₹799</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin:10px 16px; background:rgba(10,132,255,.16); border:1px solid rgba(10,132,255,.22); display:flex; gap:10px; align-items:center; color:#cfe3ff;">
+          <div class="icon accent" style="background:rgba(255,255,255,.12); color:#cfe3ff;">💎</div>
+          <div style="flex:1;"><p style="margin:0; font-size:12px; font-weight:700;">Bundle &amp; save ₹600</p><p style="margin:2px 0 0; font-size:11px;">Add Plus Annual and it ships free.</p></div>
+          <button class="btn primary" style="padding:8px 10px; font-size:11.5px;">Add</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">End-of-preview CTA<small>Fades out last page · keep preview · buy volume · bundle upsell</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== CHECKOUT + TRACKING -->
+<section class="section-title">📱 Unified checkout · order placed · live tracking</section>
+<div class="row">
+
+  <!-- Unified checkout -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Checkout</h2><div class="right"><span class="chip ok">🔒 Secure</span></div></div>
+
+        <div style="padding:6px 18px 14px; display:flex; align-items:center; gap:6px;">
+          <div class="step done"><span class="dot">1</span></div><div class="step done" style="flex:1;"><span class="line"></span></div>
+          <div class="step on"><span class="dot">2</span></div><div class="step" style="flex:1;"><span class="line"></span></div>
+          <div class="step"><span class="dot">3</span></div>
+        </div>
+        <div style="padding:0 18px 6px; display:flex; justify-content:space-between; font-size:10.5px; font-weight:700; color:var(--ink-3);">
+          <span>Address</span><span style="color:var(--accent);">Payment</span><span>Confirm</span>
+        </div>
+
+        <div class="scroll" style="padding-top:0;">
+
+          <p style="margin:8px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Pay with</p>
+          <div class="card" style="padding:4px;">
+            <div class="row-list" style="background:var(--accent-soft); border-radius:10px;">
+              <div class="icon accent" style="background:#fff;">💳</div>
+              <div style="flex:1;"><div class="t">Visa •••• 6411</div><div class="s">Saved · expires 08/27</div></div>
+              <span style="color:var(--accent); font-size:20px;">●</span>
+            </div>
+            <div class="row-list"><div class="icon accent">📱</div><div style="flex:1;"><div class="t">UPI — Google Pay</div></div><span style="color:var(--ink-3);">○</span></div>
+            <div class="row-list" style="border:0;"><div class="icon teal">🏦</div><div style="flex:1;"><div class="t">EMI · no-cost</div><div class="s">3 / 6 / 9 months</div></div><span style="color:var(--ink-3);">○</span></div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Your order</p>
+          <div class="card" style="padding:12px;">
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;"><span>Plus · Annual</span><span style="font-weight:700;">₹7 999</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;"><span>Vol II + Vol III</span><span style="font-weight:700;">₹1 598</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; color:var(--ok);"><span>Bundle discount</span><span>–₹600</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:10px; color:var(--ink-3);"><span>GST · on digital only</span><span>₹1 296</span></div>
+            <div style="border-top:1px solid var(--border-2); padding-top:10px; display:flex; justify-content:space-between; align-items:baseline;">
+              <span style="font-size:14px; font-weight:700;">Total</span>
+              <span style="font-size:22px; font-weight:800; letter-spacing:-0.02em;">₹10 293</span>
+            </div>
+          </div>
+
+          <div class="card" style="padding:12px; display:flex; gap:10px; align-items:center; background:var(--ok-soft); border:none;">
+            <div class="icon ok">🚚</div>
+            <p style="margin:0; font-size:12px; color:var(--ink-2);">Digital activates instantly · books arrive by <b>Wed 23 Apr</b></p>
+          </div>
+
+          <button class="btn primary block lg" style="margin-top:14px;">Pay ₹10 293 securely</button>
+          <p style="text-align:center; margin:10px 0 0; font-size:10.5px; color:var(--ink-3);">Secured by Razorpay · 256-bit encryption</p>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Unified checkout<small>3-step tracker · payment · order summary · ETA · one primary CTA</small></p>
+  </div>
+
+  <!-- Order confirmation -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Order placed</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">📤</div></div></div>
+        <div class="scroll">
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div style="background:linear-gradient(135deg, var(--ok), var(--teal)); color:#fff; padding:26px 16px; text-align:center;">
+              <div style="width:80px; height:80px; border-radius:50%; background:rgba(255,255,255,.22); display:grid; place-items:center; font-size:40px; margin:0 auto 12px; backdrop-filter:blur(10px);">🎉</div>
+              <p style="margin:0; font-size:11px; opacity:.85; letter-spacing:.06em; text-transform:uppercase; font-weight:700;">Order #SUSH-2026-1194</p>
+              <h2 style="margin:6px 0 4px; font-size:22px; font-weight:800; letter-spacing:-0.02em;">Thank you, Ruchir</h2>
+              <p style="margin:0; font-size:12.5px; opacity:.95;">Paid ₹10 293 · Plus activated · 2 books dispatching</p>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Status</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="icon ok">💎</div><div style="flex:1;"><p class="card-title">Plus · Annual</p><p class="card-sub">Activated · valid till 19 Apr 2027</p></div><span class="chip ok">Active</span></div>
+            <div class="row-list" style="border:0;"><div class="icon accent">📦</div><div style="flex:1;"><p class="card-title">2 printed volumes</p><p class="card-sub">Dispatch expected by Mon 21 Apr</p></div><span class="chip accent">Processing</span></div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Where next</p>
+          <div class="grid-2">
+            <button class="btn ghost" style="padding:14px 10px; flex-direction:column; gap:4px; font-size:12px;">🎞<br>Watch a lecture</button>
+            <button class="btn ghost" style="padding:14px 10px; flex-direction:column; gap:4px; font-size:12px;">📝<br>Start a mock</button>
+            <button class="btn ghost" style="padding:14px 10px; flex-direction:column; gap:4px; font-size:12px;">📊<br>See analytics</button>
+            <button class="btn ghost" style="padding:14px 10px; flex-direction:column; gap:4px; font-size:12px;">📦<br>Track shipment</button>
+          </div>
+
+          <button class="btn primary block lg" style="margin-top:14px;">Download invoice</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Order confirmation<small>Celebration hero · split activation + shipment status · four next-step shortcuts</small></p>
+  </div>
+
+  <!-- Hardcopy tracking -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Shipment · SUSH-1194</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">📞</div></div></div>
+        <div class="scroll">
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div style="background:linear-gradient(135deg, var(--accent), var(--indigo)); color:#fff; padding:22px 16px;">
+              <p style="margin:0; font-size:11px; opacity:.85; letter-spacing:.06em; text-transform:uppercase; font-weight:700;">Arriving</p>
+              <h2 style="margin:6px 0 4px; font-size:22px; font-weight:800; letter-spacing:-0.02em;">Wed, 23 Apr · by 6 pm</h2>
+              <p style="margin:0 0 10px; font-size:12.5px; opacity:.9;">BlueDart · tracking #BD-7726-0184</p>
+              <div style="height:6px; background:rgba(255,255,255,.2); border-radius:3px;"><div style="width:55%; height:100%; background:#fff; border-radius:3px;"></div></div>
+              <div style="display:flex; justify-content:space-between; font-size:10.5px; margin-top:6px; opacity:.9;">
+                <span>Packed</span><span>Dispatched</span><span>Out for delivery</span><span>Delivered</span>
+              </div>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Journey</p>
+          <div class="card" style="padding:14px;">
+            <div class="timeline">
+              <div class="tl ok"><p style="margin:0; font-size:13px; font-weight:700;">Order placed</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">19 Apr · 9:41 am · Payment confirmed</p></div>
+              <div class="tl ok"><p style="margin:0; font-size:13px; font-weight:700;">Packed at warehouse</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">20 Apr · 11:20 am · New Delhi</p></div>
+              <div class="tl now"><p style="margin:0; font-size:13px; font-weight:700;">Dispatched · in transit</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">21 Apr · 7:40 pm · Noida hub → Bengaluru</p></div>
+              <div class="tl"><p style="margin:0; font-size:13px; font-weight:700; color:var(--ink-3);">Out for delivery</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Expected 23 Apr</p></div>
+              <div class="tl"><p style="margin:0; font-size:13px; font-weight:700; color:var(--ink-3);">Delivered</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Expected 23 Apr</p></div>
+            </div>
+          </div>
+
+          <div class="card" style="background:var(--accent-soft); border:none; display:flex; gap:10px; align-items:center;">
+            <div class="icon accent">💎</div>
+            <div style="flex:1;"><p style="margin:0; font-size:12.5px; color:var(--accent); font-weight:700;">Read the e-book while you wait</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--accent);">Vol II &amp; III are unlocked in your Plus library.</p></div>
+            <button class="btn primary" style="padding:8px 10px; font-size:11.5px;">Open</button>
+          </div>
+
+          <button class="btn ghost block" style="margin-top:10px;">Contact courier</button>
+          <button class="btn ghost block" style="margin-top:8px; color:var(--bad);">Report a problem</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Hardcopy tracking<small>Delivery hero · 4-step progress · vertical timeline · open-ebook-while-waiting</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== ADMIN ADDITIONS -->
+<section class="section-title">💻 Admin additions — hardcopy &amp; flipbook management</section>
+<div class="row">
+  <div>
+    <div class="device laptop">
+      <div class="screen">
+
+        <!-- Admin topbar -->
+        <div class="admin-topbar">
+          <div class="brand"><span class="d"></span> Sushruta Admin</div>
+          <span class="admin-chip">Store / Hardcopy</span>
+          <span class="admin-chip">v 2.14</span>
+          <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+            <span class="admin-chip">Orders today · 24</span>
+            <span class="admin-chip">Low-stock · 2</span>
+            <span class="admin-chip">Draft · 1</span>
+          </div>
+        </div>
+
+        <!-- 3 columns: nav / main grid / detail drawer -->
+        <div style="display:grid; grid-template-columns: 200px 1fr 260px; gap:0; max-height:548px;">
+
+          <!-- Nav rail -->
+          <aside style="background:#0f131c; color:#c9cde0; padding:12px 10px; font-size:12px; border-right:1px solid #1e2230;">
+            <p style="margin:8px 10px 6px; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#676c85; font-weight:700;">Store</p>
+            <a href="#" style="display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; color:#c9cde0;">💎 Digital plans</a>
+            <a href="#" style="display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; color:#fff; background:rgba(255,255,255,.08); font-weight:700;">📚 Hardcopy SKUs</a>
+            <a href="#" style="display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; color:#c9cde0;">🎞 Flipbook assets</a>
+            <a href="#" style="display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; color:#c9cde0;">📦 Orders &amp; fulfilment</a>
+            <a href="#" style="display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; color:#c9cde0;">🎟 Coupons &amp; bundles</a>
+            <a href="#" style="display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; color:#c9cde0;">🚚 Shipping zones</a>
+
+            <p style="margin:14px 10px 6px; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#676c85; font-weight:700;">Reports</p>
+            <a href="#" style="display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; color:#c9cde0;">📊 Revenue</a>
+            <a href="#" style="display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:8px; color:#c9cde0;">📈 Inventory</a>
+          </aside>
+
+          <!-- Main grid · SKU table -->
+          <section style="padding:16px 18px; overflow-y:auto;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <div>
+                <h2 style="margin:0; font-size:17px; letter-spacing:-0.01em;">Hardcopy SKUs</h2>
+                <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">5 volumes · 1 bundle · live on store</p>
+              </div>
+              <div style="margin-left:auto; display:flex; gap:8px;">
+                <button class="btn ghost" style="padding:7px 12px; font-size:12px;">+ Bundle</button>
+                <button class="btn primary" style="padding:7px 14px; font-size:12px;">+ New volume</button>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:6px; margin-bottom:10px;">
+              <span class="chip accent">All</span><span class="chip">Published</span><span class="chip warn">Low stock</span><span class="chip">Draft</span>
+            </div>
+
+            <div class="card" style="padding:0;">
+              <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead style="background:var(--surface-2); color:var(--ink-3); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em;">
+                  <tr>
+                    <th style="padding:10px 12px; text-align:left; font-weight:700;">SKU</th>
+                    <th style="padding:10px 12px; text-align:left; font-weight:700;">Title</th>
+                    <th style="padding:10px 12px; text-align:right; font-weight:700;">Price</th>
+                    <th style="padding:10px 12px; text-align:right; font-weight:700;">Stock</th>
+                    <th style="padding:10px 12px; text-align:left; font-weight:700;">Preview</th>
+                    <th style="padding:10px 12px; text-align:left; font-weight:700;">Status</th>
+                    <th style="padding:10px 12px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>SUSH-V1-2026</code></td><td style="padding:10px 12px;"><b>Vol I</b> · Surgical Basics</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹699</td><td style="padding:10px 12px; text-align:right;">142</td><td style="padding:10px 12px;"><span class="chip ok">24 pages · live</span></td><td style="padding:10px 12px;"><span class="chip ok">Published</span></td><td style="padding:10px 12px; text-align:right;">⋯</td></tr>
+                  <tr style="border-top:1px solid var(--border); background:var(--accent-soft);"><td style="padding:10px 12px;"><code>SUSH-V2-2026</code></td><td style="padding:10px 12px;"><b>Vol II</b> · Upper GI &amp; HPB</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹799</td><td style="padding:10px 12px; text-align:right;">88</td><td style="padding:10px 12px;"><span class="chip ok">24 pages · live</span></td><td style="padding:10px 12px;"><span class="chip ok">Published</span></td><td style="padding:10px 12px; text-align:right; color:var(--accent);">Editing</td></tr>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>SUSH-V3-2026</code></td><td style="padding:10px 12px;"><b>Vol III</b> · Colorectal &amp; Hernia</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹799</td><td style="padding:10px 12px; text-align:right; color:var(--warn);"><b>14</b></td><td style="padding:10px 12px;"><span class="chip ok">24 pages · live</span></td><td style="padding:10px 12px;"><span class="chip warn">Low stock</span></td><td style="padding:10px 12px; text-align:right;">⋯</td></tr>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>SUSH-V4-2026</code></td><td style="padding:10px 12px;"><b>Vol IV</b> · Vascular / Endo / Uro</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹799</td><td style="padding:10px 12px; text-align:right;">210</td><td style="padding:10px 12px;"><span class="chip ok">18 pages · live</span></td><td style="padding:10px 12px;"><span class="chip ok">Published</span></td><td style="padding:10px 12px; text-align:right;">⋯</td></tr>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>SUSH-V5-2026</code></td><td style="padding:10px 12px;"><b>Vol V</b> · Peds / Plastics / CT</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹699</td><td style="padding:10px 12px; text-align:right;">64</td><td style="padding:10px 12px;"><span class="chip warn">Draft · 6 / 24 pages</span></td><td style="padding:10px 12px;"><span class="chip">Draft</span></td><td style="padding:10px 12px; text-align:right;">⋯</td></tr>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>SUSH-SET-2026</code></td><td style="padding:10px 12px;"><b>5-volume set</b></td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹2 999</td><td style="padding:10px 12px; text-align:right;">—</td><td style="padding:10px 12px;"><span class="chip">uses children</span></td><td style="padding:10px 12px;"><span class="chip ok">Published</span></td><td style="padding:10px 12px; text-align:right;">⋯</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card" style="margin-top:14px; padding:12px; background:var(--warn-soft); border:none; display:flex; gap:10px; align-items:center;">
+              <div class="icon warn">⚠</div>
+              <p style="margin:0; font-size:12.5px; color:var(--warn); flex:1;">Vol III is at <b>14 units</b>. Reorder now to avoid stockout — avg weekly sales 22.</p>
+              <button class="btn" style="background:var(--warn); color:#fff; font-size:11.5px; padding:7px 12px;">Reorder</button>
+            </div>
+          </section>
+
+          <!-- Drawer · editing Vol II flipbook -->
+          <aside style="border-left:1px solid var(--border); background:var(--surface-2); padding:14px 14px 16px; overflow-y:auto;">
+            <p style="margin:0; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:700;">Editing Vol II</p>
+            <h3 style="margin:4px 0 10px; font-size:14px; letter-spacing:-0.01em;">Flipbook preview</h3>
+
+            <div class="vol-cover v2" style="aspect-ratio:1.2; margin-bottom:10px;">
+              <div class="vnum">VOL II</div>
+              <div class="vttl">Upper GI &amp; HPB</div>
+            </div>
+
+            <p style="margin:0 0 4px; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.06em;">Upload source</p>
+            <div class="card" style="padding:10px; margin-bottom:10px; border:1px dashed var(--accent); background:var(--accent-soft); text-align:center;">
+              <div style="font-size:20px;">📄</div>
+              <p style="margin:4px 0 0; font-size:12px; font-weight:700; color:var(--accent);">vol-II-288p.pdf</p>
+              <p style="margin:0; font-size:10.5px; color:var(--accent);">Uploaded · 142 MB · OCR done</p>
+            </div>
+
+            <p style="margin:4px 0; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.06em;">Preview range</p>
+            <div class="card" style="padding:10px; margin-bottom:10px;">
+              <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                <span>Pages</span>
+                <input value="1" style="width:44px; padding:4px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); font:inherit; font-size:12px;">
+                <span>–</span>
+                <input value="24" style="width:44px; padding:4px 8px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); font:inherit; font-size:12px;">
+                <span style="margin-left:auto; color:var(--ink-3); font-size:11px;">of 288</span>
+              </div>
+            </div>
+
+            <p style="margin:4px 0; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.06em;">Share link</p>
+            <div class="card" style="padding:8px; margin-bottom:10px; font-size:11px; font-family:ui-monospace,'SF Mono',monospace; color:var(--ink-2); word-break:break-all;">
+              sushruta.app/preview/vol-ii
+              <span class="chip accent" style="margin-left:6px;">copy</span>
+            </div>
+
+            <p style="margin:4px 0; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.06em;">Embed code</p>
+            <div class="card" style="padding:8px; margin-bottom:14px; font-size:10.5px; font-family:ui-monospace,'SF Mono',monospace; color:var(--ink-2); background:#0d1016; color:#e8ecf5; border:none; line-height:1.5;">
+              &lt;iframe src="sushruta.app/<br>embed/vol-ii" width="640"<br>height="480"&gt;&lt;/iframe&gt;
+            </div>
+
+            <button class="btn primary block">Save &amp; publish</button>
+            <button class="btn ghost block" style="margin-top:8px;">Save as draft</button>
+          </aside>
+
+        </div>
+      </div>
+    </div>
+    <p class="cap">Admin · Hardcopy + Flipbook manager<small>SKU table with live stock · low-stock alert · drawer for PDF upload + preview range + share link + embed code</small></p>
+  </div>
+</div>
+
+<!-- =============================================================== ADMIN ORDERS -->
+<section class="section-title">💻 Admin · fulfilment queue + order detail</section>
+<div class="row">
+  <div>
+    <div class="device laptop">
+      <div class="screen">
+        <div class="admin-topbar">
+          <div class="brand"><span class="d"></span> Sushruta Admin</div>
+          <span class="admin-chip">Store / Orders</span>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <span class="admin-chip">Today · 24 orders · ₹2.14 L</span>
+            <span class="admin-chip">Awaiting dispatch · 9</span>
+            <span class="admin-chip">At risk · 1</span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 3fr 2fr; gap:0; max-height:548px;">
+
+          <!-- Orders list -->
+          <section style="padding:16px 18px; overflow-y:auto;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <div>
+                <h2 style="margin:0; font-size:17px; letter-spacing:-0.01em;">Orders</h2>
+                <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Filter, pack, print labels, push status updates.</p>
+              </div>
+              <div style="margin-left:auto; display:flex; gap:8px;">
+                <span class="chip accent">Awaiting dispatch (9)</span>
+                <span class="chip">In transit</span>
+                <span class="chip">Delivered</span>
+                <span class="chip bad">At risk</span>
+              </div>
+            </div>
+
+            <div class="card" style="padding:0;">
+              <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead style="background:var(--surface-2); color:var(--ink-3); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em;">
+                  <tr>
+                    <th style="padding:10px 12px; text-align:left; font-weight:700;">Order</th>
+                    <th style="padding:10px 12px; text-align:left; font-weight:700;">Customer</th>
+                    <th style="padding:10px 12px; text-align:left; font-weight:700;">Items</th>
+                    <th style="padding:10px 12px; text-align:right; font-weight:700;">Total</th>
+                    <th style="padding:10px 12px; text-align:left; font-weight:700;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-top:1px solid var(--border); background:var(--accent-soft);"><td style="padding:10px 12px;"><code>#1194</code></td><td style="padding:10px 12px;">Ruchir S. · Bengaluru</td><td style="padding:10px 12px;">Plus + Vol II + Vol III</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹10 293</td><td style="padding:10px 12px;"><span class="chip accent">Packing</span></td></tr>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>#1193</code></td><td style="padding:10px 12px;">Aarav N. · Pune</td><td style="padding:10px 12px;">5-vol set</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹3 539</td><td style="padding:10px 12px;"><span class="chip accent">Packing</span></td></tr>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>#1192</code></td><td style="padding:10px 12px;">Riya S. · Delhi</td><td style="padding:10px 12px;">Vol II</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹799</td><td style="padding:10px 12px;"><span class="chip ok">Dispatched</span></td></tr>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>#1191</code></td><td style="padding:10px 12px;">Priya K. · Chennai</td><td style="padding:10px 12px;">Plus monthly</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹1 179</td><td style="padding:10px 12px;"><span class="chip ok">Digital-only</span></td></tr>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>#1190</code></td><td style="padding:10px 12px;">Sana M. · Hyderabad</td><td style="padding:10px 12px;">Vol IV + Vol V</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹1 498</td><td style="padding:10px 12px;"><span class="chip bad">Address issue</span></td></tr>
+                  <tr style="border-top:1px solid var(--border);"><td style="padding:10px 12px;"><code>#1189</code></td><td style="padding:10px 12px;">Vikram P. · Kolkata</td><td style="padding:10px 12px;">Vol III</td><td style="padding:10px 12px; text-align:right; font-weight:700;">₹799</td><td style="padding:10px 12px;"><span class="chip ok">Delivered</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <button class="btn primary" style="padding:8px 14px; font-size:12px;">🖨 Print 9 labels</button>
+              <button class="btn ghost" style="padding:8px 14px; font-size:12px;">📥 Export CSV</button>
+              <button class="btn ghost" style="padding:8px 14px; font-size:12px;">📣 Notify customers</button>
+            </div>
+          </section>
+
+          <!-- Order detail -->
+          <aside style="border-left:1px solid var(--border); background:var(--surface-2); padding:14px; overflow-y:auto;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <p style="margin:0; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:700;">Order</p>
+              <p style="margin:0; font-size:14px; font-weight:800;">#SUSH-1194</p>
+              <span class="chip accent" style="margin-left:auto;">Packing</span>
+            </div>
+
+            <div class="card" style="padding:10px; margin-top:10px;">
+              <p style="margin:0 0 4px; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.06em;">Customer</p>
+              <p style="margin:0; font-size:13px; font-weight:700;">Ruchir Singh</p>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--ink-3);">Flat 304, Emerald Heights, Sector 21, Bengaluru 560034 · +91-98xxx-xx421</p>
+            </div>
+
+            <p style="margin:10px 0 6px; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.06em;">Items</p>
+            <div class="card" style="padding:6px;">
+              <div class="row-list" style="padding:8px 6px;"><div class="icon accent">💎</div><div style="flex:1;"><p class="card-title">Plus · Annual</p><p class="card-sub">Digital · activated</p></div><span class="chip ok">✓</span></div>
+              <div class="row-list" style="padding:8px 6px;"><div class="vol-cover v2" style="width:30px; aspect-ratio:0.72/1; padding:2px; border-radius:4px;"><div style="font-size:7px; font-weight:800;">II</div></div><div style="flex:1;"><p class="card-title">Vol II · 1 unit</p><p class="card-sub">Bin A-14 · SKU V2-2026</p></div><span class="chip accent">Pick</span></div>
+              <div class="row-list" style="padding:8px 6px; border:0;"><div class="vol-cover v3" style="width:30px; aspect-ratio:0.72/1; padding:2px; border-radius:4px;"><div style="font-size:7px; font-weight:800;">III</div></div><div style="flex:1;"><p class="card-title">Vol III · 1 unit</p><p class="card-sub">Bin A-18 · low stock</p></div><span class="chip warn">Pick</span></div>
+            </div>
+
+            <p style="margin:10px 0 6px; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.06em;">Fulfilment</p>
+            <div class="card" style="padding:10px;">
+              <div class="row-list" style="padding:6px 2px;"><div style="flex:1; font-size:12px;">Shipping method</div><span class="chip">BlueDart · Surface</span></div>
+              <div class="row-list" style="padding:6px 2px;"><div style="flex:1; font-size:12px;">Package weight</div><span style="font-size:12px; font-weight:700;">860 g</span></div>
+              <div class="row-list" style="padding:6px 2px; border:0;"><div style="flex:1; font-size:12px;">Waybill</div><span style="font-size:11.5px; font-family:ui-monospace,'SF Mono',monospace;">BD-7726-0184</span></div>
+            </div>
+
+            <div style="display:flex; gap:6px; margin-top:12px;">
+              <button class="btn primary" style="flex:1; font-size:12px; padding:10px;">Mark packed</button>
+              <button class="btn ghost" style="flex:1; font-size:12px; padding:10px;">🖨 Invoice</button>
+            </div>
+            <button class="btn ghost block" style="margin-top:6px; font-size:12px; padding:8px;">Push "Dispatched" to student</button>
+          </aside>
+
+        </div>
+      </div>
+    </div>
+    <p class="cap">Admin · orders queue<small>Filter chips · label printing · CSV export · detail drawer with pick list · one-click status push</small></p>
+  </div>
+</div>
+
+<!-- =============================================================== UNIFIED MODEL -->
+<section class="section-title">🧩 One unified cart model · endpoints that make it work</section>
+<div class="quilt" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));">
+
+  <div class="card">
+    <div class="card-head"><div class="icon accent">🛒</div><div><p class="card-title">Unified cart line-items</p><p class="card-sub">Digital + hardcopy together</p></div></div>
+    <pre style="margin:0; background:#0d1016; color:#e8ecf5; padding:10px 12px; border-radius:10px; font:600 11px/1.6 ui-monospace,'SF Mono',monospace; overflow:auto;">line_items: [
+  { kind:"subscription", plan_id, cycle },
+  { kind:"hardcopy",     sku_id, qty },
+  { kind:"bundle",       bundle_id }
+]</pre>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon ok">📦</div><div><p class="card-title">Hardcopy SKU</p><p class="card-sub">Inventory + preview ref</p></div></div>
+    <pre style="margin:0; background:#0d1016; color:#e8ecf5; padding:10px 12px; border-radius:10px; font:600 11px/1.6 ui-monospace,'SF Mono',monospace; overflow:auto;">Sku { id, title, cover_url,
+  price_paise, gst_pct,
+  stock, low_stock_at,
+  weight_g, shipping_class,
+  preview_asset_id,
+  ebook_asset_id? }</pre>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon purple">📖</div><div><p class="card-title">Flipbook asset</p><p class="card-sub">Stored &amp; served separately</p></div></div>
+    <pre style="margin:0; background:#0d1016; color:#e8ecf5; padding:10px 12px; border-radius:10px; font:600 11px/1.6 ui-monospace,'SF Mono',monospace; overflow:auto;">PreviewAsset { id,
+  source_pdf_url,
+  total_pages,
+  preview_from, preview_to,
+  share_slug, embed_code,
+  ocr_state }</pre>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon indigo">🔌</div><div><p class="card-title">Store endpoints</p><p class="card-sub">Read</p></div></div>
+    <pre style="margin:0; background:#0d1016; color:#e8ecf5; padding:10px 12px; border-radius:10px; font:600 11px/1.6 ui-monospace,'SF Mono',monospace; overflow:auto;">GET /api/store/catalog
+GET /api/store/sku/:id
+GET /api/store/preview/:slug
+GET /api/store/bundle/:id</pre>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon warn">🧾</div><div><p class="card-title">Cart &amp; checkout</p><p class="card-sub">Write</p></div></div>
+    <pre style="margin:0; background:#0d1016; color:#e8ecf5; padding:10px 12px; border-radius:10px; font:600 11px/1.6 ui-monospace,'SF Mono',monospace; overflow:auto;">POST /api/cart/add-item
+PATCH /api/cart/update-qty
+POST /api/checkout/calculate
+POST /api/checkout/pay
+GET  /api/orders/:id
+GET  /api/orders/:id/shipment</pre>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="icon bad">🛠</div><div><p class="card-title">Admin endpoints</p><p class="card-sub">SKU + flipbook + orders</p></div></div>
+    <pre style="margin:0; background:#0d1016; color:#e8ecf5; padding:10px 12px; border-radius:10px; font:600 11px/1.6 ui-monospace,'SF Mono',monospace; overflow:auto;">POST /api/admin/sku
+PATCH /api/admin/sku/:id/stock
+POST /api/admin/preview/upload
+PATCH /api/admin/preview/:id/range
+POST /api/admin/orders/:id/dispatch
+POST /api/admin/orders/:id/push-status</pre>
+  </div>
+
+</div>
+
+<!-- =============================================================== WHY THIS UNIFIES WELL -->
+<section class="section-title">✨ Why one store beats two</section>
+<div class="quilt" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+  <div class="card"><p class="card-title">One cart, one invoice</p><p class="card-sub" style="margin-top:6px;">Students don't repeat their address or payment for books vs plans. Single GST-compliant invoice.</p></div>
+  <div class="card"><p class="card-title">Preview sells books</p><p class="card-sub" style="margin-top:6px;">A browser flipbook removes the #1 objection — "I can't see what I'm buying." Admins set preview range per volume.</p></div>
+  <div class="card"><p class="card-title">Bundle magic</p><p class="card-sub" style="margin-top:6px;">The engine understands children — the 5-volume set inherits stock from its five SKUs automatically.</p></div>
+  <div class="card"><p class="card-title">Digital doubles printed</p><p class="card-sub" style="margin-top:6px;">Plus subscribers read the matching e-book while waiting for the printed copy. Zero extra asset management.</p></div>
+  <div class="card"><p class="card-title">Admins ship from one screen</p><p class="card-sub" style="margin-top:6px;">Pick-list, label print, waybill push and status notifications all live in the same order drawer.</p></div>
+  <div class="card"><p class="card-title">Low-stock alerts</p><p class="card-sub" style="margin-top:6px;">Inventory crosses threshold → a banner on the SKU page + a Slack webhook to the warehouse lead.</p></div>
+</div>
+
+</main>
+<script>
+  const r=document.documentElement,k='sushrutaTheme',s=localStorage.getItem(k);
+  if(s)r.setAttribute('data-theme',s);
+  document.getElementById('tt').onclick=()=>{const n=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',n);localStorage.setItem(k,n);};
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+name: circular_chart_flutter
+description: A fork of circular_chart_flutter with updated bodyMedium instead of bodyText2
+version: 0.0.2
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: false
+  # No assets or fonts 

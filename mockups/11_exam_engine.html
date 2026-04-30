@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>11 · Advanced Exam Engine — Sushruta UI 2.0</title>
+<link rel="stylesheet" href="_styles.css"/>
+<style>
+  /* ---- Cluster-local helpers (not pushed into design system) ---- */
+  .mcq { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border:1px solid var(--border); border-radius:12px; margin-bottom:8px; font-size:13.5px; font-weight:500; background:var(--surface); }
+  .mcq.on { border:2px solid var(--accent); background:var(--accent-soft); font-weight:600; }
+  .mcq.ok { border:2px solid var(--ok);    background:var(--ok-soft);     font-weight:600; }
+  .mcq.no { opacity:.55; }
+  .mcq .dot { width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:grid; place-items:center; flex-shrink:0; font-size:11px; font-weight:700; color:var(--ink-2); }
+  .mcq.on .dot { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .mcq.ok .dot { background:var(--ok);     color:#fff; border-color:var(--ok); }
+
+  .secpill { flex:none; padding:6px 10px; border-radius:999px; background:var(--surface-2); border:1px solid var(--border); font-size:10.5px; font-weight:700; color:var(--ink-2); display:inline-flex; gap:6px; align-items:center; white-space:nowrap; }
+  .secpill.on   { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .secpill.done { background:var(--ok-soft); color:var(--ok); border-color:transparent; }
+  .secpill.lock { opacity:.55; }
+
+  .ring { width:54px; height:54px; border-radius:50%; background: conic-gradient(var(--accent) 0 70%, var(--surface-3) 70% 100%); display:grid; place-items:center; flex-shrink:0; }
+  .ring > i { width:44px; height:44px; border-radius:50%; background:var(--surface); display:grid; place-items:center; font-variant-numeric:tabular-nums; font-style:normal; font-weight:800; font-size:12.5px; color:var(--ink); }
+  .ring.warn { background: conic-gradient(var(--warn) 0 88%, var(--surface-3) 88% 100%); }
+  .ring.bad  { background: conic-gradient(var(--bad)  0 96%, var(--surface-3) 96% 100%); }
+
+  .calc { background:#0d1016; border-radius:16px; padding:10px; color:#fff; }
+  .calc .disp { text-align:right; font:700 18px/1 ui-monospace,"SF Mono",monospace; padding:4px 6px 10px; color:#fff; }
+  .calc .grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:5px; }
+  .calc .k { aspect-ratio:1.3; border-radius:9px; background:#1d2230; color:#fff; display:grid; place-items:center; font-weight:700; font-size:12px; }
+  .calc .k.op   { background:var(--accent); }
+  .calc .k.util { background:#2c313e; color:#ffd966; }
+
+  .kbd2 { font-family: ui-monospace,"SF Mono",monospace; font-size:10px; padding:2px 6px; border-radius:6px; background:var(--surface-3); border:1px solid var(--border-2); color:var(--ink-2); font-weight:700; }
+
+  .cell { aspect-ratio:1; border-radius:8px; background:var(--surface-3); color:var(--ink-2); display:grid; place-items:center; font-size:11px; font-weight:700; border:1px solid var(--border); }
+  .cell.ans  { background:var(--ok-soft);   color:var(--ok);   border-color:transparent; }
+  .cell.flag { background:var(--warn-soft); color:var(--warn); border-color:transparent; }
+  .cell.skip { background:var(--bad-soft);  color:var(--bad);  border-color:transparent; }
+  .cell.now  { box-shadow:0 0 0 2px var(--accent); }
+
+  .pillrow { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; }
+  .pillrow::-webkit-scrollbar { display:none; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">S</span> Sushruta · UI 2.0</div>
+  <nav>
+    <a href="index.html">Overview</a><a href="01_auth.html">Auth</a><a href="02_home.html">Home</a>
+    <a href="03_profile.html">Profile</a><a href="04_video.html">Video</a>
+    <a href="05_notes.html">Notes</a><a href="06_tests.html">Tests</a>
+    <a href="07_progress.html">Progress</a><a href="08_subscription.html">Plans</a>
+    <a href="09_bonus.html">Extras</a><a href="10_explorer.html">Explorer</a>
+    <a href="11_exam_engine.html" class="active">Exam engine</a>
+  </nav>
+  <button class="theme-toggle" id="tt"><span class="sun">☀</span><span class="moon">☾</span></button>
+</header>
+
+<main class="page">
+<h1 class="display">11 · <span class="grad">Advanced Exam Engine</span></h1>
+<p class="lead">
+  Normal · section-based · practice · grand mock — all on one engine. Per-section timers, instant feedback, flag &amp; return,
+  scratchpad, calculator, readiness lobby, keyboard-first laptop layout. Dark mode baked in.
+</p>
+
+<!-- =============================================================== PRE-EXAM LOBBY -->
+<section class="section-title">📱 Pre-exam lobby · normal · grand mock · practice</section>
+<div class="row">
+
+  <!-- Normal pre-exam -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Start test</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">ⓘ</div></div></div>
+        <div class="scroll">
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div style="background:linear-gradient(135deg, var(--accent), var(--indigo)); color:#fff; padding:20px 16px;">
+              <p style="margin:0; font-size:11px; opacity:.85; letter-spacing:.06em; text-transform:uppercase; font-weight:700;">Bailey Test 14</p>
+              <h2 style="margin:6px 0 2px; font-size:22px; font-weight:800; letter-spacing:-0.02em;">Shock &amp; Hemorrhage</h2>
+              <p style="margin:0; font-size:12.5px; opacity:.9;">200 MCQs · 4 hours · one attempt</p>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">What to expect</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="icon accent">⏱</div><div style="flex:1;"><p class="card-title">4 hour timer</p><p class="card-sub">Auto-submits when time runs out</p></div></div>
+            <div class="row-list"><div class="icon warn">⚑</div><div style="flex:1;"><p class="card-title">Flag &amp; return</p><p class="card-sub">Mark uncertain questions for review</p></div></div>
+            <div class="row-list"><div class="icon teal">📝</div><div style="flex:1;"><p class="card-title">Scratchpad included</p><p class="card-sub">Shared notes across all questions</p></div></div>
+            <div class="row-list" style="border:0;"><div class="icon ok">↩</div><div style="flex:1;"><p class="card-title">One submission</p><p class="card-sub">Confirmation dialog before you lock</p></div></div>
+          </div>
+
+          <div class="card" style="background:var(--warn-soft); border:none; display:flex; gap:10px; align-items:center;">
+            <div class="icon warn">⚠</div>
+            <div style="flex:1;"><p style="margin:0; font-size:13px; font-weight:700; color:var(--warn);">Stable connection required</p><p style="margin:2px 0 0; font-size:11.5px; color:var(--warn);">Answers sync every 10s · 120s offline grace</p></div>
+          </div>
+
+          <button class="btn primary block lg" style="margin-top:4px;">I'm ready · Start test</button>
+          <button class="btn ghost block" style="margin-top:8px;">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Pre-exam — normal<small>Gradient hero · expectations row · connectivity warning · clear CTA</small></p>
+  </div>
+
+  <!-- Grand mock lobby -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>NEET SS Grand Mock</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">ⓘ</div></div></div>
+        <div class="scroll">
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div style="background:linear-gradient(135deg, var(--purple), var(--pink)); color:#fff; padding:20px 16px;">
+              <p style="margin:0; font-size:11px; opacity:.85; letter-spacing:.06em; text-transform:uppercase; font-weight:700;">Sunday 10:00 am · live mock</p>
+              <h2 style="margin:6px 0 10px; font-size:20px; font-weight:800; letter-spacing:-0.02em;">Full-length grand mock #7</h2>
+              <div style="display:flex; gap:18px;">
+                <div><p style="margin:0; font-size:20px; font-weight:800; letter-spacing:-0.02em;">300</p><p style="margin:0; font-size:10.5px; opacity:.8;">MCQs</p></div>
+                <div><p style="margin:0; font-size:20px; font-weight:800; letter-spacing:-0.02em;">3</p><p style="margin:0; font-size:10.5px; opacity:.8;">Sections</p></div>
+                <div><p style="margin:0; font-size:20px; font-weight:800; letter-spacing:-0.02em;">4h</p><p style="margin:0; font-size:10.5px; opacity:.8;">Timer</p></div>
+                <div><p style="margin:0; font-size:20px; font-weight:800; letter-spacing:-0.02em;">812</p><p style="margin:0; font-size:10.5px; opacity:.8;">Live rivals</p></div>
+              </div>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Section rules</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="icon accent">①</div><div style="flex:1;"><p class="card-title">Basic Sciences</p><p class="card-sub">80 Qs · 64 min · locked on exit</p></div></div>
+            <div class="row-list"><div class="icon purple">②</div><div style="flex:1;"><p class="card-title">General Surgery</p><p class="card-sub">120 Qs · 96 min · locked on exit</p></div></div>
+            <div class="row-list" style="border:0;"><div class="icon teal">③</div><div style="flex:1;"><p class="card-title">Clinical Cases</p><p class="card-sub">100 Qs · 80 min · locked on exit</p></div></div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Readiness checklist</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="icon ok">✓</div><div style="flex:1;"><p class="card-title">Battery 86%</p></div></div>
+            <div class="row-list"><div class="icon ok">✓</div><div style="flex:1;"><p class="card-title">Wi-Fi 120 Mbps</p></div></div>
+            <div class="row-list"><div class="icon ok">✓</div><div style="flex:1;"><p class="card-title">Do-not-disturb enabled</p></div></div>
+            <div class="row-list" style="border:0;"><div class="icon warn">!</div><div style="flex:1;"><p class="card-title">Slack notifications still on</p><p class="card-sub">Tap to mute for 4 h</p></div></div>
+          </div>
+
+          <button class="btn primary block lg">Enter lobby</button>
+          <p style="margin:8px 0 0; font-size:11px; color:var(--ink-3); text-align:center;">Doors lock at 9:59 am</p>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Grand mock lobby<small>Live rival count · section rules · pre-flight checklist · door-lock countdown</small></p>
+  </div>
+
+  <!-- Practice pre-exam -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Practice · Shock</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⋯</div></div></div>
+        <div class="scroll">
+          <div class="card" style="background:var(--accent-soft); border:none;">
+            <span class="chip accent">Practice mode</span>
+            <h2 style="margin:8px 0 2px; font-size:18px; letter-spacing:-0.01em;">Untimed · instant feedback</h2>
+            <p style="margin:0; font-size:12px; color:var(--accent);">Explanation shown after each answer. No penalty for skips.</p>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Configure session</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px; font-weight:600;">Questions</div><span class="chip accent">20 MCQs</span></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px; font-weight:600;">Difficulty</div><div style="display:flex; gap:4px;"><span class="chip accent">Mixed</span><span class="chip">Easy</span><span class="chip">Hard</span></div></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px; font-weight:600;">Question type</div><div style="display:flex; gap:4px;"><span class="chip accent">SBA</span><span class="chip">EMQ</span></div></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px; font-weight:600;">Weak areas only</div><div style="width:40px; height:24px; border-radius:12px; background:var(--accent); position:relative;"><span style="position:absolute; right:2px; top:2px; width:20px; height:20px; border-radius:50%; background:#fff;"></span></div></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px; font-weight:600;">Bookmarked only</div><div style="width:40px; height:24px; border-radius:12px; background:var(--surface-3);"><span style="display:block; margin:2px; width:20px; height:20px; border-radius:50%; background:#fff;"></span></div></div>
+            <div class="row-list" style="padding:10px 6px; border:0;"><div style="flex:1; font-size:13px; font-weight:600;">Include last-attempt misses</div><div style="width:40px; height:24px; border-radius:12px; background:var(--accent); position:relative;"><span style="position:absolute; right:2px; top:2px; width:20px; height:20px; border-radius:50%; background:#fff;"></span></div></div>
+          </div>
+
+          <button class="btn primary block lg">Start practicing →</button>
+          <button class="btn ghost block" style="margin-top:8px;">Save as preset</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Practice setup<small>Toggle weak areas · difficulty filter · type filter · bookmarked · last-attempt misses</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== NORMAL EXAM MODE -->
+<section class="section-title">📱 Normal exam · sticky timer · floating tool dock · palette sheet</section>
+<div class="row">
+
+  <!-- In-exam question -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar">
+          <div class="back">×</div>
+          <div style="flex:1; display:flex; align-items:center; gap:10px;">
+            <div class="ring"><i>2:47</i></div>
+            <div>
+              <h2 style="font-size:13px; line-height:1.1;">Bailey Test 14</h2>
+              <p style="margin:0; font-size:11px; color:var(--ink-3);">Q 43 of 200</p>
+            </div>
+          </div>
+          <div class="right"><div class="icon" style="background:var(--warn-soft); color:var(--warn);">⚑</div><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">☰</div></div>
+        </div>
+        <div style="height:4px; background:var(--surface-3); margin:-2px 16px 10px; border-radius:2px;"><div style="width:21%; height:100%; background:var(--accent); border-radius:2px;"></div></div>
+
+        <div class="scroll" style="padding-bottom:110px;">
+          <div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+            <span class="chip purple">Shock</span>
+            <span class="chip">Hypovolemia</span>
+            <span class="chip warn">Flagged</span>
+          </div>
+
+          <p style="font-size:15px; line-height:1.55; margin:0 0 14px;">
+            A 45-year-old trauma patient: BP 70/40, HR 140, cold &amp; clammy skin, urine &lt; 20 ml/h, pH 7.28.
+            Which option best guides initial fluid resuscitation?
+          </p>
+
+          <label class="mcq"><span class="dot">A</span><span>2 L warm balanced crystalloid bolus then reassess</span></label>
+          <label class="mcq on"><span class="dot">B</span><span>1 unit packed RBC + 500 mL plasma as 1:1 ratio</span></label>
+          <label class="mcq"><span class="dot">C</span><span>Vasopressor infusion to MAP ≥ 65</span></label>
+          <label class="mcq"><span class="dot">D</span><span>Hypertonic saline 3% bolus</span></label>
+
+          <div style="display:flex; gap:8px; margin-top:16px;">
+            <button class="btn ghost" style="flex:1; font-size:12px;">⚑ Flag</button>
+            <button class="btn ghost" style="flex:1; font-size:12px;">📝 Pad</button>
+            <button class="btn ghost" style="flex:1; font-size:12px;">🖩 Calc</button>
+          </div>
+        </div>
+
+        <div style="position:absolute; left:10px; right:10px; bottom:10px; background:var(--glass-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-brd); border-radius:20px; padding:10px 12px; display:flex; gap:10px; align-items:center; box-shadow:var(--shadow-2);">
+          <div class="icon" style="background:var(--surface-3); color:var(--ink-2);">‹</div>
+          <div style="flex:1; text-align:center; font-size:12px; color:var(--ink-3); font-weight:600;">Palette · 43 / 200</div>
+          <button class="btn primary" style="padding:10px 18px; font-size:13px;">Next ›</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">In-exam question<small>Countdown ring · progress bar · flag chip · floating dock</small></p>
+  </div>
+
+  <!-- Palette sheet -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen" style="background:rgba(0,0,0,.45);">
+        <div class="statusbar" style="color:#fff;"><span>9:41</span><span>●●●●</span></div>
+        <div style="padding:50px 20px 16px; color:#fff;"><p style="margin:0; font-size:13px; opacity:.85;">Exam in progress · 2:47 left</p></div>
+
+        <div style="position:absolute; left:0; right:0; bottom:0; top:120px; background:var(--surface); border-radius:24px 24px 0 0; padding:10px 18px 16px; box-shadow:0 -20px 40px rgba(0,0,0,.35); overflow-y:auto;">
+          <div style="width:44px; height:5px; background:var(--surface-3); border-radius:3px; margin:4px auto 14px;"></div>
+          <h3 style="margin:0 0 4px; font-size:17px; letter-spacing:-0.01em;">Question palette</h3>
+          <p style="margin:0 0 14px; font-size:12px; color:var(--ink-3);">Tap any number to jump · Q 43 current</p>
+
+          <div class="grid-3" style="margin-bottom:14px;">
+            <div class="stat"><p class="v" style="color:var(--ok);">124</p><p class="l">Answered</p></div>
+            <div class="stat"><p class="v" style="color:var(--warn);">18</p><p class="l">Flagged</p></div>
+            <div class="stat"><p class="v" style="color:var(--bad);">58</p><p class="l">Skipped</p></div>
+          </div>
+
+          <div class="pillrow" style="margin-bottom:12px;">
+            <span class="chip accent">All</span>
+            <span class="chip">Answered</span>
+            <span class="chip warn">Flagged</span>
+            <span class="chip bad">Skipped</span>
+            <span class="chip">Unseen</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:6px;">
+            <div class="cell ans">1</div><div class="cell ans">2</div><div class="cell ans">3</div><div class="cell flag">4</div><div class="cell ans">5</div><div class="cell ans">6</div>
+            <div class="cell ans">7</div><div class="cell skip">8</div><div class="cell ans">9</div><div class="cell ans">10</div><div class="cell ans">11</div><div class="cell flag">12</div>
+            <div class="cell ans">13</div><div class="cell ans">14</div><div class="cell skip">15</div><div class="cell ans">16</div><div class="cell ans">17</div><div class="cell flag">18</div>
+            <div class="cell ans">19</div><div class="cell ans">20</div><div class="cell ans">21</div><div class="cell skip">22</div><div class="cell flag">23</div><div class="cell ans">24</div>
+            <div class="cell ans">25</div><div class="cell ans">26</div><div class="cell ans">27</div><div class="cell skip">28</div><div class="cell ans">29</div><div class="cell flag">30</div>
+            <div class="cell ans">31</div><div class="cell ans">32</div><div class="cell skip">33</div><div class="cell ans">34</div><div class="cell ans">35</div><div class="cell flag">36</div>
+            <div class="cell ans">37</div><div class="cell ans">38</div><div class="cell ans">39</div><div class="cell ans">40</div><div class="cell ans">41</div><div class="cell ans">42</div>
+            <div class="cell ans now">43</div><div class="cell">44</div><div class="cell">45</div><div class="cell">46</div><div class="cell">47</div><div class="cell">48</div>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:14px;">
+            <button class="btn ghost" style="flex:1; font-size:12px;">Jump flagged</button>
+            <button class="btn primary" style="flex:1; font-size:12px;">Back to Q 43</button>
+          </div>
+          <button class="btn danger block" style="margin-top:10px;">Submit test now</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Palette sheet<small>Status counts · status filter chips · color cells · current ring · submit</small></p>
+  </div>
+
+  <!-- Tools sheet -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Tools</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">✕</div></div></div>
+        <div class="scroll">
+          <div class="pillrow" style="margin-bottom:12px;">
+            <span class="chip accent">Scratchpad</span>
+            <span class="chip">Calculator</span>
+            <span class="chip">Formulas</span>
+          </div>
+
+          <div class="card" style="background:repeating-linear-gradient(transparent 0 26px, var(--border-2) 26px 27px); min-height:130px; padding:12px;">
+            <p style="margin:0 0 6px; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">Shared across all 200 questions</p>
+            <div style="font:600 12.5px/26px var(--font); color:var(--ink-2); font-family:ui-monospace,'SF Mono',monospace;">
+              Q41 — answer C, Bailey ch.4<br>
+              Q42 — unsure, come back<br>
+              Q43 — 1:1:1 ratio; massive txn<br>
+              _______________________
+            </div>
+          </div>
+
+          <div class="calc" style="margin-bottom:14px;">
+            <div class="disp">6.4 × 70 <span style="color:#7fa8ff;">=</span> 448</div>
+            <div class="grid">
+              <div class="k util">AC</div><div class="k util">±</div><div class="k util">%</div><div class="k op">÷</div>
+              <div class="k">7</div><div class="k">8</div><div class="k">9</div><div class="k op">×</div>
+              <div class="k">4</div><div class="k">5</div><div class="k">6</div><div class="k op">−</div>
+              <div class="k">1</div><div class="k">2</div><div class="k">3</div><div class="k op">+</div>
+              <div class="k" style="grid-column: span 2;">0</div><div class="k">.</div><div class="k op">=</div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:12px;">
+            <p style="margin:0 0 8px; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">Quick formulas</p>
+            <p style="margin:0 0 6px; font-size:12px; font-family:ui-monospace,'SF Mono',monospace; color:var(--ink);">MAP = DBP + (SBP − DBP)/3</p>
+            <p style="margin:0 0 6px; font-size:12px; font-family:ui-monospace,'SF Mono',monospace; color:var(--ink);">Shock index = HR / SBP</p>
+            <p style="margin:0; font-size:12px; font-family:ui-monospace,'SF Mono',monospace; color:var(--ink);">FeNa = (U<sub>Na</sub>/P<sub>Na</sub>)/(U<sub>Cr</sub>/P<sub>Cr</sub>)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Floating tools<small>Scratchpad · calculator · formula cheats — one sheet, three tabs</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== SECTION-BASED EXAM -->
+<section class="section-title">📱 Section-based · per-section timer · lock confirmation · final submit</section>
+<div class="row">
+
+  <!-- Section in-progress with section pills -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar">
+          <div class="back">×</div>
+          <div style="flex:1; display:flex; align-items:center; gap:10px;">
+            <div class="ring warn"><i>11:14</i></div>
+            <div>
+              <h2 style="font-size:13px; line-height:1.1;">Section 2 · Surgery</h2>
+              <p style="margin:0; font-size:11px; color:var(--ink-3);">Q 58 of 120</p>
+            </div>
+          </div>
+          <div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">☰</div></div>
+        </div>
+        <div class="pillrow" style="padding:0 16px 10px;">
+          <span class="secpill done">① Basic · done</span>
+          <span class="secpill on">② Surgery · 11:14</span>
+          <span class="secpill lock">③ Clinical · locked</span>
+        </div>
+
+        <div class="scroll" style="padding-bottom:120px;">
+          <div style="display:flex; gap:6px; margin-bottom:12px;">
+            <span class="chip purple">Colorectal</span>
+            <span class="chip">Diverticulitis</span>
+          </div>
+
+          <p style="font-size:14.5px; line-height:1.55; margin:0 0 14px;">
+            62F presents with acute LLQ pain &amp; fever 38.7 °C. CT: 4 cm pericolic abscess in sigmoid diverticulitis.
+            Best next step?
+          </p>
+
+          <label class="mcq"><span class="dot">A</span><span>Emergency sigmoidectomy + end colostomy</span></label>
+          <label class="mcq on"><span class="dot">B</span><span>IV antibiotics + percutaneous drainage</span></label>
+          <label class="mcq"><span class="dot">C</span><span>Oral antibiotics outpatient</span></label>
+          <label class="mcq"><span class="dot">D</span><span>Laparoscopic lavage only</span></label>
+        </div>
+
+        <div style="position:absolute; left:10px; right:10px; bottom:10px; background:var(--glass-bg); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--glass-brd); border-radius:20px; padding:10px 12px; display:flex; gap:8px; align-items:center; box-shadow:var(--shadow-2);">
+          <div class="icon" style="background:var(--surface-3); color:var(--ink-2);">‹</div>
+          <button class="fab warn" style="padding:8px 12px; font-size:11.5px;">Lock section</button>
+          <button class="btn primary" style="padding:10px 16px; font-size:12.5px; margin-left:auto;">Next ›</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Section in progress<small>Sticky section pills · per-section ring timer · lock-section button</small></p>
+  </div>
+
+  <!-- Lock confirmation -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><h2 style="flex:1; text-align:center;">Lock Section 2?</h2></div>
+        <div class="scroll">
+          <div style="text-align:center; padding:20px 8px 12px;">
+            <div style="width:92px; height:92px; border-radius:50%; background:var(--warn-soft); display:grid; place-items:center; font-size:40px; color:var(--warn); margin:4px auto 12px;">🔒</div>
+            <h2 style="margin:0 0 6px; font-size:20px; letter-spacing:-0.01em;">This ends Section 2</h2>
+            <p style="margin:0 20px; font-size:13px; color:var(--ink-3);">You cannot return to Surgery once locked. Unanswered items score 0.</p>
+          </div>
+
+          <p style="margin:12px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Section summary</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px;">Answered</div><span style="font-weight:700;">58 / 120</span></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px;">Flagged for review</div><span style="font-weight:700; color:var(--warn);">9</span></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px;">Unanswered</div><span style="font-weight:700; color:var(--bad);">62</span></div>
+            <div class="row-list" style="padding:10px 6px; border:0;"><div style="flex:1; font-size:13px;">Time remaining</div><span style="font-weight:700;">11:14</span></div>
+          </div>
+
+          <div class="card" style="background:var(--warn-soft); border:none; display:flex; gap:10px; align-items:flex-start; margin-top:8px;">
+            <div class="icon warn">💡</div>
+            <p style="margin:0; font-size:12.5px; color:var(--warn); line-height:1.5;">You still have 11 min and 62 unanswered. Consider continuing before locking.</p>
+          </div>
+
+          <button class="btn danger block lg" style="margin-top:14px;">Lock section &amp; continue</button>
+          <button class="btn ghost block" style="margin-top:8px;">Keep going</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Section lock confirmation<small>Big lock icon · section summary · countdown hint · danger CTA</small></p>
+  </div>
+
+  <!-- Final submit confirmation -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><h2 style="flex:1; text-align:center;">Submit exam?</h2></div>
+        <div class="scroll">
+          <div style="text-align:center; padding:20px 8px 12px;">
+            <div style="width:92px; height:92px; border-radius:50%; background:linear-gradient(135deg,var(--ok) 0%, var(--teal) 100%); display:grid; place-items:center; font-size:40px; color:#fff; margin:4px auto 12px; box-shadow:0 10px 24px rgba(48,201,84,.35);">✓</div>
+            <h2 style="margin:0 0 6px; font-size:20px; letter-spacing:-0.01em;">Ready to submit</h2>
+            <p style="margin:0 20px; font-size:13px; color:var(--ink-3);">Instant scoring and per-section review unlocks right after.</p>
+          </div>
+
+          <p style="margin:12px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Section by section</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="icon ok">①</div><div style="flex:1;"><p class="card-title">Basic Sciences</p><p class="card-sub">80/80 answered · 4 flagged</p></div><span class="chip ok">Done</span></div>
+            <div class="row-list"><div class="icon ok">②</div><div style="flex:1;"><p class="card-title">General Surgery</p><p class="card-sub">120/120 answered · 11 flagged</p></div><span class="chip ok">Done</span></div>
+            <div class="row-list" style="border:0;"><div class="icon warn">③</div><div style="flex:1;"><p class="card-title">Clinical Cases</p><p class="card-sub">94/100 answered · 6 skipped</p></div><span class="chip warn">6 open</span></div>
+          </div>
+
+          <div class="card" style="background:var(--accent-soft); border:none; display:flex; gap:10px; align-items:center; margin-top:8px;">
+            <div class="icon accent">🏁</div>
+            <p style="margin:0; font-size:12.5px; color:var(--accent); line-height:1.5;">Avg finish for this mock: 3h 42m · you finished in 3h 28m</p>
+          </div>
+
+          <button class="btn primary block lg" style="margin-top:14px;">Submit for scoring</button>
+          <button class="btn ghost block" style="margin-top:8px;">Review 6 open questions first</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Final submit<small>Stat hero · per-section rollup · finish-time benchmark · submit CTA</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== PRACTICE MODE -->
+<section class="section-title">📱 Practice mode · instant feedback · self-rating feeds SR queue</section>
+<div class="row">
+
+  <!-- Practice Q -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Practice · Q 7 / 20</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⋯</div></div></div>
+        <div class="scroll">
+          <div class="grid-3" style="margin-bottom:12px;">
+            <div class="stat"><p class="v" style="color:var(--ok);">6</p><p class="l">Correct</p></div>
+            <div class="stat"><p class="v" style="color:var(--bad);">0</p><p class="l">Wrong</p></div>
+            <div class="stat"><p class="v">00:37</p><p class="l">Avg/Q</p></div>
+          </div>
+          <div style="display:flex; gap:6px; margin-bottom:12px;">
+            <span class="chip purple">Wound Healing</span>
+            <span class="chip ok">Easy</span>
+          </div>
+          <p style="font-size:14.5px; line-height:1.55; margin:0 0 14px;">
+            Which vitamin deficiency most commonly impairs collagen cross-linking in chronic wounds?
+          </p>
+          <label class="mcq"><span class="dot">A</span><span>Vitamin A</span></label>
+          <label class="mcq"><span class="dot">B</span><span>Vitamin B12</span></label>
+          <label class="mcq"><span class="dot">C</span><span>Vitamin C</span></label>
+          <label class="mcq"><span class="dot">D</span><span>Vitamin K</span></label>
+
+          <button class="btn primary block lg" style="margin-top:6px;">Reveal answer</button>
+          <button class="btn ghost block" style="margin-top:8px;">Don't know · skip</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Practice question<small>Running stat strip · metadata chips · reveal + skip CTAs</small></p>
+  </div>
+
+  <!-- Instant feedback reveal -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Practice · Q 7 / 20</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">⋯</div></div></div>
+        <div class="scroll" style="padding-bottom:20px;">
+          <div class="card" style="background:var(--ok-soft); border:none; display:flex; gap:10px; align-items:center;">
+            <div style="width:36px; height:36px; border-radius:50%; background:var(--ok); color:#fff; display:grid; place-items:center; font-weight:800;">✓</div>
+            <div><p style="margin:0; font-size:14px; font-weight:800; color:var(--ok);">Correct · 4.2s</p><p style="margin:0; font-size:11.5px; color:var(--ok);">Only 14% got this on first try</p></div>
+          </div>
+
+          <label class="mcq no"><span class="dot">A</span><span>Vitamin A</span></label>
+          <label class="mcq no"><span class="dot">B</span><span>Vitamin B12</span></label>
+          <label class="mcq ok"><span class="dot">C</span><span>Vitamin C</span><span style="margin-left:auto; color:var(--ok); font-weight:800;">✓</span></label>
+          <label class="mcq no"><span class="dot">D</span><span>Vitamin K</span></label>
+
+          <div class="card" style="background:var(--accent-soft); border:none;">
+            <p style="margin:0 0 6px; font-size:11px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">Why?</p>
+            <p style="margin:0; font-size:13px; line-height:1.5; color:var(--ink);">Vitamin C (ascorbate) is a co-factor for prolyl &amp; lysyl hydroxylase — the step before collagen cross-linking. Deficiency → scurvy → poor wound healing.</p>
+            <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+              <span class="chip accent">Bailey 28th · ch.4 p.34</span>
+              <span class="chip">Sabiston ch.6</span>
+            </div>
+          </div>
+
+          <p style="margin:8px 2px 6px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">How confident were you?</p>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">
+            <button class="btn" style="background:var(--bad-soft); color:var(--bad); font-size:11px; padding:10px 4px; line-height:1.2;">Again<br><span style="font-size:9px; opacity:.8;">10 min</span></button>
+            <button class="btn" style="background:var(--warn-soft); color:var(--warn); font-size:11px; padding:10px 4px; line-height:1.2;">Hard<br><span style="font-size:9px; opacity:.8;">1 day</span></button>
+            <button class="btn" style="background:var(--ok-soft); color:var(--ok); font-size:11px; padding:10px 4px; line-height:1.2;">Good<br><span style="font-size:9px; opacity:.8;">4 days</span></button>
+            <button class="btn" style="background:var(--accent-soft); color:var(--accent); font-size:11px; padding:10px 4px; line-height:1.2;">Easy<br><span style="font-size:9px; opacity:.8;">10 days</span></button>
+          </div>
+
+          <button class="btn primary block" style="margin-top:10px;">Next question ›</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Instant feedback<small>Green verdict · dimmed wrong options · explanation callout · SM-2 rating row</small></p>
+  </div>
+
+  <!-- Session wrap-up -->
+  <div>
+    <div class="device phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span>●●●● 5G</span></div>
+        <div class="appbar"><div class="back">←</div><h2>Session complete</h2><div class="right"><div class="icon" style="background:var(--surface-2); color:var(--ink-2);">📤</div></div></div>
+        <div class="scroll">
+          <div class="card" style="padding:0; overflow:hidden; border:none;">
+            <div style="background:linear-gradient(135deg, var(--ok), var(--teal)); color:#fff; padding:22px 18px; text-align:center;">
+              <p style="margin:0; font-size:11px; opacity:.85; letter-spacing:.06em; text-transform:uppercase; font-weight:700;">Nice run</p>
+              <p style="margin:4px 0 0; font-size:48px; font-weight:800; letter-spacing:-0.03em; line-height:1;">17 <span style="font-size:20px; opacity:.7;">/ 20</span></p>
+              <p style="margin:6px 0 0; font-size:12.5px; opacity:.95;">85% · above 30-day avg 72%</p>
+            </div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Breakdown</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px;">Correct</div><span style="font-weight:700; color:var(--ok);">17</span></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px;">Wrong</div><span style="font-weight:700; color:var(--bad);">2</span></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px;">Skipped</div><span style="font-weight:700; color:var(--ink-3);">1</span></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px;">Avg time / Q</div><span style="font-weight:700;">37 s</span></div>
+            <div class="row-list" style="padding:10px 6px;"><div style="flex:1; font-size:13px;">Fastest</div><span style="font-weight:700;">Q 3 · 11 s</span></div>
+            <div class="row-list" style="padding:10px 6px; border:0;"><div style="flex:1; font-size:13px;">Slowest</div><span style="font-weight:700;">Q 12 · 1 m 40 s</span></div>
+          </div>
+
+          <p style="margin:14px 2px 8px; font-size:11px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em;">Moved to review deck</p>
+          <div class="card" style="padding:10px;">
+            <div class="row-list"><div class="icon bad">!</div><div style="flex:1;"><p class="card-title">Q 12 · Delayed wound healing</p><p class="card-sub">Rated Again · due 10 min</p></div></div>
+            <div class="row-list" style="border:0;"><div class="icon warn">⚑</div><div style="flex:1;"><p class="card-title">Q 15 · Scurvy diagnosis</p><p class="card-sub">Rated Hard · due tomorrow</p></div></div>
+          </div>
+
+          <button class="btn primary block lg" style="margin-top:10px;">Review wrong 2 now</button>
+          <button class="btn ghost block" style="margin-top:8px;">Back to topic</button>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Session wrap-up<small>Score hero · breakdown table · SR-fed review deck shortcuts</small></p>
+  </div>
+
+</div>
+
+<!-- =============================================================== LAPTOP KEYBOARD -->
+<section class="section-title">💻 Laptop — keyboard-first exam (3-pane)</section>
+<div class="row">
+  <div>
+    <div class="device laptop">
+      <div class="screen">
+        <!-- Laptop top bar -->
+        <div style="display:flex; gap:12px; align-items:center; padding:10px 18px; border-bottom:1px solid var(--border); background:var(--surface);">
+          <div style="display:flex; align-items:center; gap:8px; font-weight:800; font-size:13px;"><span style="width:20px; height:20px; border-radius:6px; background:linear-gradient(135deg,var(--accent),var(--indigo));"></span> Sushruta Exam</div>
+          <span class="chip">Bailey Test 14 · Grand Mock</span>
+          <div class="ring warn" style="width:40px; height:40px;"><i style="width:32px; height:32px; font-size:11px;">11:14</i></div>
+          <span class="chip">Q 58 / 300</span>
+          <span class="chip"><span class="kbd2">⌘</span>+<span class="kbd2">P</span> palette</span>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <span class="chip ok">Autosaved 2s ago</span>
+            <button class="btn ghost" style="padding:8px 14px; font-size:12px;">⚑ Flag</button>
+            <button class="btn danger" style="padding:8px 14px; font-size:12px;">Submit</button>
+          </div>
+        </div>
+
+        <!-- 3-pane body -->
+        <div style="display:grid; grid-template-columns: 220px 1fr 240px; gap:14px; padding:14px 18px; max-height:540px; overflow-y:auto;">
+          <!-- Left rail -->
+          <aside>
+            <div class="card" style="padding:10px;">
+              <p style="margin:0 0 8px; font-size:10px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">Sections</p>
+              <div style="display:flex; flex-direction:column; gap:5px;">
+                <span class="secpill done" style="width:100%; justify-content:flex-start;">① Basic · done</span>
+                <span class="secpill on"   style="width:100%; justify-content:flex-start;">② Surgery · 11:14</span>
+                <span class="secpill lock" style="width:100%; justify-content:flex-start;">③ Clinical · locked</span>
+              </div>
+            </div>
+            <div class="card" style="padding:10px;">
+              <p style="margin:0 0 8px; font-size:10px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">Palette · filter</p>
+              <div style="display:flex; gap:4px; margin-bottom:8px; flex-wrap:wrap;">
+                <span class="chip">58 ans</span><span class="chip warn">11 ⚑</span><span class="chip bad">0 skip</span>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:4px;">
+                <div class="cell ans">51</div><div class="cell ans">52</div><div class="cell flag">53</div><div class="cell ans">54</div><div class="cell ans">55</div>
+                <div class="cell ans">56</div><div class="cell ans">57</div><div class="cell ans now">58</div><div class="cell">59</div><div class="cell">60</div>
+                <div class="cell">61</div><div class="cell">62</div><div class="cell">63</div><div class="cell">64</div><div class="cell">65</div>
+              </div>
+            </div>
+            <div class="card" style="padding:10px;">
+              <p style="margin:0 0 8px; font-size:10px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">Shortcuts</p>
+              <div style="display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--ink-2);">
+                <div style="display:flex; gap:6px;"><span class="kbd2">→</span> next Q</div>
+                <div style="display:flex; gap:6px;"><span class="kbd2">←</span> previous</div>
+                <div style="display:flex; gap:6px;"><span class="kbd2">1</span><span class="kbd2">2</span><span class="kbd2">3</span><span class="kbd2">4</span> answer A/B/C/D</div>
+                <div style="display:flex; gap:6px;"><span class="kbd2">F</span> flag · <span class="kbd2">N</span> note</div>
+                <div style="display:flex; gap:6px;"><span class="kbd2">⌘</span>+<span class="kbd2">P</span> palette</div>
+                <div style="display:flex; gap:6px;"><span class="kbd2">⌘</span>+<span class="kbd2">K</span> calculator</div>
+                <div style="display:flex; gap:6px;"><span class="kbd2">⌘</span>+<span class="kbd2">↵</span> submit</div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Main question -->
+          <section>
+            <div style="display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
+              <span class="chip accent">Section 2 · Surgery</span>
+              <span class="chip purple">Colorectal</span>
+              <span class="chip">Diverticulitis</span>
+              <span class="chip warn" style="margin-left:auto;">Flagged <span class="kbd2">F</span></span>
+            </div>
+            <div class="card" style="padding:18px;">
+              <p style="margin:0 0 8px; font-size:11px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">Q 58 · Single best answer</p>
+              <p style="margin:0; font-size:15px; line-height:1.55;">
+                A 62-year-old woman presents with acute left-lower-quadrant pain and fever 38.7 °C. CT shows a 4 cm
+                pericolic abscess in sigmoid diverticulitis. Which of the following is the next best step?
+              </p>
+            </div>
+
+            <label class="mcq"><span class="dot">A</span><span>Emergency sigmoidectomy + end colostomy</span><span class="kbd2" style="margin-left:auto;">1</span></label>
+            <label class="mcq on"><span class="dot">B</span><span>IV antibiotics + percutaneous drainage</span><span class="kbd2" style="margin-left:auto;">2</span></label>
+            <label class="mcq"><span class="dot">C</span><span>Oral antibiotics outpatient</span><span class="kbd2" style="margin-left:auto;">3</span></label>
+            <label class="mcq"><span class="dot">D</span><span>Laparoscopic lavage only</span><span class="kbd2" style="margin-left:auto;">4</span></label>
+
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button class="btn ghost" style="padding:10px 14px; font-size:12px;">‹ Prev <span class="kbd2">←</span></button>
+              <button class="btn ghost" style="padding:10px 14px; font-size:12px;">📝 Note <span class="kbd2">N</span></button>
+              <button class="btn primary" style="padding:10px 18px; font-size:13px; margin-left:auto;">Next › <span class="kbd2">→</span></button>
+            </div>
+          </section>
+
+          <!-- Right rail · scratchpad + calc -->
+          <aside>
+            <div class="card" style="padding:10px; background:repeating-linear-gradient(transparent 0 22px, var(--border-2) 22px 23px);">
+              <p style="margin:0 0 2px; font-size:10px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">Scratchpad · <span class="kbd2">⌘</span>+<span class="kbd2">S</span></p>
+              <div style="font:600 12px/22px ui-monospace,'SF Mono',monospace; color:var(--ink-2);">
+                Q55 — answered C<br>Q57 — rule out CA if recurrent<br>Q58 — Hinchey IIb · percutaneous<br>___________
+              </div>
+            </div>
+            <div class="calc">
+              <div class="disp">HR 140 / SBP 70 = 2.0</div>
+              <div class="grid">
+                <div class="k util">AC</div><div class="k util">±</div><div class="k util">%</div><div class="k op">÷</div>
+                <div class="k">7</div><div class="k">8</div><div class="k">9</div><div class="k op">×</div>
+                <div class="k">4</div><div class="k">5</div><div class="k">6</div><div class="k op">−</div>
+                <div class="k">1</div><div class="k">2</div><div class="k">3</div><div class="k op">+</div>
+              </div>
+            </div>
+            <div class="card" style="padding:10px;">
+              <p style="margin:0 0 6px; font-size:10px; color:var(--ink-3); font-weight:700; text-transform:uppercase; letter-spacing:.08em;">Pinned formulas</p>
+              <p style="margin:0 0 4px; font-size:11px; font-family:ui-monospace,'SF Mono',monospace;">MAP = DBP + (SBP − DBP)/3</p>
+              <p style="margin:0 0 4px; font-size:11px; font-family:ui-monospace,'SF Mono',monospace;">Shock index = HR / SBP</p>
+              <p style="margin:0; font-size:11px; font-family:ui-monospace,'SF Mono',monospace;">BSA burn · rule of 9s</p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+    <p class="cap">Laptop — keyboard-first<small>Section rail + question pane + scratch/calc · every action with a binding</small></p>
+  </div>
+</div>
+
+<!-- =============================================================== ENGINE CAPABILITIES -->
+<section class="section-title">⚙ Engine capabilities — what each UI surface maps to</section>
+
+<div class="quilt">
+  <div class="card">
+    <div class="card-head"><div class="icon accent">💾</div><div><p class="card-title">Answer autosave</p><p class="card-sub">Every change, debounced 600ms</p></div></div>
+    <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">POST <code>/exam/{id}/autosave</code> with <code>answers[]</code>. Offline buffer up to 120s, flushes on reconnect.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="icon warn">⚑</div><div><p class="card-title">Flag / skip / bookmark</p><p class="card-sub">Per-question metadata</p></div></div>
+    <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Kept inside the same autosave payload. The palette sheet is purely a client derivation of <code>answers[]</code>.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="icon bad">🔒</div><div><p class="card-title">Section-lock</p><p class="card-sub">Immutable transitions</p></div></div>
+    <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">POST <code>/exam/{id}/lock-section</code> — server rejects writes for locked section_id from then on.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="icon teal">📝</div><div><p class="card-title">Scratchpad</p><p class="card-sub">Autosaved to attempt</p></div></div>
+    <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">One free-text field added to <code>Attempt</code>. Survives refresh and device switch. No new route.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="icon purple">🧠</div><div><p class="card-title">SM-2 self-rating</p><p class="card-sub">Practice mode only</p></div></div>
+    <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Ratings feed the same spaced-repetition queue used in Review. Single algorithm across modes.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="icon pink">📡</div><div><p class="card-title">Mock lobby · rivals</p><p class="card-sub">Live WS channel</p></div></div>
+    <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Rank and live-rival counts reuse the socket we already run for live classes. Just a new event type.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="icon indigo">⌨</div><div><p class="card-title">Keyboard-first laptop</p><p class="card-sub">Zero extra backend</p></div></div>
+    <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">Bindings live in the client. Shown in chrome so students learn them during the session itself.</p>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="icon ok">🖩</div><div><p class="card-title">Calc &amp; formulas</p><p class="card-sub">Client-only</p></div></div>
+    <p style="margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.5;">No round-trip. Formula list is JSON-driven so staff add items without shipping a new release.</p>
+  </div>
+</div>
+
+<!-- =============================================================== WINS -->
+<section class="section-title">✨ What this changes for the student</section>
+<div class="quilt" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+  <div class="card"><p class="card-title">Zero mystery</p><p class="card-sub" style="margin-top:6px;">Timers, locks and rules are visible the whole way through.</p></div>
+  <div class="card"><p class="card-title">One place for tools</p><p class="card-sub" style="margin-top:6px;">Calc + pad + formulas share a floating sheet — no screen-switch context loss.</p></div>
+  <div class="card"><p class="card-title">Flag &amp; return without drift</p><p class="card-sub" style="margin-top:6px;">Sticky palette chip always a tap away. Filter by flagged / skipped instantly.</p></div>
+  <div class="card"><p class="card-title">Practice ≠ exam</p><p class="card-sub" style="margin-top:6px;">Instant-feedback mode is visually distinct and feeds the same SR queue as review.</p></div>
+  <div class="card"><p class="card-title">Mock day feels premium</p><p class="card-sub" style="margin-top:6px;">Lobby, rivals live count, readiness checklist, door lock — theatre + trust.</p></div>
+  <div class="card"><p class="card-title">Laptop users 2× faster</p><p class="card-sub" style="margin-top:6px;">Shortcuts always on screen; ⌘↵ submit, 1-4 answer, F flag.</p></div>
+</div>
+
+</main>
+<script>
+  const r=document.documentElement,k='sushrutaTheme',s=localStorage.getItem(k);
+  if(s)r.setAttribute('data-theme',s);
+  document.getElementById('tt').onclick=()=>{const n=r.getAttribute('data-theme')==='dark'?'light':'dark';r.setAttribute('data-theme',n);localStorage.setItem(k,n);};
+</script>
+</body>
+</html>
