@@ -18,6 +18,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../helpers/colors.dart';
 import '../../helpers/dimensions.dart';
+import '../../helpers/haptics.dart';
 import '../../helpers/styles.dart';
 import '../../helpers/app_tokens.dart';
 import '../cortex/cortex_home_screen.dart';
@@ -715,7 +716,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   final isActive = _currentIndex == index;
                   return Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _currentIndex = index),
+                      onTap: () {
+                        if (_currentIndex != index) Haptics.selection();
+                        setState(() => _currentIndex = index);
+                      },
                       borderRadius: BorderRadius.circular(14),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),

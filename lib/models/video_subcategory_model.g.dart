@@ -30,7 +30,9 @@ VideoSubCategoryModel _$VideoSubCategoryModelFromJson(
       completedVideoCount: (json['completedVideoCount'] as num?)?.toInt(),
       notStart: (json['notStart'] as num?)?.toInt(),
       bookmarkVideoCount: (json['bookmarkVideoCount'] as num?)?.toInt(),
-    );
+    )
+      ..priorityLabel = json['priorityLabel'] as String?
+      ..priorityColor = json['priorityColor'] as String?;
 
 Map<String, dynamic> _$VideoSubCategoryModelToJson(
         VideoSubCategoryModel instance) =>
@@ -56,4 +58,6 @@ Map<String, dynamic> _$VideoSubCategoryModelToJson(
       'completedVideoCount': instance.completedVideoCount,
       'notStart': instance.notStart,
       'bookmarkVideoCount': instance.bookmarkVideoCount,
+      'priorityLabel': instance.priorityLabel,
+      'priorityColor': instance.priorityColor,
     };

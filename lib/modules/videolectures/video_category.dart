@@ -1,29 +1,29 @@
-// ignore_for_file: deprecated_member_use, library_private_types_in_public_api, unused_import, use_super_parameters, unused_field, unused_local_variable, non_constant_identifier_names, dead_code, prefer_final_fields, unnecessary_import
-
 import 'dart:io';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
+import 'package:shusruta_lms/helpers/custom_dynamic_height_gridview.dart';
+import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
+import 'package:shusruta_lms/modules/videolectures/store/video_category_store.dart';
+
 import '../../app/routes.dart';
+import '../../helpers/app_skeleton.dart';
 import '../../helpers/app_tokens.dart';
 import '../../helpers/colors.dart';
-import '../../helpers/styles.dart';
 import '../../helpers/dbhelper.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:flutter/material.dart';
 import '../../helpers/dimensions.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:provider/provider.dart';
-import '../dashboard/store/home_store.dart';
-import '../widgets/custom_bottom_sheet.dart';
-import '../../models/searched_data_model.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
+import '../../helpers/empty_state.dart';
+import '../../helpers/styles.dart';
 import '../../models/video_category_model.dart';
-import '../widgets/no_internet_connection.dart';
 import '../../models/video_offline_data_model.dart';
-import 'package:expandable_text/expandable_text.dart';
 import '../dashboard/models/global_search_model.dart';
+import '../dashboard/store/home_store.dart';
 import '../subscriptionplans/store/subscription_store.dart';
-import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
-import 'package:shusruta_lms/helpers/custom_dynamic_height_gridview.dart';
-import 'package:shusruta_lms/modules/videolectures/store/video_category_store.dart';
+import '../widgets/no_internet_connection.dart';
+import '../widgets/priority_badge.dart';
 // import 'package:screen_protector/screen_protector.dart';
 
 // import 'package:screen_protector/screen_protector.dart';
@@ -476,67 +476,23 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
     final homeStore = Provider.of<HomeStore>(context);
     return Scaffold(
       backgroundColor: AppTokens.scaffold(context),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppTokens.brand, AppTokens.brand2],
-          ),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: AppTokens.scaffold(context),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppTokens.ink(context), size: 18),
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
+        title: Text("Video lectures", style: AppTokens.titleLg(context)),
+        centerTitle: false,
+      ),
+      body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: (Platform.isWindows || Platform.isMacOS)
-                  ? const EdgeInsets.symmetric(
-                      vertical: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                      horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2)
-                  : const EdgeInsets.only(
-                      top: Dimensions.PADDING_SIZE_LARGE * 2,
-                      left: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                      right: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                      bottom: Dimensions.PADDING_SIZE_SMALL * 1.3),
-              child: Row(
-                children: [
-                  IconButton(
-                      highlightColor: Colors.transparent,
-                      hoverColor: Colors.transparent,
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: AppColors.white,
-                      )),
-                  const SizedBox(
-                    width: Dimensions.PADDING_SIZE_DEFAULT,
-                  ),
-                  Text(
-                    "Video Category",
-                    style: interRegular.copyWith(
-                      fontSize: Dimensions.fontSizeDefault,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.only(
-                    left: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                    right: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                    top: Dimensions.PADDING_SIZE_LARGE * 1.2),
-                decoration: BoxDecoration(
-                  color: AppTokens.scaffold(context),
-                  borderRadius: (Platform.isWindows || Platform.isMacOS)
-                      ? null
-                      : const BorderRadius.only(
-                          topLeft: Radius.circular(AppTokens.r28),
-                          topRight: Radius.circular(AppTokens.r28),
-                        ),
-                ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppTokens.s24, AppTokens.s8, AppTokens.s24, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -660,17 +616,14 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                       child: Row(
                         children: filters.map((filter) {
                           return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 2.0),
+                            padding: const EdgeInsets.symmetric(horizontal: 2.0),
                             child: ChoiceChip(
                               side: BorderSide(color: ThemeManager.mainBorder),
                               label: Text(filter),
                               labelStyle: interRegular.copyWith(
                                 fontSize: Dimensions.fontSizeExtraSmall,
                                 fontWeight: FontWeight.w400,
-                                color: selectedFilter == filter
-                                    ? ThemeManager.white
-                                    : ThemeManager.black,
+                                color: selectedFilter == filter ? ThemeManager.white : ThemeManager.black,
                               ),
                               selected: selectedFilter == filter,
                               selectedColor: Theme.of(context).primaryColor,
@@ -706,14 +659,11 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                           } else if (selectedFilter == "In Progress") {
                             filteredVideos = store.videocategory
                                 .where((video) =>
-                                    video?.progressCount != null &&
-                                    (video?.progressCount ?? 0) > 0)
+                                    video?.progressCount != null && (video?.progressCount ?? 0) > 0)
                                 .toList();
                           } else if (selectedFilter == "Not Started") {
                             filteredVideos = store.videocategory
-                                .where((video) =>
-                                    video?.notStart != null &&
-                                    (video?.notStart ?? 0) > 0)
+                                .where((video) => video?.notStart != null && (video?.notStart ?? 0) > 0)
                                 .toList();
                           } else if (selectedFilter == "Offline Videos") {
                             filteredVideos = store.videocategory.where((video) {
@@ -724,66 +674,39 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                           } else if (selectedFilter == "Bookmark Videos") {
                             filteredVideos = store.videocategory
                                 .where((video) =>
-                                    video?.bookmarkVideoCount != null &&
-                                    (video?.bookmarkVideoCount ?? 0) > 0)
+                                    video?.bookmarkVideoCount != null && (video?.bookmarkVideoCount ?? 0) > 0)
                                 .toList();
                           }
                           if (store.isLoading) {
-                            return Center(
-                                child: CircularProgressIndicator(
-                              color: ThemeManager.primaryColor,
-                            ));
+                            return const SkeletonList(count: 5, itemHeight: 96);
                           }
                           if (store.videocategory.isEmpty) {
-                            return Center(
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.only(left: 30, right: 30),
-                                child: Text(
-                                  "We're sorry, there's no content available right now. Please check back later or explore other sections for more educational resources.",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: ThemeManager.black),
-                                ),
-                              ),
+                            return const EmptyState(
+                              icon: Icons.video_library_outlined,
+                              title: 'No video subjects yet',
+                              subtitle: 'New lectures will appear here as soon as they’re published.',
                             );
                           }
                           return store.isConnected
                               ? homeStore.isLoading
-                                  ? const Center(
-                                      child: CircularProgressIndicator())
-                                  : (homeStore.globalSearchList.isNotEmpty &&
-                                          query.isNotEmpty)
+                                  ? const SkeletonList(count: 5, itemHeight: 96)
+                                  : (homeStore.globalSearchList.isNotEmpty && query.isNotEmpty)
                                       ? isDesktop
                                           ? CustomDynamicHeightGridView(
                                               crossAxisCount: 3,
                                               mainAxisSpacing: 10,
-                                              itemCount: homeStore
-                                                  .globalSearchList.length,
-                                              builder: (BuildContext context,
-                                                  int index) {
-                                                return buildItem(
-                                                    context,
-                                                    homeStore.globalSearchList[
-                                                        index]);
+                                              itemCount: homeStore.globalSearchList.length,
+                                              builder: (BuildContext context, int index) {
+                                                return buildItem(context, homeStore.globalSearchList[index]);
                                               },
                                             )
                                           : ListView.builder(
-                                              itemCount: homeStore
-                                                  .globalSearchList.length,
+                                              itemCount: homeStore.globalSearchList.length,
                                               shrinkWrap: true,
                                               padding: EdgeInsets.zero,
-                                              physics:
-                                                  const BouncingScrollPhysics(),
-                                              itemBuilder:
-                                                  (BuildContext context,
-                                                      int index) {
-                                                return buildItem(
-                                                    context,
-                                                    homeStore.globalSearchList[
-                                                        index]);
+                                              physics: const BouncingScrollPhysics(),
+                                              itemBuilder: (BuildContext context, int index) {
+                                                return buildItem(context, homeStore.globalSearchList[index]);
                                               },
                                             )
                                       : isDesktop
@@ -792,41 +715,25 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                                               mainAxisSpacing: 10,
                                               itemCount: filteredVideos.length,
                                               shrinkWrap: true,
-                                              builder: (BuildContext context,
-                                                  int index) {
-                                                final video =
-                                                    filteredVideos[index];
-                                                final categoryId =
-                                                    video?.id ?? "";
-                                                final offlineCount =
-                                                    offlineCounts[categoryId] ??
-                                                        0;
+                                              builder: (BuildContext context, int index) {
+                                                final video = filteredVideos[index];
+                                                final categoryId = video?.id ?? "";
+                                                final offlineCount = offlineCounts[categoryId] ?? 0;
                                                 return buildItem1(
-                                                    context,
-                                                    filteredVideos[index],
-                                                    offlineCount);
+                                                    context, filteredVideos[index], offlineCount);
                                               },
                                             )
                                           : ListView.builder(
                                               itemCount: filteredVideos.length,
                                               padding: EdgeInsets.zero,
                                               shrinkWrap: true,
-                                              physics:
-                                                  const BouncingScrollPhysics(),
-                                              itemBuilder:
-                                                  (BuildContext context,
-                                                      int index) {
-                                                final video =
-                                                    filteredVideos[index];
-                                                final categoryId =
-                                                    video?.id ?? "";
-                                                final offlineCount =
-                                                    offlineCounts[categoryId] ??
-                                                        0;
+                                              physics: const BouncingScrollPhysics(),
+                                              itemBuilder: (BuildContext context, int index) {
+                                                final video = filteredVideos[index];
+                                                final categoryId = video?.id ?? "";
+                                                final offlineCount = offlineCounts[categoryId] ?? 0;
                                                 return buildItem1(
-                                                    context,
-                                                    filteredVideos[index],
-                                                    offlineCount);
+                                                    context, filteredVideos[index], offlineCount);
                                               },
                                             )
                               : const NoInternetScreen();
@@ -849,8 +756,7 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
     String? topicName = videoCat?.topicName;
     String? title = videoCat?.title;
 
-    String displayText =
-        categoryName ?? subcategoryName ?? topicName ?? title ?? "";
+    String displayText = categoryName ?? subcategoryName ?? topicName ?? title ?? "";
     String type = categoryName != null
         ? "Category"
         : subcategoryName != null
@@ -870,17 +776,10 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                 arguments: {"subject": categoryName, "vid": videoCat?.id});
           } else if (type == "Subcategory") {
             Navigator.of(context).pushNamed(Routes.VideoTopicCategory,
-                arguments: {
-                  "chapter": subcategoryName,
-                  "subcatId": videoCat?.id
-                });
+                arguments: {"chapter": subcategoryName, "subcatId": videoCat?.id});
           } else if (type == "Topic") {
             Navigator.of(context).pushNamed(Routes.videoChapterDetail,
-                arguments: {
-                  "chapter": topicName,
-                  "subject": videoCat?.subName,
-                  "subcatId": videoCat?.id
-                });
+                arguments: {"chapter": topicName, "subject": videoCat?.subName, "subcatId": videoCat?.id});
           } else if (type == "Content") {
             Navigator.of(context).pushNamed(Routes.videoPlayDetail, arguments: {
               "topicId": videoCat?.id,
@@ -888,7 +787,7 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
               // "topicId": videoTopic?.topicId,
               "isCompleted": false,
               'title': videoCat?.title ?? '',
-              'isDownloaded': Provider.of<VideoCategoryStore>(context, listen: false).isVideoDownloadedCached(videoCat?.id?.toString() ?? ''),
+              'isDownloaded': false,
               'titleId': videoCat?.id,
               'contentId': videoCat?.id,
               // 'pauseTime': videoCat?.pausedTime,
@@ -983,8 +882,7 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
   //   // });
   // }
 
-  Widget buildItem1(
-      BuildContext context, VideoCategoryModel? videoCat, int offlineCount) {
+  Widget buildItem1(BuildContext context, VideoCategoryModel? videoCat, int offlineCount) {
     String categoryName = videoCat?.category_name ?? "";
     String subcategoryName = videoCat?.subcategory_name ?? "";
     String topicName = videoCat?.topic_name ?? "";
@@ -1030,8 +928,7 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                   Container(
                     height: Dimensions.PADDING_SIZE_LARGE * 3.4,
                     width: Dimensions.PADDING_SIZE_LARGE * 3.4,
-                    padding:
-                        const EdgeInsets.all(Dimensions.PADDING_SIZE_DEFAULT),
+                    padding: const EdgeInsets.all(Dimensions.PADDING_SIZE_DEFAULT),
                     decoration: BoxDecoration(
                       color: ThemeManager.blueFinalTrans,
                       border: Border.all(color: ThemeManager.mainBorder),
@@ -1045,18 +942,15 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment:
-                          (Platform.isWindows || Platform.isMacOS)
-                              ? MainAxisAlignment.center
-                              : MainAxisAlignment.start,
+                      mainAxisAlignment: (Platform.isWindows || Platform.isMacOS)
+                          ? MainAxisAlignment.center
+                          : MainAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             SizedBox(
-                              width: isDesktop
-                                  ? null
-                                  : MediaQuery.of(context).size.width * 0.4,
+                              width: isDesktop ? null : MediaQuery.of(context).size.width * 0.4,
                               child: Text(
                                 videoCat?.category_name ?? "",
                                 maxLines: 3,
@@ -1068,22 +962,19 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                                 ),
                               ),
                             ),
-                            (videoCat?.subcategory != null &&
-                                    videoCat?.video != null)
+                            (videoCat?.subcategory != null && videoCat?.video != null)
                                 ? Text(
                                     "${videoCat?.video.toString()} Videos",
                                     style: interSemiBold.copyWith(
                                       fontSize: Dimensions.fontSizeExtraSmall,
                                       fontWeight: FontWeight.w500,
-                                      color:
-                                          ThemeManager.black.withOpacity(0.5),
+                                      color: ThemeManager.black.withOpacity(0.5),
                                     ),
                                   )
                                 : const SizedBox(),
                           ],
                         ),
-                        const SizedBox(
-                            height: Dimensions.PADDING_SIZE_EXTRA_SMALL),
+                        const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL),
                         Text(
                           videoCat?.description ?? "",
                           style: interRegular.copyWith(
@@ -1094,8 +985,7 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                           ),
                           maxLines: 2,
                         ),
-                        const SizedBox(
-                            height: Dimensions.PADDING_SIZE_EXTRA_SMALL),
+                        const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL),
                       ],
                     ),
                   ),
@@ -1201,6 +1091,11 @@ class _VideoLecturesScreenState extends State<VideoLecturesScreen> {
                       ],
                     ),
                 ],
+              ),
+              videoCat?.priorityLabel != null ? const Divider() : SizedBox.shrink(),
+              PriorityBadge(
+                priorityLabel: videoCat?.priorityLabel,
+                priorityColor: videoCat?.priorityColor,
               ),
             ],
           ),

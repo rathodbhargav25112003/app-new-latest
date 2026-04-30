@@ -132,6 +132,11 @@ dependencies:
   flutter_keyboard_visibility_temp_fork: ^0.1.5
   keyboard_actions: ^4.2.0
   flutter_tts: ^4.2.0
+  # Share — universal share-sheet for question/explanation/streak.
+  # Wired via lib/helpers/share_helpers.dart.
+  share_plus: ^10.0.0
+  # In-app review prompt (App Store / Play Store) for retention.
+  in_app_review: ^2.0.9
 
 dev_dependencies:
   flutter_test:

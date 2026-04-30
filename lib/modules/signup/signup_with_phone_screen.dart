@@ -1121,22 +1121,24 @@
 //   }
 // }
 import 'dart:io';
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shusruta_lms/modules/signup/store/signup_store.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../../app/routes.dart';
+import '../../helpers/app_tokens.dart';
 import '../../helpers/colors.dart';
 import '../../helpers/dimensions.dart';
 import '../../helpers/styles.dart';
-import '../../helpers/app_tokens.dart';
 import '../../models/registerationData.dart';
 import '../login/store/login_store.dart';
 import '../widgets/bottom_toast.dart';
@@ -1157,8 +1159,7 @@ class SignUpWithPhoneScreen extends StatefulWidget {
   }
 }
 
-class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
-    with WidgetsBindingObserver {
+class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen> with WidgetsBindingObserver {
   bool isSignIn = false;
   bool google = false;
   String? _fcmToken;
@@ -1279,8 +1280,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
     final store = Provider.of<SignupStore>(context, listen: false);
     final loginStore = Provider.of<LoginStore>(context, listen: false);
 
-    List<DropdownMenuItem<String>> dropdownItems =
-        store.preparingexams.map((item) {
+    List<DropdownMenuItem<String>> dropdownItems = store.preparingexams.map((item) {
       final preparingFor = item?.preparingFor;
       return DropdownMenuItem<String>(
         value: preparingFor,
@@ -1288,8 +1288,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
       );
     }).toList();
 
-    List<DropdownMenuItem<String>> stateDropdownItems =
-        indianStates.map((item) {
+    List<DropdownMenuItem<String>> stateDropdownItems = indianStates.map((item) {
       final state = item;
       return DropdownMenuItem<String>(
         value: state,
@@ -1301,8 +1300,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
       backgroundColor: ThemeManager.white,
       body: Center(
         child: Container(
-          constraints: BoxConstraints(
-              maxWidth: 600, maxHeight: MediaQuery.of(context).size.height * 1),
+          constraints: BoxConstraints(maxWidth: 600, maxHeight: MediaQuery.of(context).size.height * 1),
           child: SingleChildScrollView(
             child: SizedBox(
               // height: MediaQuery.of(context).size.height,
@@ -1358,8 +1356,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                         key: _nameKey,
                         cursorColor: ThemeManager.textColor4,
                         style: interRegular.copyWith(
-                            fontSize: Dimensions.fontSizeDefault,
-                            color: ThemeManager.textColor4),
+                            fontSize: Dimensions.fontSizeDefault, color: ThemeManager.textColor4),
                         controller: nameController,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -1383,8 +1380,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                         // },
                         keyboardType: TextInputType.name,
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.only(
-                              left: Dimensions.PADDING_SIZE_SMALL * 1.2),
+                          contentPadding: const EdgeInsets.only(left: Dimensions.PADDING_SIZE_SMALL * 1.2),
                           fillColor: Theme.of(context).disabledColor,
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(
@@ -1433,8 +1429,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                         },
                         cursorColor: ThemeManager.textColor4,
                         style: interRegular.copyWith(
-                            fontSize: Dimensions.fontSizeDefault,
-                            color: ThemeManager.textColor4),
+                            fontSize: Dimensions.fontSizeDefault, color: ThemeManager.textColor4),
                         controller: dateController,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -1451,13 +1446,10 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                         readOnly: true,
                         keyboardType: TextInputType.datetime,
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.only(
-                              left: Dimensions.PADDING_SIZE_SMALL * 1.2),
+                          contentPadding: const EdgeInsets.only(left: Dimensions.PADDING_SIZE_SMALL * 1.2),
                           suffixIcon: Padding(
-                            padding: const EdgeInsets.only(
-                                right: Dimensions.PADDING_SIZE_DEFAULT),
-                            child:
-                                SvgPicture.asset("assets/image/date_Icon.svg"),
+                            padding: const EdgeInsets.only(right: Dimensions.PADDING_SIZE_DEFAULT),
+                            child: SvgPicture.asset("assets/image/date_Icon.svg"),
                           ),
                           suffixIconConstraints: const BoxConstraints(
                               minHeight: Dimensions.PADDING_SIZE_DEFAULT * 1.1,
@@ -1543,8 +1535,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                           fontSize: Dimensions.fontSizeSmall,
                           color: ThemeManager.textColor4,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
                       items: stateDropdownItems,
                       onChanged: (value) {
@@ -1555,8 +1546,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                       },
                       isExpanded: true,
                       icon: RotationTransition(
-                        turns: const AlwaysStoppedAnimation(
-                            0.25), // 90 degrees in radians
+                        turns: const AlwaysStoppedAnimation(0.25), // 90 degrees in radians
                         child: Icon(
                           Icons.arrow_forward_ios_sharp,
                           color: ThemeManager.black,
@@ -1735,8 +1725,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                       children: [
                         Row(mainAxisSize: MainAxisSize.min, children: [
                           Checkbox(
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             visualDensity: VisualDensity.compact,
                             value: currentStatus == "PG Resident",
                             onChanged: (value) {
@@ -1762,12 +1751,10 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                                 fontWeight: FontWeight.w500),
                           ),
                         ]),
-                        const SizedBox(
-                            width: Dimensions.PADDING_SIZE_LARGE * 1.7),
+                        const SizedBox(width: Dimensions.PADDING_SIZE_LARGE * 1.7),
                         Row(mainAxisSize: MainAxisSize.min, children: [
                           Checkbox(
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             visualDensity: VisualDensity.compact,
                             value: currentStatus == "Post-Graduate",
                             onChanged: (value) {
@@ -1799,8 +1786,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                       Text(
                         'Please select at least one option.',
                         style: interRegular.copyWith(
-                            fontSize: Dimensions.fontSizeSmall,
-                            color: Theme.of(context).colorScheme.error),
+                            fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).colorScheme.error),
                       ),
                     const SizedBox(
                       height: Dimensions.PADDING_SIZE_DEFAULT,
@@ -1813,8 +1799,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                         key: _mobileKey,
                         cursorColor: ThemeManager.textColor4,
                         style: interRegular.copyWith(
-                            fontSize: Dimensions.fontSizeDefault,
-                            color: ThemeManager.textColor4),
+                            fontSize: Dimensions.fontSizeDefault, color: ThemeManager.textColor4),
                         controller: phoneController,
                         maxLength: 10,
                         validator: (value) {
@@ -1851,8 +1836,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                                   child: Text(
                                     "+91",
                                     style: interMedium.copyWith(
-                                        fontSize: Dimensions.fontSizeSmall,
-                                        color: ThemeManager.black),
+                                        fontSize: Dimensions.fontSizeSmall, color: ThemeManager.black),
                                   ),
                                 ),
                                 VerticalDivider(color: ThemeManager.grey1)
@@ -1926,8 +1910,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                         },
                         cursorColor: ThemeManager.textColor4,
                         style: interRegular.copyWith(
-                            fontSize: Dimensions.fontSizeDefault,
-                            color: ThemeManager.textColor4),
+                            fontSize: Dimensions.fontSizeDefault, color: ThemeManager.textColor4),
                         controller: emailController,
                         // Custom keyboard code - commented out to use system default keyboard
                         // To re-enable custom keyboard, also uncomment the import '../login/keyboard.dart' above
@@ -1939,8 +1922,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                         // },
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.only(
-                              left: Dimensions.PADDING_SIZE_SMALL * 1.2),
+                          contentPadding: const EdgeInsets.only(left: Dimensions.PADDING_SIZE_SMALL * 1.2),
                           fillColor: Theme.of(context).disabledColor,
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(
@@ -2121,8 +2103,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                     Row(
                       children: [
                         Checkbox(
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           visualDensity: VisualDensity.compact,
                           value: isUserCheck,
                           onChanged: (value) {
@@ -2176,8 +2157,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                         Expanded(
                           child: Text.rich(
                             TextSpan(
-                              text:
-                                  'I certify that I am 18 years of age or older, and I agree to the ',
+                              text: 'I certify that I am 18 years of age or older, and I agree to the ',
                               children: [
                                 TextSpan(
                                   text: 'User Agreement',
@@ -2186,25 +2166,21 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                                       color: ThemeManager.primaryColor),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
-                                      _launchURL(
-                                          "https://sushrutalgs.in/terms-%26-conditions");
+                                      _launchURL("https://sushrutalgs.in/terms-%26-conditions");
                                     },
                                 ),
                                 const TextSpan(text: ' and '),
                                 TextSpan(
                                   text: 'Privacy Policy',
-                                  style: interRegular.copyWith(
-                                      color: ThemeManager.primaryColor),
+                                  style: interRegular.copyWith(color: ThemeManager.primaryColor),
                                   recognizer: TapGestureRecognizer()
                                     ..onTap = () {
-                                      _launchURL(
-                                          "https://sushrutalgs.in/privacy-policy");
+                                      _launchURL("https://sushrutalgs.in/privacy-policy");
                                     },
                                 ),
                               ],
                               style: interRegular.copyWith(
-                                  fontSize: Dimensions.fontSizeDefault,
-                                  color: ThemeManager.black),
+                                  fontSize: Dimensions.fontSizeDefault, color: ThemeManager.black),
                             ),
                           ),
                         ),
@@ -2214,8 +2190,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                       Text(
                         'Please select user agreement.',
                         style: interRegular.copyWith(
-                            fontSize: Dimensions.fontSizeSmall,
-                            color: Theme.of(context).colorScheme.error),
+                            fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).colorScheme.error),
                       ),
                     const SizedBox(
                       height: Dimensions.PADDING_SIZE_DEFAULT * 1.2,
@@ -2227,18 +2202,13 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                             onPressed: () {
                               FocusScope.of(context).unfocus();
                               isSubmitted = true;
-                              bool? nameValidate =
-                                  _nameKey.currentState?.validate();
-                              bool? dateValidate =
-                                  _dobKey.currentState?.validate();
+                              bool? nameValidate = _nameKey.currentState?.validate();
+                              bool? dateValidate = _dobKey.currentState?.validate();
                               // bool? preParingValidate =
                               //     _prepParingKey.currentState?.validate();
-                              bool? stateValidate =
-                                  _stateKey.currentState?.validate();
-                              bool? emailValidate =
-                                  _emailKey.currentState?.validate();
-                              bool? mobileValidate =
-                                  _mobileKey.currentState?.validate();
+                              bool? stateValidate = _stateKey.currentState?.validate();
+                              bool? emailValidate = _emailKey.currentState?.validate();
+                              bool? mobileValidate = _mobileKey.currentState?.validate();
                               // bool? passwordValidate = _passKey.currentState?.validate();
                               // bool? rePasswordValidate = _repassKey.currentState?.validate();
                               debugPrint("isCheck:$isUserCheck");
@@ -2259,7 +2229,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                                   phoneNumber: phoneController.text,
                                   email: emailController.text,
                                 );
-                                
+
                                 // Navigate to the new preparing for screen
                                 Navigator.of(context).pushNamed(
                                   Routes.preparingForScreen,
@@ -2268,6 +2238,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                               }
                             },
                             buttonText: "Continue",
+                            textColor: Colors.white,
                             height: 54,
                             bgColor: isUserCheck
                                 ? AppTokens.accent(context)
@@ -2280,7 +2251,8 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: Colors.white,
+                                      strokeWidth: 2,
+                                      color: Colors.white,
                                     ),
                                   )
                                 : null,
@@ -2358,8 +2330,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
                             Text(
                               "Already have An Account? ",
                               style: interRegular.copyWith(
-                                  fontSize: Dimensions.fontSizeDefault,
-                                  color: ThemeManager.black),
+                                  fontSize: Dimensions.fontSizeDefault, color: ThemeManager.black),
                             ),
                             InkWell(
                               onTap: () {
@@ -2466,19 +2437,18 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
       String currentStatus,
       String phoneNumber,
       String email) async {
-    
     // Check device registration first
     try {
       Map<String, String> deviceInfo = await getDeviceInfo();
       String deviceUniqueId = deviceInfo['device_id'] ?? '';
-      
+
       if (deviceUniqueId.isNotEmpty) {
         Map<String, dynamic>? deviceCheckResult = await store.onCheckDeviceRegistration(deviceUniqueId);
-        
+
         if (deviceCheckResult != null) {
           bool exists = deviceCheckResult['exists'] ?? false;
           bool success = deviceCheckResult['success'] ?? false;
-          
+
           if (success && exists) {
             // Device is already registered, show error
             BottomToast.showBottomToastOverlay(
@@ -2574,7 +2544,8 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
     // }
   }
 
-  void _showRestoreUserDialog(SignupStore store, RegistrationData registrationData, String phoneNumber, String email) {
+  void _showRestoreUserDialog(
+      SignupStore store, RegistrationData registrationData, String phoneNumber, String email) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -2629,7 +2600,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
   Future<void> _handleRestoreUser(SignupStore store, String email, String phoneNumber) async {
     try {
       final result = await store.onRestoreUser(email, phoneNumber);
-      
+
       if (result != null && result['success'] == true && result['message'] != null) {
         // Show success message
         BottomToast.showBottomToastOverlay(
@@ -2637,7 +2608,7 @@ class _SignUpWithPhoneScreenState extends State<SignUpWithPhoneScreen>
           errorMessage: result['message'] ?? "User restored successfully",
           backgroundColor: Theme.of(context).primaryColor,
         );
-        
+
         // Navigate to login screen after a short delay
         Future.delayed(const Duration(seconds: 2), () {
           Navigator.of(context).pushNamed(Routes.login);

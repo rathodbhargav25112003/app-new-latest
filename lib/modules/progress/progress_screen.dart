@@ -4,7 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 
+import '../../helpers/app_skeleton.dart';
 import '../../helpers/app_tokens.dart';
+import '../../helpers/refresh_helper.dart';
 import '../dashboard/store/home_store.dart';
 import '../widgets/no_internet_connection.dart';
 
@@ -60,11 +62,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             ? const NoInternetScreen()
             : Observer(builder: (_) {
                 if (store.isLoading) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      color: AppTokens.accent(context),
-                    ),
-                  );
+                  return _ProgressSkeleton();
                 }
 
                 final pd = store.progressDetails.value;
@@ -92,8 +90,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 final completedVideoDuration =
                     pd?.completedVideoDuration.toString() ?? "";
 
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
+                return AppRefresh(
+                  onRefresh: () => store.onGetProgressDetailsCall(context),
+                  child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics()),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final isDesktop = constraints.maxWidth > 600;
@@ -205,8 +206,65 @@ class _ProgressScreenState extends State<ProgressScreen> {
                       );
                     },
                   ),
+                ),
                 );
               }),
+      ),
+    );
+  }
+}
+
+class _ProgressSkeleton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppTokens.s24),
+      physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: SkeletonBlock(
+                width: 140, height: 140, shape: BoxShape.circle),
+          ),
+          const SizedBox(height: AppTokens.s16),
+          const SkeletonLine(width: 200, height: 18),
+          const SizedBox(height: 8),
+          const SkeletonLine(width: 280, height: 12),
+          const SizedBox(height: 8),
+          const SkeletonLine(width: 240, height: 12),
+          const SizedBox(height: AppTokens.s20),
+          for (int i = 0; i < 4; i++) ...[
+            Container(
+              padding: const EdgeInsets.all(AppTokens.s16),
+              margin: const EdgeInsets.only(bottom: AppTokens.s12),
+              decoration: BoxDecoration(
+                color: AppTokens.surface(context),
+                borderRadius: AppTokens.radius16,
+                border:
+                    Border.all(color: AppTokens.border(context), width: 0.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Row(
+                    children: [
+                      SkeletonBlock(width: 36, height: 36),
+                      SizedBox(width: AppTokens.s12),
+                      SkeletonLine(width: 100, height: 14),
+                    ],
+                  ),
+                  SizedBox(height: AppTokens.s16),
+                  SkeletonLine(width: 80, height: 22),
+                  SizedBox(height: 6),
+                  SkeletonLine(width: 140, height: 10),
+                  SizedBox(height: AppTokens.s8),
+                  SkeletonLine(width: double.infinity, height: 5, radius: 2),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

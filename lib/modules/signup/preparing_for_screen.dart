@@ -1,12 +1,14 @@
 import 'dart:io';
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:provider/provider.dart';
+
 import '../../app/routes.dart';
-import '../../helpers/colors.dart';
 import '../../helpers/app_tokens.dart';
+import '../../helpers/colors.dart';
 import '../../models/registerationData.dart';
 import '../login/store/login_store.dart';
 import '../widgets/bottom_toast.dart';
@@ -98,10 +100,12 @@ class _PreparingForScreenState extends State<PreparingForScreen> {
   }
 
   Future<void> _sendOtp(SignupStore store) async {
-    await store.onSendOtpToPhone(
+    await store
+        .onSendOtpToPhone(
       widget.registrationData.phoneNumber,
       widget.registrationData.email,
-    ).then((value) {
+    )
+        .then((value) {
       if (store.errorMessageOtp2.value?.message != null) {
         BottomToast.showBottomToastOverlay(
           context: context,
@@ -125,7 +129,7 @@ class _PreparingForScreenState extends State<PreparingForScreen> {
 
     // Get groups from API - using preparing_for field as groups
     final groups = store.preparingexams.map((e) => e?.preparingFor ?? '').where((e) => e.isNotEmpty).toList();
-    
+
     // Get exams - using standerd_for field from standardList
     final exams = store.standardList.map((e) => e?.standerdFor ?? '').where((e) => e.isNotEmpty).toList();
 
@@ -151,141 +155,70 @@ class _PreparingForScreenState extends State<PreparingForScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    
                     // Header
-                  Observer(
-                    builder: (_) {
-                      return RichText(
-                        text: TextSpan(
-                          style: AppTokens.displayMd(context),
-                          children: [
-                            const TextSpan(text: "Select your "),
-                            TextSpan(
-                              text: "group",
-                              style: TextStyle(color: AppTokens.accent(context)),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: AppTokens.s8),
-                  Text(
-                    "Pick the qualification stream you're preparing for.",
-                    style: AppTokens.bodyLg(context).copyWith(
-                      color: AppTokens.muted(context),
-                    ),
-                  ),
-                  const SizedBox(height: AppTokens.s24),
-
-                                    // Group Selection
-                  Observer(
-                    builder: (_) {
-                      final groups = store.preparingexams.map((e) => e?.preparingFor ?? '').where((e) => e.isNotEmpty).toList();
-                      return Column(
-                        children: groups.asMap().entries.map((entry) {
-                          int index = entry.key;
-                          String group = entry.value;
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index < groups.length - 1 ? AppTokens.s12 : 0,
-                            ),
-                                                                  child: _buildRadioOption(
-                                        label: group,
-                                        isSelected: selectedGroup == group,
-                                        onTap: () async {
-                                          setState(() {
-                                            selectedGroup = group;
-                                            isGroupSelected = true;
-                                            // Clear exam selection when group changes
-                                            selectedExam = null;
-                                            isExamSelected = false;
-                                          });
-                                          
-                                          // Find the selected group and get its ID
-                                          final selectedItem = store.preparingexams.firstWhere(
-                                            (item) => item?.preparingFor == group,
-                                            orElse: () => null,
-                                          );
-                                          
-                                          if (selectedItem?.id != null) {
-                                            selectedGroupId = selectedItem?.id;
-                                            // Fetch standards for this group using the _id
-                                            await _loadStandards(selectedItem!.id!);
-                                          }
-                                        },
-                                      ),
-                          );
-                        }).toList(),
-                      );
-                    },
-                  ),
-
-                  // Only show exam selection section when a group is selected
-                  if (selectedGroup != null) ...[
-                    const SizedBox(height: AppTokens.s32),
-                    RichText(
-                      text: TextSpan(
-                        style: AppTokens.displayMd(context),
-                        children: [
-                          const TextSpan(text: "Which "),
-                          TextSpan(
-                            text: "exam",
-                            style: TextStyle(color: AppTokens.accent(context)),
+                    Observer(
+                      builder: (_) {
+                        return RichText(
+                          text: TextSpan(
+                            style: AppTokens.displayMd(context),
+                            children: [
+                              const TextSpan(text: "Select your "),
+                              TextSpan(
+                                text: "group",
+                                style: TextStyle(color: AppTokens.accent(context)),
+                              ),
+                            ],
                           ),
-                          const TextSpan(text: "?"),
-                        ],
-                      ),
+                        );
+                      },
                     ),
                     const SizedBox(height: AppTokens.s8),
                     Text(
-                      "Choose the exam you're targeting in this group.",
+                      "Pick the qualification stream you're preparing for.",
                       style: AppTokens.bodyLg(context).copyWith(
                         color: AppTokens.muted(context),
                       ),
                     ),
                     const SizedBox(height: AppTokens.s24),
 
-                    // Exam Selection - Only show when group is selected
+                    // Group Selection
                     Observer(
                       builder: (_) {
-                        // Get exams from standardList
-                        final exams = store.standardList.map((e) => e?.standerdFor ?? '').where((e) => e.isNotEmpty).toList();
-                        
-                        if (exams.isEmpty) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(AppTokens.s16),
-                              child: Text(
-                                store.isLoading
-                                    ? "Loading…"
-                                    : "No exam options available for this group.",
-                                style: AppTokens.body(context),
-                              ),
-                            ),
-                          );
-                        }
-                        
+                        final groups = store.preparingexams
+                            .map((e) => e?.preparingFor ?? '')
+                            .where((e) => e.isNotEmpty)
+                            .toList();
                         return Column(
-                          children: exams.asMap().entries.map((entry) {
+                          children: groups.asMap().entries.map((entry) {
                             int index = entry.key;
-                            String exam = entry.value;
-                            // Find the standard model for this exam
-                            final standardModel = store.standardList[index];
+                            String group = entry.value;
                             return Padding(
                               padding: EdgeInsets.only(
-                                bottom: index < exams.length - 1 ? AppTokens.s12 : 0,
+                                bottom: index < groups.length - 1 ? AppTokens.s12 : 0,
                               ),
                               child: _buildRadioOption(
-                                label: exam,
-                                isSelected: selectedExam == exam,
-                                onTap: () {
+                                label: group,
+                                isSelected: selectedGroup == group,
+                                onTap: () async {
                                   setState(() {
-                                    selectedExam = exam;
-                                    isExamSelected = true;
-                                    // Store the standard ID
-                                    selectedStandardId = standardModel?.mongoId;
+                                    selectedGroup = group;
+                                    isGroupSelected = true;
+                                    // Clear exam selection when group changes
+                                    selectedExam = null;
+                                    isExamSelected = false;
                                   });
+
+                                  // Find the selected group and get its ID
+                                  final selectedItem = store.preparingexams.firstWhere(
+                                    (item) => item?.preparingFor == group,
+                                    orElse: () => null,
+                                  );
+
+                                  if (selectedItem?.id != null) {
+                                    selectedGroupId = selectedItem?.id;
+                                    // Fetch standards for this group using the _id
+                                    await _loadStandards(selectedItem!.id!);
+                                  }
                                 },
                               ),
                             );
@@ -293,109 +226,188 @@ class _PreparingForScreenState extends State<PreparingForScreen> {
                         );
                       },
                     ),
-                  ],
 
-                  const SizedBox(height: AppTokens.s32),
+                    // Only show exam selection section when a group is selected
+                    if (selectedGroup != null) ...[
+                      const SizedBox(height: AppTokens.s32),
+                      RichText(
+                        text: TextSpan(
+                          style: AppTokens.displayMd(context),
+                          children: [
+                            const TextSpan(text: "Which "),
+                            TextSpan(
+                              text: "exam",
+                              style: TextStyle(color: AppTokens.accent(context)),
+                            ),
+                            const TextSpan(text: "?"),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppTokens.s8),
+                      Text(
+                        "Choose the exam you're targeting in this group.",
+                        style: AppTokens.bodyLg(context).copyWith(
+                          color: AppTokens.muted(context),
+                        ),
+                      ),
+                      const SizedBox(height: AppTokens.s24),
 
-                  // Submit Button
-                  Observer(
-                    builder: (_) {
-                      return CustomButton(
-                        onPressed: isGroupSelected && isExamSelected
-                            ? () async {
-                                // Check device registration first
-                                try {
-                                  Map<String, String> deviceInfo = await getDeviceInfo();
-                                  String deviceUniqueId = deviceInfo['device_id'] ?? '';
-                                  
-                                  // Validate device ID - must not be empty or 'Unknown'
-                                  if (deviceUniqueId.isEmpty || deviceUniqueId == 'Unknown') {
-                                    BottomToast.showBottomToastOverlay(
-                                      context: context,
-                                      errorMessage: "Unable to retrieve device information. Please try again.",
-                                      backgroundColor: Theme.of(context).colorScheme.error,
-                                    );
-                                    return;
-                                  }
-                                  
-                                  Map<String, dynamic>? deviceCheckResult = await store.onCheckDeviceRegistration(deviceUniqueId);
-                                  
-                                  if (deviceCheckResult != null) {
-                                    bool exists = deviceCheckResult['exists'] ?? false;
-                                    bool success = deviceCheckResult['success'] ?? false;
-                                    
-                                    if (success && exists) {
-                                      // Device is already registered, show error
+                      // Exam Selection - Only show when group is selected
+                      Observer(
+                        builder: (_) {
+                          // Get exams from standardList
+                          final exams = store.standardList
+                              .map((e) => e?.standerdFor ?? '')
+                              .where((e) => e.isNotEmpty)
+                              .toList();
+
+                          if (exams.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppTokens.s16),
+                                child: Text(
+                                  store.isLoading ? "Loading…" : "No exam options available for this group.",
+                                  style: AppTokens.body(context),
+                                ),
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: exams.asMap().entries.map((entry) {
+                              int index = entry.key;
+                              String exam = entry.value;
+                              // Find the standard model for this exam
+                              final standardModel = store.standardList[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: index < exams.length - 1 ? AppTokens.s12 : 0,
+                                ),
+                                child: _buildRadioOption(
+                                  label: exam,
+                                  isSelected: selectedExam == exam,
+                                  onTap: () {
+                                    setState(() {
+                                      selectedExam = exam;
+                                      isExamSelected = true;
+                                      // Store the standard ID
+                                      selectedStandardId = standardModel?.mongoId;
+                                    });
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                    ],
+
+                    const SizedBox(height: AppTokens.s32),
+
+                    // Submit Button
+                    Observer(
+                      builder: (_) {
+                        return CustomButton(
+                          onPressed: isGroupSelected && isExamSelected
+                              ? () async {
+                                  // Check device registration first
+                                  try {
+                                    Map<String, String> deviceInfo = await getDeviceInfo();
+                                    String deviceUniqueId = deviceInfo['device_id'] ?? '';
+
+                                    // Validate device ID - must not be empty or 'Unknown'
+                                    if (deviceUniqueId.isEmpty || deviceUniqueId == 'Unknown') {
                                       BottomToast.showBottomToastOverlay(
                                         context: context,
-                                        errorMessage: "You cannot register from the same device multiple times",
+                                        errorMessage:
+                                            "Unable to retrieve device information. Please try again.",
                                         backgroundColor: Theme.of(context).colorScheme.error,
                                       );
                                       return;
                                     }
-                                  }
-                                } catch (e) {
-                                  // If device check fails, show error and return
-                                  debugPrint("Device check error: $e");
-                                  BottomToast.showBottomToastOverlay(
-                                    context: context,
-                                    errorMessage: "Failed to verify device. Please try again.",
-                                    backgroundColor: Theme.of(context).colorScheme.error,
-                                  );
-                                  return;
-                                }
-                                
-                                // Create updated registration data with selected values
-                                final updatedRegistrationData = RegistrationData(
-                                  fullName: widget.registrationData.fullName,
-                                  dateOfBirth: widget.registrationData.dateOfBirth,
-                                  preparingValue: selectedGroup ?? '',
-                                  stateValue: widget.registrationData.stateValue,
-                                  preparingFor: selectedExam != null ? [selectedExam!] : [],
-                                  currentStatus: widget.registrationData.currentStatus,
-                                  phoneNumber: widget.registrationData.phoneNumber,
-                                  email: widget.registrationData.email,
-                                  standardId: selectedStandardId,
-                                  preparingId: selectedGroupId,
-                                );
-                                
-                                // Send OTP before navigating to verify screen
-                                await _sendOtp(store);
-                                
-                                // Navigate to verify OTP screen
-                                Navigator.of(context).pushReplacementNamed(
-                                  Routes.verifyOtp,
-                                  arguments: {
-                                    'email': widget.registrationData.phoneNumber,
-                                    'registrationObj': updatedRegistrationData,
-                                    'trial': true,
-                                    'email2': widget.registrationData.email
-                                  },
-                                );
-                              }
-                            : null,
-                        buttonText: "Continue",
-                        height: 54,
-                        bgColor: isGroupSelected && isExamSelected
-                            ? AppTokens.accent(context)
-                            : AppTokens.accent(context).withOpacity(0.4),
-                        radius: AppTokens.r16,
-                        transparent: true,
-                        fontSize: 16,
-                        child: store.isLoading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white,
-                                ),
-                              )
-                            : null,
-                      );
-                    },
-                  ),
 
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.05),
+                                    Map<String, dynamic>? deviceCheckResult =
+                                        await store.onCheckDeviceRegistration(deviceUniqueId);
+
+                                    if (deviceCheckResult != null) {
+                                      bool exists = deviceCheckResult['exists'] ?? false;
+                                      bool success = deviceCheckResult['success'] ?? false;
+
+                                      if (success && exists) {
+                                        // Device is already registered, show error
+                                        BottomToast.showBottomToastOverlay(
+                                          context: context,
+                                          errorMessage:
+                                              "You cannot register from the same device multiple times",
+                                          backgroundColor: Theme.of(context).colorScheme.error,
+                                        );
+                                        return;
+                                      }
+                                    }
+                                  } catch (e) {
+                                    // If device check fails, show error and return
+                                    debugPrint("Device check error: $e");
+                                    BottomToast.showBottomToastOverlay(
+                                      context: context,
+                                      errorMessage: "Failed to verify device. Please try again.",
+                                      backgroundColor: Theme.of(context).colorScheme.error,
+                                    );
+                                    return;
+                                  }
+
+                                  // Create updated registration data with selected values
+                                  final updatedRegistrationData = RegistrationData(
+                                    fullName: widget.registrationData.fullName,
+                                    dateOfBirth: widget.registrationData.dateOfBirth,
+                                    preparingValue: selectedGroup ?? '',
+                                    stateValue: widget.registrationData.stateValue,
+                                    preparingFor: selectedExam != null ? [selectedExam!] : [],
+                                    currentStatus: widget.registrationData.currentStatus,
+                                    phoneNumber: widget.registrationData.phoneNumber,
+                                    email: widget.registrationData.email,
+                                    standardId: selectedStandardId,
+                                    preparingId: selectedGroupId,
+                                  );
+
+                                  // Send OTP before navigating to verify screen
+                                  await _sendOtp(store);
+
+                                  // Navigate to verify OTP screen
+                                  Navigator.of(context).pushReplacementNamed(
+                                    Routes.verifyOtp,
+                                    arguments: {
+                                      'email': widget.registrationData.phoneNumber,
+                                      'registrationObj': updatedRegistrationData,
+                                      'trial': true,
+                                      'email2': widget.registrationData.email
+                                    },
+                                  );
+                                }
+                              : null,
+                          buttonText: "Continue",
+                          textColor: Colors.white,
+                          height: 54,
+                          bgColor: isGroupSelected && isExamSelected
+                              ? AppTokens.accent(context)
+                              : AppTokens.accent(context).withOpacity(0.4),
+                          radius: AppTokens.r16,
+                          transparent: true,
+                          fontSize: 16,
+                          child: store.isLoading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : null,
+                        );
+                      },
+                    ),
+
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.05),
                   ],
                 ),
               ),
@@ -426,14 +438,10 @@ class _PreparingForScreenState extends State<PreparingForScreen> {
             vertical: AppTokens.s16,
           ),
           decoration: BoxDecoration(
-            color: isSelected
-                ? AppTokens.accentSoft(context)
-                : AppTokens.surface(context),
+            color: isSelected ? AppTokens.accentSoft(context) : AppTokens.surface(context),
             borderRadius: AppTokens.radius12,
             border: Border.all(
-              color: isSelected
-                  ? AppTokens.accent(context)
-                  : AppTokens.border(context),
+              color: isSelected ? AppTokens.accent(context) : AppTokens.border(context),
               width: isSelected ? 1.4 : 1,
             ),
           ),
@@ -446,9 +454,7 @@ class _PreparingForScreenState extends State<PreparingForScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected
-                        ? AppTokens.accent(context)
-                        : AppTokens.borderStrong(context),
+                    color: isSelected ? AppTokens.accent(context) : AppTokens.borderStrong(context),
                     width: 2,
                   ),
                   color: AppTokens.surface(context),
@@ -471,9 +477,7 @@ class _PreparingForScreenState extends State<PreparingForScreen> {
                 child: Text(
                   label,
                   style: AppTokens.titleSm(context).copyWith(
-                    color: isSelected
-                        ? AppTokens.accent(context)
-                        : AppTokens.ink(context),
+                    color: isSelected ? AppTokens.accent(context) : AppTokens.ink(context),
                   ),
                 ),
               ),

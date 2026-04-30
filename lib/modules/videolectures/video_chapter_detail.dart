@@ -1,50 +1,42 @@
-// ignore_for_file: deprecated_member_use, library_private_types_in_public_api, unused_import, use_super_parameters, unused_field, unused_local_variable, non_constant_identifier_names, dead_code, prefer_final_fields, unnecessary_import, use_build_context_synchronously, avoid_print, unnecessary_non_null_assertion
-
 import 'dart:io';
-import 'dart:ui';
-import 'dart:developer';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' as material;
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
+import 'package:shusruta_lms/helpers/custom_dynamic_height_gridview.dart';
+import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
+import 'package:shusruta_lms/modules/videolectures/store/video_category_store.dart';
+import 'package:shusruta_lms/modules/videolectures/widgets/download_manager_sheet.dart';
+import 'package:shusruta_lms/services/download_service.dart';
+import 'package:shusruta_lms/services/offline_encryptor.dart';
+import 'package:shusruta_lms/services/secure_keys.dart';
+
 import '../../app/routes.dart';
+import '../../helpers/app_skeleton.dart';
 import '../../helpers/app_tokens.dart';
 import '../../helpers/colors.dart';
-import '../../helpers/styles.dart';
 import '../../helpers/dbhelper.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_svg/svg.dart';
-import '../widgets/bottom_toast.dart';
-import 'package:flutter/material.dart';
 import '../../helpers/dimensions.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart';
+import '../../helpers/empty_state.dart';
+import '../../helpers/styles.dart';
 import '../../models/video_data_model.dart';
-import '../dashboard/store/home_store.dart';
 import '../../models/video_topic_model.dart';
-import '../../models/searched_data_model.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
+import '../dashboard/models/global_search_model.dart';
+import '../dashboard/store/home_store.dart';
+import '../widgets/bottom_toast.dart';
 import '../widgets/no_access_alert_dialog.dart';
 import '../widgets/no_access_bottom_sheet.dart';
 import '../widgets/no_internet_connection.dart';
-import 'package:flutter/material.dart' as material;
-import '../dashboard/models/global_search_model.dart';
-import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
-import 'package:shusruta_lms/helpers/custom_dynamic_height_gridview.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:shusruta_lms/modules/new_exam_component/widget/loading_box.dart';
-import 'package:shusruta_lms/modules/videolectures/store/video_category_store.dart';
-import 'package:shusruta_lms/services/secure_keys.dart';
-import 'package:shusruta_lms/services/download_service.dart';
-import 'package:shusruta_lms/modules/videolectures/widgets/download_manager_sheet.dart';
-
 
 class VideoChapterDetail extends StatefulWidget {
   final String chapter;
   final String? subject;
   final String subcatId;
-  const VideoChapterDetail(
-      {super.key,
-      required this.chapter,
-      required this.subcatId,
-      required this.subject});
+  const VideoChapterDetail({super.key, required this.chapter, required this.subcatId, required this.subject});
 
   @override
   State<VideoChapterDetail> createState() => _VideoChapterDetailState();
@@ -52,9 +44,7 @@ class VideoChapterDetail extends StatefulWidget {
     final arguments = routeSettings.arguments as Map<String, dynamic>;
     return CupertinoPageRoute(
       builder: (_) => VideoChapterDetail(
-          chapter: arguments['chapter'],
-          subject: arguments['subject'],
-          subcatId: arguments['subcatId']),
+          chapter: arguments['chapter'], subject: arguments['subject'], subcatId: arguments['subcatId']),
     );
   }
 }
@@ -99,8 +89,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
   }
 
   Future<void> _initializeNotifications() async {
-    const AndroidNotificationChannel androidNotificationChannel =
-        AndroidNotificationChannel(
+    const AndroidNotificationChannel androidNotificationChannel = AndroidNotificationChannel(
       'download_channel', // Channel ID
       'Downloads', // Channel Name
       description: 'Notifications for download progress',
@@ -109,8 +98,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
 
     // Now create the channel
     await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(androidNotificationChannel);
   }
 
@@ -129,17 +117,16 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
   Future<void> _getVideoList() async {
     final store = Provider.of<VideoCategoryStore>(context, listen: false);
     await store.onTopicApiCall(widget.subcatId);
+    if (!mounted) return;
     // Pre-load download status for all videos in one batch (replaces per-item
     // FutureBuilder DB queries). Use the same identifier resolver as the tap
     // handler — otherwise videos whose `id` is null would be keyed as the
     // literal "null" string, which the store's `_isValidTitleId` rejects, so
     // their "Downloaded" badge would never light up.
-    final allIds = store.videotopic
-        .where((v) => v != null)
-        .map(_resolveTitleId)
-        .where((tid) => tid.isNotEmpty)
-        .toList();
+    final allIds =
+        store.videotopic.where((v) => v != null).map(_resolveTitleId).where((tid) => tid.isNotEmpty).toList();
     await store.loadDownloadedIds(allIds);
+    if (!mounted) return;
     await _filterOfflineVideos();
   }
 
@@ -169,6 +156,18 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
     final homeStore = Provider.of<HomeStore>(context, listen: false);
     return Scaffold(
       backgroundColor: AppTokens.scaffold(context),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: AppTokens.scaffold(context),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded,
+              color: AppTokens.ink(context), size: 18),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: Text(widget.chapter, style: AppTokens.titleLg(context)),
+        centerTitle: false,
+      ),
       // appBar: AppBar(
       //   elevation: 0,
       //   automaticallyImplyLeading: false,
@@ -219,51 +218,18 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
       //     },
       //   ),
       // ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppTokens.brand, AppTokens.brand2],
-          ),
-        ),
+      body: SafeArea(
         child: Column(
           children: [
+            // Header action row — preserves the legacy "Download all"
+            // observer + bookmarks pill that lives next to the title
+            // in the original blue-strip header. AppTokens-toned now.
             Padding(
-              padding: (Platform.isWindows || Platform.isMacOS)
-                  ? const EdgeInsets.symmetric(
-                      vertical: Dimensions.PADDING_SIZE_LARGE * 1,
-                      horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2)
-                  : const EdgeInsets.only(
-                      top: Dimensions.PADDING_SIZE_LARGE * 2,
-                      left: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                      right: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                      bottom: Dimensions.PADDING_SIZE_SMALL * 1.3),
+              padding: const EdgeInsets.fromLTRB(
+                  AppTokens.s24, AppTokens.s8, AppTokens.s12, AppTokens.s4),
               child: Row(
                 children: [
-                  IconButton(
-                      highlightColor: Colors.transparent,
-                      hoverColor: Colors.transparent,
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: AppColors.white,
-                      )),
-                  const SizedBox(
-                    width: Dimensions.PADDING_SIZE_DEFAULT,
-                  ),
-                  Expanded(
-                    child: Text(
-                      widget.chapter,
-                      style: interRegular.copyWith(
-                        fontSize: Dimensions.fontSizeDefault,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
+                  const Spacer(),
                   // Download All button
                   Observer(builder: (_) {
                     final downloadedCount = store.downloadedVideoIds.length;
@@ -289,7 +255,9 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                   Text(
                                     'All',
                                     style: interRegular.copyWith(
-                                      fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
                                     ),
                                   ),
                                 ],
@@ -308,7 +276,9 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                               child: Text(
                                 '$downloadedCount offline',
                                 style: interRegular.copyWith(
-                                  fontSize: 10, fontWeight: FontWeight.w700, color: Colors.green[300],
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.green[300],
                                 ),
                               ),
                             ),
@@ -391,20 +361,9 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
             //   ),
             // ),
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.only(
-                    left: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                    right: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                    top: Dimensions.PADDING_SIZE_EXTRA_LARGE),
-                decoration: BoxDecoration(
-                  color: AppTokens.scaffold(context),
-                  borderRadius: (Platform.isWindows || Platform.isMacOS)
-                      ? null
-                      : const BorderRadius.only(
-                          topLeft: Radius.circular(AppTokens.r28),
-                          topRight: Radius.circular(AppTokens.r28),
-                        ),
-                ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppTokens.s24, AppTokens.s8, AppTokens.s24, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -529,17 +488,14 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                       child: Row(
                         children: filters.map((filter) {
                           return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 2.0),
+                            padding: const EdgeInsets.symmetric(horizontal: 2.0),
                             child: ChoiceChip(
                               side: BorderSide(color: ThemeManager.mainBorder),
                               label: Text(filter),
                               labelStyle: interRegular.copyWith(
                                 fontSize: Dimensions.fontSizeExtraSmall,
                                 fontWeight: FontWeight.w400,
-                                color: selectedFilter == filter
-                                    ? ThemeManager.white
-                                    : ThemeManager.black,
+                                color: selectedFilter == filter ? ThemeManager.white : ThemeManager.black,
                               ),
                               selected: selectedFilter == filter,
                               selectedColor: Theme.of(context).primaryColor,
@@ -585,77 +541,56 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                           filteredVideos = store.videotopic;
                           _filterVideos();
                           if (store.isLoading) {
-                            return Center(
-                                child: CircularProgressIndicator(
-                              color: ThemeManager.primaryColor,
-                            ));
+                            return const SkeletonList(
+                                count: 5, itemHeight: 96);
                           }
                           if (store.videotopic.isEmpty) {
-                            return Center(
-                              child: Text(
-                                "We're sorry, there's no content available right now. Please check back later or explore other sections for more educational resources.",
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: ThemeManager.black),
-                                textAlign: TextAlign.center,
-                              ),
+                            return const EmptyState(
+                              icon: Icons.play_circle_outline_rounded,
+                              title: 'No lectures yet',
+                              subtitle:
+                                  'New lectures will appear here as soon as they’re published.',
                             );
                           }
                           if (store.isConnected) {
                             return RefreshIndicator(
+                                color: AppTokens.accent(context),
+                                backgroundColor: AppTokens.surface(context),
                                 onRefresh: () => _getVideoList(),
                                 child: homeStore.isLoading
-                                    ? const Center(
-                                        child: CircularProgressIndicator())
-                                    : (homeStore.globalSearchList.isNotEmpty &&
-                                            query.isNotEmpty)
-                                        ? (Platform.isWindows ||
-                                                Platform.isMacOS)
+                                    ? const Center(child: CircularProgressIndicator())
+                                    : (homeStore.globalSearchList.isNotEmpty && query.isNotEmpty)
+                                        ? (Platform.isWindows || Platform.isMacOS)
                                             ? CustomDynamicHeightGridView(
                                                 crossAxisCount: 3,
                                                 mainAxisSpacing: 10,
-                                                itemCount: homeStore
-                                                    .globalSearchList.length,
+                                                itemCount: homeStore.globalSearchList.length,
                                                 shrinkWrap: true,
-                                                physics:
-                                                    const BouncingScrollPhysics(),
-                                                builder: (BuildContext context,
-                                                    int index) {
-                                                  return _buildItem(
-                                                      context, index);
+                                                physics: const BouncingScrollPhysics(),
+                                                builder: (BuildContext context, int index) {
+                                                  return _buildItem(context, index);
                                                 },
                                               )
                                             : ListView.builder(
-                                                itemCount: homeStore
-                                                    .globalSearchList.length,
+                                                itemCount: homeStore.globalSearchList.length,
                                                 shrinkWrap: true,
                                                 padding: EdgeInsets.zero,
-                                                physics:
-                                                    const BouncingScrollPhysics(),
-                                                itemBuilder:
-                                                    (BuildContext context,
-                                                        int index) {
-                                                  return _buildItem(
-                                                      context, index);
+                                                physics: const BouncingScrollPhysics(),
+                                                itemBuilder: (BuildContext context, int index) {
+                                                  return _buildItem(context, index);
                                                 },
                                               )
-                                        : (Platform.isWindows ||
-                                                Platform.isMacOS)
+                                        : (Platform.isWindows || Platform.isMacOS)
                                             ? CustomDynamicHeightGridView(
                                                 crossAxisCount: 3,
                                                 mainAxisSpacing: 10,
-                                                itemCount:
-                                                    filteredVideos.length,
+                                                itemCount: filteredVideos.length,
                                                 shrinkWrap: true,
-                                                physics:
-                                                    const AlwaysScrollableScrollPhysics(),
-                                                builder: (BuildContext context,
-                                                    int index) {
+                                                physics: const AlwaysScrollableScrollPhysics(),
+                                                builder: (BuildContext context, int index) {
                                                   if (filteredVideos.isEmpty) {
                                                     return const Center(
-                                                      child: Text(
-                                                          "No videos available"),
+                                                      child: Text("No videos available"),
                                                     );
                                                   }
 
@@ -663,48 +598,39 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                                   // the badge status and the download action key off
                                                   // the identical titleId — otherwise the UI and the
                                                   // service disagree for videos where `id` is null.
-                                                  final titleId = _resolveTitleId(
-                                                      filteredVideos[index]);
+                                                  final titleId = _resolveTitleId(filteredVideos[index]);
                                                   // debugPrint("downId$titleId");
                                                   return Observer(
                                                     builder: (_) {
-                                                      final isDownloaded = store.isVideoDownloadedCached(titleId);
+                                                      final isDownloaded =
+                                                          store.isVideoDownloadedCached(titleId);
                                                       return _buildItem1(
-                                                          context,
-                                                          filteredVideos[index],
-                                                          index,
+                                                          context, filteredVideos[index], index,
                                                           isDownloaded: isDownloaded);
                                                     },
                                                   );
                                                 },
                                               )
                                             : ListView.builder(
-                                                itemCount:
-                                                    filteredVideos.length,
+                                                itemCount: filteredVideos.length,
                                                 shrinkWrap: true,
                                                 padding: EdgeInsets.zero,
-                                                physics:
-                                                    const AlwaysScrollableScrollPhysics(),
-                                                itemBuilder:
-                                                    (BuildContext context,
-                                                        int index) {
+                                                physics: const AlwaysScrollableScrollPhysics(),
+                                                itemBuilder: (BuildContext context, int index) {
                                                   // debugPrint('filterdvideos$filteredVideos');
                                                   if (filteredVideos.isEmpty) {
                                                     return const Center(
-                                                      child: Text(
-                                                          "No videos available"),
+                                                      child: Text("No videos available"),
                                                     );
                                                   }
 
-                                                  final titleId = _resolveTitleId(
-                                                      filteredVideos[index]);
+                                                  final titleId = _resolveTitleId(filteredVideos[index]);
                                                   return Observer(
                                                     builder: (_) {
-                                                      final isDownloaded = store.isVideoDownloadedCached(titleId);
+                                                      final isDownloaded =
+                                                          store.isVideoDownloadedCached(titleId);
                                                       return _buildItem1(
-                                                          context,
-                                                          filteredVideos[index],
-                                                          index,
+                                                          context, filteredVideos[index], index,
                                                           isDownloaded: isDownloaded);
                                                     },
                                                   );
@@ -734,8 +660,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
     String? topicName = videoTopic?.topicName;
     String? title = videoTopic?.title;
 
-    String displayText =
-        categoryName ?? subcategoryName ?? topicName ?? title ?? "";
+    String displayText = categoryName ?? subcategoryName ?? topicName ?? title ?? "";
     String type = categoryName != null
         ? "Category"
         : subcategoryName != null
@@ -810,9 +735,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                 ),
                 child: SvgPicture.asset(
                   "assets/image/videochapter.svg",
-                  color: ThemeManager.currentTheme == AppTheme.Dark
-                      ? AppColors.white
-                      : null,
+                  color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,
                 ),
               ),
               const SizedBox(
@@ -870,17 +793,14 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
     );
   }
 
-  Widget _buildItem1(
-      BuildContext context, VideoTopicModel? videoTopic, int index,
+  Widget _buildItem1(BuildContext context, VideoTopicModel? videoTopic, int index,
       {required bool isDownloaded}) {
     final store = Provider.of<VideoCategoryStore>(context, listen: false);
     final durationInSeconds = videoTopic?.duration ?? 0;
     final pausedInSeconds = parseTimeToSeconds(videoTopic?.pausedTime ?? "0");
-    final remainingSeconds = (durationInSeconds - (pausedInSeconds ?? 0))
-        .clamp(0, durationInSeconds);
+    final remainingSeconds = (durationInSeconds - (pausedInSeconds ?? 0)).clamp(0, durationInSeconds);
 
-    if (query.isNotEmpty &&
-        (!videoTopic!.title!.toLowerCase().contains(query.toLowerCase()))) {
+    if (query.isNotEmpty && (!videoTopic!.title!.toLowerCase().contains(query.toLowerCase()))) {
       return Container();
     }
 
@@ -989,8 +909,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: (videoTopic?.thumbnail != null &&
-                                  videoTopic!.thumbnail!.isNotEmpty)
+                          child: (videoTopic?.thumbnail != null && videoTopic!.thumbnail!.isNotEmpty)
                               ? Image.network(
                                   videoTopic.thumbnail ?? "",
                                   // "https://i.vimeocdn.com/video/1943788748-7650fc712ef95631e35e4bf5b5062ed4dd2d79fcf4b95733a1e0ca4bb53b46c3-d_200x150?r=pad",
@@ -998,10 +917,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                 )
                               : SvgPicture.asset(
                                   "assets/image/videochapter.svg",
-                                  color:
-                                      ThemeManager.currentTheme == AppTheme.Dark
-                                          ? AppColors.white
-                                          : null,
+                                  color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,
                                 ),
                         ),
                       ),
@@ -1014,9 +930,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 SizedBox(
-                                  width: isDesktop
-                                      ? null
-                                      : MediaQuery.of(context).size.width * 0.4,
+                                  width: isDesktop ? null : MediaQuery.of(context).size.width * 0.4,
                                   child: Text(
                                     videoTopic?.title ?? "",
                                     maxLines: 3,
@@ -1032,26 +946,20 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                   onTap: () {
                                     _putBookMarkApiCall(videoTopic?.sId);
                                     setState(() {
-                                      isBookmarkedDone?[index] =
-                                          !isBookmarkedDone![index];
-                                      filteredVideos[index]?.isBookmark =
-                                          isBookmarkedDone?[index];
+                                      isBookmarkedDone?[index] = !isBookmarkedDone![index];
+                                      filteredVideos[index]?.isBookmark = isBookmarkedDone?[index];
                                     });
                                   },
                                   child: isBookmarkedDone?[index] == true
                                       ? SvgPicture.asset(
                                           "assets/image/bookmarkfill_video_icon.svg",
-                                          height: Dimensions
-                                              .PADDING_SIZE_EXTRA_LARGE,
-                                          width: Dimensions
-                                              .PADDING_SIZE_EXTRA_LARGE,
+                                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+                                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE,
                                         )
                                       : SvgPicture.asset(
                                           "assets/image/bookmark_video_icon.svg",
-                                          height: Dimensions
-                                              .PADDING_SIZE_EXTRA_LARGE,
-                                          width: Dimensions
-                                              .PADDING_SIZE_EXTRA_LARGE,
+                                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+                                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE,
                                         ),
                                 )
                               ],
@@ -1107,8 +1015,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                       "Paused | ${formatTime(remainingSeconds)} left",
                                       style: interRegular.copyWith(
                                         fontSize: Dimensions.fontSizeExtraSmall,
-                                        color:
-                                            ThemeManager.black.withOpacity(0.6),
+                                        color: ThemeManager.black.withOpacity(0.6),
                                       ),
                                     ),
                                   ],
@@ -1125,8 +1032,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                       " Not Started",
                                       style: interRegular.copyWith(
                                         fontSize: Dimensions.fontSizeExtraSmall,
-                                        color:
-                                            ThemeManager.black.withOpacity(0.6),
+                                        color: ThemeManager.black.withOpacity(0.6),
                                       ),
                                     ),
                                   ],
@@ -1138,18 +1044,14 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                         // progress check reads an empty string key.
                         final progressId = _resolveTitleId(videoTopic);
                         final isDownloading = store.isDownloading(progressId);
-                        final progress =
-                            store.getDownloadProgress(progressId);
+                        final progress = store.getDownloadProgress(progressId);
 
                         return InkWell(
                           onTap: () async {
                             if (!isDownloading) {
-                              await initializePlayerWithAPIResponse(
-                                  filesToMapList(videoTopic?.videoFiles));
-                              await initializeDownload(
-                                  downloadToMapList(videoTopic?.downloadVideo));
-                              _showQualityOptions(
-                                  store, videoTopic, isDownloaded);
+                              await initializePlayerWithAPIResponse(filesToMapList(videoTopic?.videoFiles));
+                              await initializeDownload(downloadToMapList(videoTopic?.downloadVideo));
+                              _showQualityOptions(store, videoTopic, isDownloaded);
                             }
                           },
                           child: Row(
@@ -1162,18 +1064,12 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                       child: CircularProgressIndicator(
                                         value: progress / 100,
                                         strokeWidth: 3.0,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                ThemeManager.primaryColor),
+                                        valueColor: AlwaysStoppedAnimation<Color>(ThemeManager.primaryColor),
                                       ),
                                     )
                                   : Icon(
-                                      isDownloaded!
-                                          ? Icons.check_circle
-                                          : Icons.download_for_offline,
-                                      color: isDownloaded
-                                          ? Colors.green
-                                          : ThemeManager.blueFinal,
+                                      isDownloaded! ? Icons.check_circle : Icons.download_for_offline,
+                                      color: isDownloaded ? Colors.green : ThemeManager.blueFinal,
                                     ),
                               const SizedBox(width: 4),
                               Text(
@@ -1303,26 +1199,20 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
       filtered = store.videotopic;
     } else if (selectedFilter == "Completed") {
       filtered = store.videotopic
-          .where((video) =>
-              video?.isCompleted != null &&
-              (video?.isCompleted ?? false) == true)
+          .where((video) => video?.isCompleted != null && (video?.isCompleted ?? false) == true)
           .toList();
     } else if (selectedFilter == "In Progress") {
-      filtered = store.videotopic
-          .where((video) => (video?.pausedTime?.isNotEmpty ?? false))
-          .toList();
+      filtered = store.videotopic.where((video) => (video?.pausedTime?.isNotEmpty ?? false)).toList();
     } else if (selectedFilter == "Not Started") {
       filtered = store.videotopic
           .where((video) =>
-              (video?.isCompleted == null ||
-                  (video?.isCompleted ?? false) == false) &&
+              (video?.isCompleted == null || (video?.isCompleted ?? false) == false) &&
               !(video?.pausedTime?.isNotEmpty ?? false))
           .toList();
     } else if (selectedFilter == "Offline Videos") {
       filtered = offlineVideos;
     } else if (selectedFilter == "Bookmarked Videos") {
-      filtered =
-          store.videotopic.where((video) => video?.isBookmark == true).toList();
+      filtered = store.videotopic.where((video) => video?.isBookmark == true).toList();
     }
     // Sort once here: incomplete videos first, completed at bottom
     filtered.sort((a, b) {
@@ -1330,13 +1220,13 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
       return (a?.isCompleted ?? false) ? 1 : -1;
     });
     filteredVideos = filtered;
-    isBookmarkedDone =
-        filtered.map((topic) => topic?.isBookmark ?? false).toList();
+    isBookmarkedDone = filtered.map((topic) => topic?.isBookmark ?? false).toList();
     // debugPrint('filtervd${filteredVideos.length}');
     // setState(() {});
   }
 
   Future<void> _filterOfflineVideos() async {
+    if (!mounted) return;
     final store = Provider.of<VideoCategoryStore>(context, listen: false);
     List<VideoTopicModel?> downloadedVideos = [];
     for (var video in store.videotopic) {
@@ -1365,8 +1255,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
     }
   }
 
-  void _showQualityOptions(VideoCategoryStore store,
-      VideoTopicModel? videoTopic, bool isDownloaded) {
+  void _showQualityOptions(VideoCategoryStore store, VideoTopicModel? videoTopic, bool isDownloaded) {
     if (Platform.isMacOS || Platform.isWindows) {
       // Show a dialog for desktop platforms
       showDialog(
@@ -1394,8 +1283,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                 ),
                 const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
                 material.Padding(
-                  padding: const EdgeInsets.only(
-                      left: 15, right: 15, top: 10, bottom: 10),
+                  padding: const EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 10),
                   child: Wrap(
                     spacing: Dimensions.PADDING_SIZE_DEFAULT * 1.1,
                     children: List.generate(
@@ -1433,9 +1321,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                               },
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? ThemeManager.blueFinal
-                                      : material.Colors.transparent,
+                                  color: isSelected ? ThemeManager.blueFinal : material.Colors.transparent,
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
                                     color: isSelected
@@ -1446,8 +1332,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: Dimensions.PADDING_SIZE_DEFAULT,
-                                    vertical:
-                                        Dimensions.PADDING_SIZE_EXTRA_SMALL,
+                                    vertical: Dimensions.PADDING_SIZE_EXTRA_SMALL,
                                   ),
                                   child: Text(
                                     quality,
@@ -1455,12 +1340,8 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                       fontSize: isSelected
                                           ? Dimensions.fontSizeLarge
                                           : Dimensions.fontSizeDefaultLarge,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                      color: isSelected
-                                          ? ThemeManager.white
-                                          : ThemeManager.black,
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                      color: isSelected ? ThemeManager.white : ThemeManager.black,
                                     ),
                                   ),
                                 ),
@@ -1481,8 +1362,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                 ),
                 onPressed: () {
                   Navigator.pop(context);
-                  _downloadVideo(
-                      store, downloadUrl, downloadQuality, videoTopic);
+                  _downloadVideo(store, downloadUrl, downloadQuality, videoTopic);
                 },
                 child: Text(
                   "Download",
@@ -1495,8 +1375,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
               ),
               if (isDownloaded)
                 Padding(
-                  padding:
-                      const EdgeInsets.only(left: 15, right: 15, bottom: 15),
+                  padding: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
                   child: SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -1545,13 +1424,13 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                       return;
                                     }
                                     await dbHelper.deleteVideoByTitleId(tid);
+                                    // Evict cached decrypted file too.
+                                    await OfflineEncryptor.evictCache(tid);
                                     _videoStore.markNotDownloaded(tid);
                                     BottomToast.showBottomToastOverlay(
                                       context: context,
-                                      errorMessage:
-                                          "Offline downloaded video has been deleted successfully!",
-                                      backgroundColor:
-                                          Theme.of(context).primaryColor,
+                                      errorMessage: "Offline downloaded video has been deleted successfully!",
+                                      backgroundColor: Theme.of(context).primaryColor,
                                     );
                                     Navigator.pop(context);
                                     Navigator.pop(context);
@@ -1607,8 +1486,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
         builder: (BuildContext context) {
-          return StatefulBuilder(
-              builder: (BuildContext context, StateSetter setState) {
+          return StatefulBuilder(builder: (BuildContext context, StateSetter setState) {
             return FractionallySizedBox(
               child: FittedBox(
                 fit: BoxFit.fitWidth,
@@ -1667,15 +1545,13 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                       //   }).toList(),
                       // ),
                       material.Padding(
-                        padding: const EdgeInsets.only(
-                            left: 15, right: 15, top: 10, bottom: 10),
+                        padding: const EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 10),
                         child: Wrap(
                           spacing: Dimensions.PADDING_SIZE_DEFAULT * 1.1,
                           children: List.generate(
                             _qualityAndSize.length,
                             (index) {
-                              final entry =
-                                  _qualityAndSize.entries.elementAt(index);
+                              final entry = _qualityAndSize.entries.elementAt(index);
                               final quality = entry.key;
                               final size = entry.value;
                               bool isSelected = index == _selectedIndex;
@@ -1707,37 +1583,28 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                     },
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? ThemeManager.blueFinal
-                                            : material.Colors.transparent,
+                                        color:
+                                            isSelected ? ThemeManager.blueFinal : material.Colors.transparent,
                                         borderRadius: BorderRadius.circular(4),
                                         border: Border.all(
                                           color: isSelected
                                               ? material.Colors.transparent
-                                              : ThemeManager.black
-                                                  .withOpacity(0.28),
+                                              : ThemeManager.black.withOpacity(0.28),
                                         ),
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal:
-                                              Dimensions.PADDING_SIZE_DEFAULT,
-                                          vertical: Dimensions
-                                              .PADDING_SIZE_EXTRA_SMALL,
+                                          horizontal: Dimensions.PADDING_SIZE_DEFAULT,
+                                          vertical: Dimensions.PADDING_SIZE_EXTRA_SMALL,
                                         ),
                                         child: Text(
                                           quality,
                                           style: interRegular.copyWith(
                                             fontSize: isSelected
                                                 ? Dimensions.fontSizeLarge
-                                                : Dimensions
-                                                    .fontSizeDefaultLarge,
-                                            fontWeight: isSelected
-                                                ? FontWeight.w700
-                                                : FontWeight.w500,
-                                            color: isSelected
-                                                ? ThemeManager.white
-                                                : ThemeManager.black,
+                                                : Dimensions.fontSizeDefaultLarge,
+                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                            color: isSelected ? ThemeManager.white : ThemeManager.black,
                                           ),
                                         ),
                                       ),
@@ -1750,15 +1617,13 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(
-                            left: 15, right: 15, top: 10, bottom: 30),
+                        padding: const EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 30),
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
                               Navigator.pop(context);
-                              _downloadVideo(store, downloadUrl,
-                                  downloadQuality, videoTopic);
+                              _downloadVideo(store, downloadUrl, downloadQuality, videoTopic);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryColor,
@@ -1773,8 +1638,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                       ),
                       if (isDownloaded)
                         Padding(
-                          padding: const EdgeInsets.only(
-                              left: 15, right: 15, bottom: 15),
+                          padding: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
                           child: SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -1807,8 +1671,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                           child: Text(
                                             "Cancel",
                                             style: interRegular.copyWith(
-                                              fontSize:
-                                                  Dimensions.fontSizeDefault,
+                                              fontSize: Dimensions.fontSizeDefault,
                                               fontWeight: FontWeight.w600,
                                               color: ThemeManager.blackColor,
                                             ),
@@ -1824,13 +1687,14 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                               return;
                                             }
                                             await dbHelper.deleteVideoByTitleId(tid);
+                                            // Evict cached decrypted file too.
+                                            await OfflineEncryptor.evictCache(tid);
                                             store.markNotDownloaded(tid);
                                             BottomToast.showBottomToastOverlay(
                                               context: context,
                                               errorMessage:
                                                   "Offline downloaded video has been deleted successfully!",
-                                              backgroundColor: Theme.of(context)
-                                                  .primaryColor,
+                                              backgroundColor: Theme.of(context).primaryColor,
                                             );
                                             Navigator.pop(context);
                                             Navigator.pop(context);
@@ -1843,8 +1707,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                                           child: Text(
                                             "Delete",
                                             style: interRegular.copyWith(
-                                              fontSize:
-                                                  Dimensions.fontSizeDefault,
+                                              fontSize: Dimensions.fontSizeDefault,
                                               fontWeight: FontWeight.w600,
                                               color: ThemeManager.white,
                                             ),
@@ -1857,8 +1720,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.redText,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
@@ -1885,17 +1747,18 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
     }
   }
 
-  Future<void> initializePlayerWithAPIResponse(
-      List<Map<String, dynamic>> apiFiles) async {
+  Future<void> initializePlayerWithAPIResponse(List<Map<String, dynamic>> apiFiles) async {
     _videoUrls.clear();
     _qualityAndSize.clear();
     for (var file in apiFiles) {
-      String rendition = file["rendition"];
-      String quality = file["quality"];
-      String size = file["size_short"];
-      String link = file["link"];
+      final rendition = (file["rendition"] ?? "").toString().trim();
+      final quality = (file["quality"] ?? "").toString().trim();
+      final size = (file["size_short"] ?? "").toString().trim();
+      final link = (file["link"] ?? "").toString().trim();
+      if (link.isEmpty || rendition.isEmpty) continue;
       _videoUrls[rendition] = link;
-      _qualityAndSize["${quality.toUpperCase()} $rendition"] = " $size";
+      final label = quality.isEmpty ? rendition : "${quality.toUpperCase()} $rendition";
+      _qualityAndSize[label] = size.isEmpty ? "" : " $size";
     }
   }
 
@@ -1909,6 +1772,11 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
     downloadQuality = "";
     downloadUrl = "";
 
+    // Track which renditions (e.g. "480p", "720p") we've already added so
+    // that near-duplicates like "SD 480p" and bare "480p" from the API
+    // don't both appear in the quality picker.
+    final Set<String> seenRenditions = {};
+
     for (var file in apiFiles) {
       final rendition = (file["rendition"] ?? "").toString().trim();
       final quality = (file["quality"] ?? "").toString().trim();
@@ -1917,18 +1785,16 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
       // Skip entries we can't actually download.
       if (link.isEmpty || rendition.isEmpty) continue;
 
+      // Deduplicate by rendition (e.g. "480p"). The API sometimes returns
+      // two entries for the same resolution — one with a quality prefix
+      // ("SD 480p") and one without ("480p"). Keep whichever appears first.
+      if (seenRenditions.contains(rendition)) continue;
+      seenRenditions.add(rendition);
+
       // Build a human-readable label. If quality is blank (e.g. just "480p"
       // with no SD/HD prefix) we don't want a leading space — it rendered as
       // " 480p" and looked like a duplicate entry next to "SD 480p".
-      final label = quality.isEmpty
-          ? rendition
-          : "${quality.toUpperCase()} $rendition";
-
-      // If the same label appears twice in the server response, keep the
-      // first (usually the smaller size, which is what the user wants for a
-      // download). This dedupes the odd case where the API returns two
-      // entries with identical quality+rendition but different encodings.
-      if (_qualityAndSize.containsKey(label)) continue;
+      final label = quality.isEmpty ? rendition : "${quality.toUpperCase()} $rendition";
 
       _qualityAndSize[label] = size.isEmpty ? "" : " $size";
       _downloadUrls[label] = link;
@@ -1988,8 +1854,8 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
   /// state in sync. This function is now fire-and-forget from the caller's
   /// perspective — all post-enqueue async work happens inside the service,
   /// which outlives this widget.
-  Future<void> _downloadVideo(VideoCategoryStore store, String url,
-      String quality, VideoTopicModel? videoTopic) async {
+  Future<void> _downloadVideo(
+      VideoCategoryStore store, String url, String quality, VideoTopicModel? videoTopic) async {
     // ── Input validation ─────────────────────────────────────────────────
     // The server has two identifier schemes on a VideoTopicModel: `id` (an
     // int from the legacy numeric PK) and `sId` (the Mongo `_id` string).
@@ -1999,8 +1865,7 @@ class _VideoChapterDetailState extends State<VideoChapterDetail> {
     // sitting right there. Fall back through the chain.
     final titleId = _resolveTitleId(videoTopic);
     if (titleId.isEmpty) {
-      debugPrint(
-          '[DL] aborted — no usable identifier on videoTopic (id/sId/topicId all empty)');
+      debugPrint('[DL] aborted — no usable identifier on videoTopic (id/sId/topicId all empty)');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

@@ -25,7 +25,9 @@ NotesCategoryModel _$NotesCategoryModelFromJson(Map<String, dynamic> json) =>
       progressCount: (json['progressCount'] as num?)?.toInt(),
       notStart: (json['notStart'] as num?)?.toInt(),
       bookmarkPdfCount: (json['bookmarkPdfCount'] as num?)?.toInt(),
-    );
+    )
+      ..priorityLabel = json['priorityLabel'] as String?
+      ..priorityColor = json['priorityColor'] as String?;
 
 Map<String, dynamic> _$NotesCategoryModelToJson(NotesCategoryModel instance) =>
     <String, dynamic>{
@@ -46,4 +48,6 @@ Map<String, dynamic> _$NotesCategoryModelToJson(NotesCategoryModel instance) =>
       'progressCount': instance.progressCount,
       'notStart': instance.notStart,
       'bookmarkPdfCount': instance.bookmarkPdfCount,
+      'priorityLabel': instance.priorityLabel,
+      'priorityColor': instance.priorityColor,
     };

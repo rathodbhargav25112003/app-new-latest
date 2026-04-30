@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import '../../helpers/app_tokens.dart';
+import '../widgets/smart_resume_banner.dart';
 import 'ask_question.dart';
 import '../../app/routes.dart';
 import 'package:intl/intl.dart';
@@ -1047,6 +1048,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(
                               height: Dimensions.PADDING_SIZE_SMALL * 1.1),
+
+                          // Smart Resume banner — surfaces the user's
+                          // most-recent in-progress mock exam / custom
+                          // test / video / note as a 1-tap "pick up
+                          // where you left off" card. Hidden when the
+                          // user has nothing in progress.
+                          const SmartResumeBanner(),
 
                           Padding(
                             padding: const EdgeInsets.only(

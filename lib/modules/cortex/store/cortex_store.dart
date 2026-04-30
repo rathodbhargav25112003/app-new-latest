@@ -312,27 +312,15 @@ class CortexStore extends InternetStore {
       if (idx != -1) {
         final m = activeMessages[idx];
         activeMessages[idx] = CortexMessage(
-          id: m.id,
-          chatId: m.chatId,
-          userId: m.userId,
-          role: m.role,
-          content: m.content,
-          images: m.images,
-          attachedQuestionId: m.attachedQuestionId,
-          model: m.model,
-          inputTokens: m.inputTokens,
-          outputTokens: m.outputTokens,
-          finishReason: m.finishReason,
-          error: m.error,
-          latencyMs: m.latencyMs,
-          userRating: m.userRating,
-          savedSnippet: saved,
+          id: m.id, chatId: m.chatId, userId: m.userId, role: m.role,
+          content: m.content, images: m.images, attachedQuestionId: m.attachedQuestionId,
+          model: m.model, inputTokens: m.inputTokens, outputTokens: m.outputTokens,
+          finishReason: m.finishReason, error: m.error, latencyMs: m.latencyMs,
+          userRating: m.userRating, savedSnippet: saved,
           snippetNote: note ?? m.snippetNote,
           snippetSavedAt: saved ? DateTime.now() : null,
-          suggestedFollowups: m.suggestedFollowups,
-          mermaidSource: m.mermaidSource,
-          generatedFlashcardsCount: m.generatedFlashcardsCount,
-          createdAt: m.createdAt,
+          suggestedFollowups: m.suggestedFollowups, mermaidSource: m.mermaidSource,
+          generatedFlashcardsCount: m.generatedFlashcardsCount, createdAt: m.createdAt,
         );
       }
     });
@@ -343,7 +331,8 @@ class CortexStore extends InternetStore {
   final Observable<CortexMemory> memory = Observable<CortexMemory>(CortexMemory.empty());
 
   Future<void> loadMemory() async {
-    runInAction(() async => memory.value = await _service.getMemory());
+    final result = await _service.getMemory();
+    runInAction(() => memory.value = result);
   }
 
   Future<void> updateMemory({String? notes, CortexPreferences? preferences}) async {
@@ -352,7 +341,8 @@ class CortexStore extends InternetStore {
   }
 
   // ── Quick prompts ──────────────────────────────────────────────────────
-  final Observable<CortexQuickPrompts> quickPrompts = Observable<CortexQuickPrompts>(CortexQuickPrompts());
+  final Observable<CortexQuickPrompts> quickPrompts =
+      Observable<CortexQuickPrompts>(CortexQuickPrompts());
 
   Future<void> loadQuickPrompts({String contextKind = 'general'}) async {
     final qp = await _service.getQuickPrompts(contextKind: contextKind);
@@ -364,50 +354,24 @@ class CortexStore extends InternetStore {
 
   // ── Helpers ────────────────────────────────────────────────────────────
   CortexMessage _replaceId(CortexMessage m, String newId) => CortexMessage(
-        id: newId,
-        chatId: m.chatId,
-        userId: m.userId,
-        role: m.role,
-        content: m.content,
-        images: m.images,
-        attachedQuestionId: m.attachedQuestionId,
-        model: m.model,
-        inputTokens: m.inputTokens,
-        outputTokens: m.outputTokens,
-        finishReason: m.finishReason,
-        error: m.error,
-        latencyMs: m.latencyMs,
-        userRating: m.userRating,
-        savedSnippet: m.savedSnippet,
-        snippetNote: m.snippetNote,
-        snippetSavedAt: m.snippetSavedAt,
-        suggestedFollowups: m.suggestedFollowups,
-        mermaidSource: m.mermaidSource,
-        generatedFlashcardsCount: m.generatedFlashcardsCount,
-        createdAt: m.createdAt,
+        id: newId, chatId: m.chatId, userId: m.userId, role: m.role, content: m.content,
+        images: m.images, attachedQuestionId: m.attachedQuestionId, model: m.model,
+        inputTokens: m.inputTokens, outputTokens: m.outputTokens,
+        finishReason: m.finishReason, error: m.error, latencyMs: m.latencyMs,
+        userRating: m.userRating, savedSnippet: m.savedSnippet,
+        snippetNote: m.snippetNote, snippetSavedAt: m.snippetSavedAt,
+        suggestedFollowups: m.suggestedFollowups, mermaidSource: m.mermaidSource,
+        generatedFlashcardsCount: m.generatedFlashcardsCount, createdAt: m.createdAt,
       );
 
   CortexMessage _replaceContent(CortexMessage m, String newContent) => CortexMessage(
-        id: m.id,
-        chatId: m.chatId,
-        userId: m.userId,
-        role: m.role,
-        content: newContent,
-        images: m.images,
-        attachedQuestionId: m.attachedQuestionId,
-        model: m.model,
-        inputTokens: m.inputTokens,
-        outputTokens: m.outputTokens,
-        finishReason: m.finishReason,
-        error: m.error,
-        latencyMs: m.latencyMs,
-        userRating: m.userRating,
-        savedSnippet: m.savedSnippet,
-        snippetNote: m.snippetNote,
-        snippetSavedAt: m.snippetSavedAt,
-        suggestedFollowups: m.suggestedFollowups,
-        mermaidSource: m.mermaidSource,
-        generatedFlashcardsCount: m.generatedFlashcardsCount,
-        createdAt: m.createdAt,
+        id: m.id, chatId: m.chatId, userId: m.userId, role: m.role, content: newContent,
+        images: m.images, attachedQuestionId: m.attachedQuestionId, model: m.model,
+        inputTokens: m.inputTokens, outputTokens: m.outputTokens,
+        finishReason: m.finishReason, error: m.error, latencyMs: m.latencyMs,
+        userRating: m.userRating, savedSnippet: m.savedSnippet,
+        snippetNote: m.snippetNote, snippetSavedAt: m.snippetSavedAt,
+        suggestedFollowups: m.suggestedFollowups, mermaidSource: m.mermaidSource,
+        generatedFlashcardsCount: m.generatedFlashcardsCount, createdAt: m.createdAt,
       );
 }

@@ -28,7 +28,9 @@ NotesSubCategoryModel _$NotesSubCategoryModelFromJson(
       notStart: (json['notStart'] as num?)?.toInt(),
       notes: (json['Notes'] as num?)?.toInt(),
       bookmarkPdfCount: (json['bookmarkPdfCount'] as num?)?.toInt(),
-    );
+    )
+      ..priorityLabel = json['priorityLabel'] as String?
+      ..priorityColor = json['priorityColor'] as String?;
 
 Map<String, dynamic> _$NotesSubCategoryModelToJson(
         NotesSubCategoryModel instance) =>
@@ -52,4 +54,6 @@ Map<String, dynamic> _$NotesSubCategoryModelToJson(
       'updated_at': instance.updated_at,
       'description': instance.description,
       'sid': instance.sid,
+      'priorityLabel': instance.priorityLabel,
+      'priorityColor': instance.priorityColor,
     };

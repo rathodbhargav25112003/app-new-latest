@@ -411,188 +411,186 @@ class _VerificationOtpMailState extends State<VerificationOtpMail> with WidgetsB
         ),
       ),
       body: SafeArea(
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppTokens.s24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppTokens.s24),
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.start,
-                    //   crossAxisAlignment: CrossAxisAlignment.start,
-                    //   children: [
-                    //     Image.asset("assets/image/verify_lock.png"),
-                    //     const SizedBox(
-                    //       width: Dimensions.PADDING_SIZE_LARGE,
-                    //     ),
-                    //     Column(
-                    //       crossAxisAlignment: CrossAxisAlignment.start,
-                    //       children: [
-                    //         Text(
-                    //           "Enter 4 digit OTP",
-                    //           style: interSemiBold.copyWith(
-                    //             fontSize: Dimensions.fontSizeExtraLarge,
-                    //           ),
-                    //         ),
-                    //         Text(
-                    //           "We have sent you OTP on",
-                    //           style: interSemiBold.copyWith(
-                    //               fontSize: Dimensions.fontSizeExtraSmall,
-                    //               color: Theme.of(context).hintColor
-                    //           ),
-                    //         ),
-                    //         Text(
-                    //           widget.email,
-                    //           style: interSemiBold.copyWith(
-                    //               fontSize: Dimensions.fontSizeExtraSmall,
-                    //               color: Theme.of(context).hintColor
-                    //           ),
-                    //         ),
-                    //       ],
-                    //     ),
-                    //   ],
-                    // ),
-                    // Apple-style hero
-                    Container(
-                      width: 56,
-                      height: 56,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: AppTokens.accentSoft(context),
-                        borderRadius: AppTokens.radius16,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppTokens.s24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppTokens.s24),
+                  // Row(
+                  //   mainAxisAlignment: MainAxisAlignment.start,
+                  //   crossAxisAlignment: CrossAxisAlignment.start,
+                  //   children: [
+                  //     Image.asset("assets/image/verify_lock.png"),
+                  //     const SizedBox(
+                  //       width: Dimensions.PADDING_SIZE_LARGE,
+                  //     ),
+                  //     Column(
+                  //       crossAxisAlignment: CrossAxisAlignment.start,
+                  //       children: [
+                  //         Text(
+                  //           "Enter 4 digit OTP",
+                  //           style: interSemiBold.copyWith(
+                  //             fontSize: Dimensions.fontSizeExtraLarge,
+                  //           ),
+                  //         ),
+                  //         Text(
+                  //           "We have sent you OTP on",
+                  //           style: interSemiBold.copyWith(
+                  //               fontSize: Dimensions.fontSizeExtraSmall,
+                  //               color: Theme.of(context).hintColor
+                  //           ),
+                  //         ),
+                  //         Text(
+                  //           widget.email,
+                  //           style: interSemiBold.copyWith(
+                  //               fontSize: Dimensions.fontSizeExtraSmall,
+                  //               color: Theme.of(context).hintColor
+                  //           ),
+                  //         ),
+                  //       ],
+                  //     ),
+                  //   ],
+                  // ),
+                  // Apple-style hero
+                  Container(
+                    width: 56,
+                    height: 56,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppTokens.accentSoft(context),
+                      borderRadius: AppTokens.radius16,
+                    ),
+                    child: Icon(Icons.mark_email_read_outlined, size: 28, color: AppTokens.accent(context)),
+                  ),
+                  const SizedBox(height: AppTokens.s24),
+                  Text(
+                    "Check your email",
+                    style: AppTokens.displayMd(context),
+                  ),
+                  const SizedBox(height: AppTokens.s8),
+                  RichText(
+                    text: TextSpan(
+                      style: AppTokens.bodyLg(context).copyWith(
+                        color: AppTokens.muted(context),
+                        height: 1.45,
                       ),
-                      child: Icon(Icons.mark_email_read_outlined, size: 28, color: AppTokens.accent(context)),
-                    ),
-                    const SizedBox(height: AppTokens.s24),
-                    Text(
-                      "Check your email",
-                      style: AppTokens.displayMd(context),
-                    ),
-                    const SizedBox(height: AppTokens.s8),
-                    RichText(
-                      text: TextSpan(
-                        style: AppTokens.bodyLg(context).copyWith(
-                          color: AppTokens.muted(context),
-                          height: 1.45,
+                      children: [
+                        const TextSpan(text: "We've sent a 4-digit code to "),
+                        TextSpan(
+                          text: _maskEmail(widget.email),
+                          style: TextStyle(
+                            color: AppTokens.ink(context),
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                        children: [
-                          const TextSpan(text: "We've sent a 4-digit code to "),
-                          TextSpan(
-                            text: _maskEmail(widget.email),
-                            style: TextStyle(
-                              color: AppTokens.ink(context),
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const TextSpan(text: ". "),
-                          WidgetSpan(
-                            alignment: PlaceholderAlignment.middle,
-                            child: GestureDetector(
-                              onTap: () => Navigator.of(context).maybePop(),
-                              child: Text(
-                                "Edit",
-                                style: AppTokens.body(context).copyWith(
-                                  color: AppTokens.accent(context),
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.s32),
-                    // System keyboard + iOS QuickType + Android SMS retrieval
-                    OtpAutofillField(
-                      length: 4,
-                      autoStartListener: true,
-                      onChanged: (code) {
-                        otp = code;
-                        setState(() => isCompleted = code.length == 4);
-                      },
-                      onCompleted: (code) {
-                        otp = code;
-                        setState(() => isCompleted = true);
-                        _verifyOtpMail(loginStore, widget.email, otp, loggedInPlatform);
-                      },
-                    ),
-                    const SizedBox(height: AppTokens.s24),
-                    Observer(builder: (_) {
-                      return CustomButton(
-                        onPressed: () {
-                          if (otp.length == 4) {
-                            _verifyOtpMail(loginStore, widget.email, otp, loggedInPlatform);
-                          } else {
-                            BottomToast.showBottomToastOverlay(
-                                context: context,
-                                errorMessage: "Please enter the 4-digit code.",
-                                backgroundColor: ThemeManager.redAlert);
-                          }
-                        },
-                        buttonText: "Verify",
-                        height: 54,
-                        bgColor: isCompleted
-                            ? AppTokens.accent(context)
-                            : AppTokens.accent(context).withOpacity(0.4),
-                        radius: AppTokens.r16,
-                        transparent: true,
-                        fontSize: 16,
-                        child: loginStore.isLoading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : null,
-                      );
-                    }),
-                    const SizedBox(height: AppTokens.s20),
-                    Center(
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            !_timerActive ? "Didn't receive it?  " : "Resend in ",
-                            style: AppTokens.body(context),
-                          ),
-                          if (!_timerActive)
-                            InkWell(
-                              onTap: () {
-                                _startTimer();
-                                _resendOtp(loginStore, widget.email);
-                              },
-                              child: Text(
-                                "Resend OTP",
-                                style: AppTokens.body(context).copyWith(
-                                  color: AppTokens.accent(context),
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          if (_timerActive)
-                            Text(
-                              "${remainingTime()}s",
+                        const TextSpan(text: ". "),
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).maybePop(),
+                            child: Text(
+                              "Edit",
                               style: AppTokens.body(context).copyWith(
-                                color: AppTokens.muted(context),
+                                color: AppTokens.accent(context),
                                 fontWeight: FontWeight.w700,
-                                fontFeatures: const [FontFeature.tabularFigures()],
                               ),
                             ),
-                        ],
-                      ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: AppTokens.s24),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: AppTokens.s32),
+                  // System keyboard + iOS QuickType + Android SMS retrieval
+                  OtpAutofillField(
+                    length: 4,
+                    autoStartListener: true,
+                    onChanged: (code) {
+                      otp = code;
+                      setState(() => isCompleted = code.length == 4);
+                    },
+                    onCompleted: (code) {
+                      otp = code;
+                      setState(() => isCompleted = true);
+                      _verifyOtpMail(loginStore, widget.email, otp, loggedInPlatform);
+                    },
+                  ),
+                  const SizedBox(height: AppTokens.s24),
+                  Observer(builder: (_) {
+                    return CustomButton(
+                      onPressed: () {
+                        if (otp.length == 4) {
+                          _verifyOtpMail(loginStore, widget.email, otp, loggedInPlatform);
+                        } else {
+                          BottomToast.showBottomToastOverlay(
+                              context: context,
+                              errorMessage: "Please enter the 4-digit code.",
+                              backgroundColor: ThemeManager.redAlert);
+                        }
+                      },
+                      buttonText: "Verify",
+                      height: 54,
+                      bgColor: isCompleted
+                          ? AppTokens.accent(context)
+                          : AppTokens.accent(context).withOpacity(0.4),
+                      radius: AppTokens.r16,
+                      transparent: true,
+                      fontSize: 16,
+                      child: loginStore.isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : null,
+                    );
+                  }),
+                  const SizedBox(height: AppTokens.s20),
+                  Center(
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          !_timerActive ? "Didn't receive it?  " : "Resend in ",
+                          style: AppTokens.body(context),
+                        ),
+                        if (!_timerActive)
+                          InkWell(
+                            onTap: () {
+                              _startTimer();
+                              _resendOtp(loginStore, widget.email);
+                            },
+                            child: Text(
+                              "Resend OTP",
+                              style: AppTokens.body(context).copyWith(
+                                color: AppTokens.accent(context),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        if (_timerActive)
+                          Text(
+                            "${remainingTime()}s",
+                            style: AppTokens.body(context).copyWith(
+                              color: AppTokens.muted(context),
+                              fontWeight: FontWeight.w700,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppTokens.s24),
+                ],
               ),
             ),
           ),

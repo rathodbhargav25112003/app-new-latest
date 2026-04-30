@@ -28,7 +28,10 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../../app/routes.dart';
 import '../../helpers/colors.dart';
 import '../../helpers/dimensions.dart';
+import '../../helpers/haptics.dart';
 import '../../helpers/styles.dart';
+import '../../services/daily_review_recorder.dart';
+import '../../services/smart_resume_service.dart';
 import '../../models/get_explanation_model.dart';
 import '../../models/get_notes_solution_model.dart';
 import '../../models/test_exampaper_list_model.dart';
@@ -145,6 +148,23 @@ class _PracticeTestExamScreenState extends State<PracticeTestExamScreen> {
     }
 
     _getNotesData(store2.qutestionList.value[_currentQuestionIndex].sId ?? "");
+
+    // Smart Resume hook — push this in-progress practice test into
+    // SmartResumeService so the home banner can offer a 1-tap
+    // resume. Use recordMockExam since this is a non-custom test.
+    final userExamId = widget.userExamId ?? '';
+    final examName = widget.testExamPaper?.examName ?? 'Practice test';
+    final totalQs = widget.testExamPaper?.test?.length ?? 0;
+    if (userExamId.isNotEmpty) {
+      // ignore: discarded_futures
+      SmartResumeService.instance.recordMockExam(
+        userExamId: userExamId,
+        examName: examName,
+        currentQuestion: _currentQuestionIndex + 1,
+        totalQuestions: totalQs,
+        examId: widget.testExamPaper?.examId,
+      );
+    }
   }
 
   Future<void> _getExplanationData(String prompt) async {
@@ -172,17 +192,27 @@ class _PracticeTestExamScreenState extends State<PracticeTestExamScreen> {
   }
 
   Future<void> _putBookMarkApiCall(String examId, String? questionId) async {
+    Haptics.medium();
     final store2 = Provider.of<TestCategoryStore>(context, listen: false);
     setState(() {
       store2.qutestionList.value[_currentQuestionIndex].bookmarks =
           !(store2.qutestionList.value[_currentQuestionIndex].bookmarks ?? false);
     });
     final store = Provider.of<ReportsCategoryStore>(context, listen: false);
-    store.onBookMarkQuestion(context, store2.qutestionList.value[_currentQuestionIndex].bookmarks ?? false,
-        examId, questionId ?? "", "");
+    final isBookmarkedNow =
+        store2.qutestionList.value[_currentQuestionIndex].bookmarks ?? false;
+    store.onBookMarkQuestion(context, isBookmarkedNow, examId, questionId ?? "", "");
+    // Push (or pull) into the daily-review bookmark pool. Fire-and-
+    // forget — failures don't block the user's flow.
+    // ignore: discarded_futures
+    DailyReviewRecorder.bookmarkToggle(
+      store2.qutestionList.value[_currentQuestionIndex],
+      examId,
+      isBookmarkedNow,
+    );
     BottomToast.showBottomToastOverlay(
       context: context,
-      errorMessage: store2.qutestionList.value[_currentQuestionIndex].bookmarks ?? false
+      errorMessage: isBookmarkedNow
           ? "Question Bookmarked Successfully!"
           : "Bookmark Removed!",
       backgroundColor: Theme.of(context).primaryColor,
@@ -233,11 +263,28 @@ class _PracticeTestExamScreenState extends State<PracticeTestExamScreen> {
 
   Future<void> _postPracticeData() async {
     final store = Provider.of<TestCategoryStore>(context, listen: false);
-    String? questionId = store.qutestionList.value[_currentQuestionIndex].sId;
+    final question = store.qutestionList.value[_currentQuestionIndex];
+    String? questionId = question.sId;
 
     String? selectedOption = _selectedIndex == -1
         ? ""
-        : store.qutestionList.value[_currentQuestionIndex].optionsData?[_selectedIndex].value;
+        : question.optionsData?[_selectedIndex].value;
+
+    // Daily-review pool sync — if the user picked an option, judge it
+    // against the correct answer and push to the incorrect pool when
+    // wrong, or pull from it when right (e.g. retake).
+    final correctValue = question.correctOption ?? '';
+    if (selectedOption != null &&
+        selectedOption.isNotEmpty &&
+        correctValue.isNotEmpty) {
+      if (selectedOption != correctValue) {
+        // ignore: discarded_futures
+        DailyReviewRecorder.recordWrong(question, question.examId, selectedOption);
+      } else {
+        // ignore: discarded_futures
+        DailyReviewRecorder.recordCorrect(question);
+      }
+    }
 
     if (selectedOption == "" && !isMarkedForReview) {
       isSkipped = true;
@@ -1911,6 +1958,7 @@ class _PracticeTestExamScreenState extends State<PracticeTestExamScreen> {
                                             const EdgeInsets.only(bottom: Dimensions.PADDING_SIZE_DEFAULT),
                                         child: InkWell(
                                           onTap: () {
+                                            Haptics.selection();
                                             setState(() {
                                               if (widget.isPracticeExam == true) {
                                                 if (!isTapped) {

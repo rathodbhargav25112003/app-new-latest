@@ -1,38 +1,35 @@
-// ignore_for_file: deprecated_member_use, library_private_types_in_public_api, unused_import, use_super_parameters, unused_field, unused_local_variable, non_constant_identifier_names, dead_code, prefer_final_fields, unnecessary_import
-
 import 'dart:io';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:provider/provider.dart';
+import 'package:shusruta_lms/helpers/custom_dynamic_height_gridview.dart';
+import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
+import 'package:shusruta_lms/modules/videolectures/store/video_category_store.dart';
+
 import '../../app/routes.dart';
+import '../../helpers/app_skeleton.dart';
 import '../../helpers/app_tokens.dart';
 import '../../helpers/colors.dart';
-import '../../helpers/styles.dart';
 import '../../helpers/dbhelper.dart';
-import 'package:flutter_svg/svg.dart';
-import 'package:flutter/material.dart';
 import '../../helpers/dimensions.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:provider/provider.dart';
-import '../dashboard/store/home_store.dart';
-import '../../models/searched_data_model.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
-import '../widgets/no_internet_connection.dart';
-import '../../models/video_subcategory_model.dart';
-import 'package:expandable_text/expandable_text.dart';
-import 'package:progress_border/progress_border.dart';
+import '../../helpers/empty_state.dart';
+import '../../helpers/styles.dart';
 import '../../models/video_topic_category_model.dart';
 import '../dashboard/models/global_search_model.dart';
-import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
-import 'package:shusruta_lms/helpers/custom_dynamic_height_gridview.dart';
-import 'package:shusruta_lms/modules/videolectures/store/video_category_store.dart';
+import '../dashboard/store/home_store.dart';
+import '../widgets/no_internet_connection.dart';
+import '../widgets/priority_badge.dart';
 
 class VideoTopicCategoryScreen extends StatefulWidget {
   final String subject;
   final String vid;
-  const VideoTopicCategoryScreen(
-      {super.key, required this.subject, required this.vid});
+  const VideoTopicCategoryScreen({super.key, required this.subject, required this.vid});
 
   @override
-  State<VideoTopicCategoryScreen> createState() =>
-      _VideoTopicCategoryScreenState();
+  State<VideoTopicCategoryScreen> createState() => _VideoTopicCategoryScreenState();
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map<String, dynamic>;
     return CupertinoPageRoute(
@@ -98,6 +95,17 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
     final homeStore = Provider.of<HomeStore>(context, listen: false);
     return Scaffold(
       backgroundColor: AppTokens.scaffold(context),
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: AppTokens.scaffold(context),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: AppTokens.ink(context), size: 18),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: Text(widget.subject, style: AppTokens.titleLg(context)),
+        centerTitle: false,
+      ),
       // appBar: AppBar(
       //   elevation: 0,
       //   automaticallyImplyLeading: false,
@@ -148,70 +156,9 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
       //     },
       //   ),
       // ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppTokens.brand, AppTokens.brand2],
-          ),
-        ),
+      body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: (Platform.isWindows || Platform.isMacOS)
-                  ? const EdgeInsets.symmetric(
-                      vertical: Dimensions.PADDING_SIZE_LARGE * 1,
-                      horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2)
-                  : const EdgeInsets.only(
-                      top: Dimensions.PADDING_SIZE_LARGE * 2,
-                      left: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                      right: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                      bottom: Dimensions.PADDING_SIZE_SMALL * 1.3),
-              child: Row(
-                children: [
-                  IconButton(
-                      highlightColor: Colors.transparent,
-                      hoverColor: Colors.transparent,
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: AppColors.white,
-                      )),
-                  const SizedBox(
-                    width: Dimensions.PADDING_SIZE_DEFAULT,
-                  ),
-                  Expanded(
-                    child: Text(
-                      widget.subject,
-                      style: interRegular.copyWith(
-                        fontSize: Dimensions.fontSizeDefault,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-                  // const Spacer(),
-                  // Container(
-                  //   padding: EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_SMALL*1.2,vertical: Dimensions.PADDING_SIZE_EXTRA_SMALL*1.6),
-                  //   decoration: BoxDecoration(
-                  //       color: ThemeManager.white,
-                  //       borderRadius: BorderRadius.circular(50.53)
-                  //   ),
-                  //   child: Text(
-                  //     "Offline Videos",
-                  //     style: interRegular.copyWith(
-                  //       fontSize: Dimensions.fontSizeSmall,
-                  //       fontWeight: FontWeight.w500,
-                  //       color: ThemeManager.blueFinal,
-                  //     ),
-                  //   ),
-                  // ),
-                ],
-              ),
-            ),
             // Padding(
             //   padding: const EdgeInsets.only(
             //       left: Dimensions.PADDING_SIZE_LARGE * 1.2,
@@ -264,20 +211,8 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
             //   ),
             // ),
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.only(
-                    left: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                    right: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                    top: Dimensions.PADDING_SIZE_EXTRA_LARGE),
-                decoration: BoxDecoration(
-                  color: AppTokens.scaffold(context),
-                  borderRadius: (Platform.isWindows || Platform.isMacOS)
-                      ? null
-                      : const BorderRadius.only(
-                          topLeft: Radius.circular(AppTokens.r28),
-                          topRight: Radius.circular(AppTokens.r28),
-                        ),
-                ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppTokens.s24, AppTokens.s8, AppTokens.s24, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -410,17 +345,14 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
                       child: Row(
                         children: filters.map((filter) {
                           return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 2.0),
+                            padding: const EdgeInsets.symmetric(horizontal: 2.0),
                             child: ChoiceChip(
                               side: BorderSide(color: ThemeManager.mainBorder),
                               label: Text(filter),
                               labelStyle: interRegular.copyWith(
                                 fontSize: Dimensions.fontSizeExtraSmall,
                                 fontWeight: FontWeight.w400,
-                                color: selectedFilter == filter
-                                    ? ThemeManager.white
-                                    : ThemeManager.black,
+                                color: selectedFilter == filter ? ThemeManager.white : ThemeManager.black,
                               ),
                               selected: selectedFilter == filter,
                               selectedColor: Theme.of(context).primaryColor,
@@ -450,24 +382,19 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
                           } else if (selectedFilter == "Completed") {
                             filteredVideos = store.videotopiccategory
                                 .where((video) =>
-                                    video?.completVideoCount != null &&
-                                    (video?.completVideoCount ?? 0) > 0)
+                                    video?.completVideoCount != null && (video?.completVideoCount ?? 0) > 0)
                                 .toList();
                           } else if (selectedFilter == "In Progress") {
                             filteredVideos = store.videotopiccategory
                                 .where((video) =>
-                                    video?.progressCount != null &&
-                                    (video?.progressCount ?? 0) > 0)
+                                    video?.progressCount != null && (video?.progressCount ?? 0) > 0)
                                 .toList();
                           } else if (selectedFilter == "Not Started") {
                             filteredVideos = store.videotopiccategory
-                                .where((video) =>
-                                    video?.notStart != null &&
-                                    (video?.notStart ?? 0) > 0)
+                                .where((video) => video?.notStart != null && (video?.notStart ?? 0) > 0)
                                 .toList();
                           } else if (selectedFilter == "Offline Videos") {
-                            filteredVideos =
-                                store.videotopiccategory.where((video) {
+                            filteredVideos = store.videotopiccategory.where((video) {
                               final topicId = video?.sId ?? "";
                               final count = offlineCounts[topicId] ?? 0;
                               return count > 0;
@@ -475,63 +402,42 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
                           } else if (selectedFilter == "Bookmark Videos") {
                             filteredVideos = store.videotopiccategory
                                 .where((video) =>
-                                    video?.bookmarkVideoCount != null &&
-                                    (video?.bookmarkVideoCount ?? 0) > 0)
+                                    video?.bookmarkVideoCount != null && (video?.bookmarkVideoCount ?? 0) > 0)
                                 .toList();
                           }
 
                           if (store.isLoading) {
-                            return Center(
-                                child: CircularProgressIndicator(
-                              color: ThemeManager.primaryColor,
-                            ));
+                            return const SkeletonList(count: 4, itemHeight: 96);
                           }
                           if (store.videotopiccategory.isEmpty) {
-                            return Center(
-                              child: Text(
-                                "We're sorry, there's no content available right now. Please check back later or explore other sections for more educational resources.",
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: ThemeManager.black),
-                                textAlign: TextAlign.center,
-                              ),
+                            return const EmptyState(
+                              icon: Icons.topic_outlined,
+                              title: 'No topics yet',
+                              subtitle: 'New topics will appear here as soon as they’re published.',
                             );
                           }
                           return store.isConnected
                               ? homeStore.isLoading
-                                  ? const Center(
-                                      child: CircularProgressIndicator())
-                                  : (homeStore.globalSearchList.isNotEmpty &&
-                                          query.isNotEmpty)
+                                  ? const SkeletonList(count: 4, itemHeight: 96)
+                                  : (homeStore.globalSearchList.isNotEmpty && query.isNotEmpty)
                                       ? (Platform.isWindows || Platform.isMacOS)
                                           ? CustomDynamicHeightGridView(
-                                              itemCount: homeStore
-                                                  .globalSearchList.length,
+                                              itemCount: homeStore.globalSearchList.length,
                                               crossAxisCount: 3,
                                               mainAxisSpacing: 10,
-                                              builder: (BuildContext context,
-                                                  int index) {
+                                              builder: (BuildContext context, int index) {
                                                 return SearchItemWidget(
-                                                    videoSubcat: homeStore
-                                                            .globalSearchList[
-                                                        index]);
+                                                    videoSubcat: homeStore.globalSearchList[index]);
                                               },
                                             )
                                           : ListView.builder(
-                                              itemCount: homeStore
-                                                  .globalSearchList.length,
+                                              itemCount: homeStore.globalSearchList.length,
                                               shrinkWrap: true,
                                               padding: EdgeInsets.zero,
-                                              physics:
-                                                  const BouncingScrollPhysics(),
-                                              itemBuilder:
-                                                  (BuildContext context,
-                                                      int index) {
+                                              physics: const BouncingScrollPhysics(),
+                                              itemBuilder: (BuildContext context, int index) {
                                                 return SearchItemWidget(
-                                                    videoSubcat: homeStore
-                                                            .globalSearchList[
-                                                        index]);
+                                                    videoSubcat: homeStore.globalSearchList[index]);
                                               },
                                             )
                                       : (Platform.isWindows || Platform.isMacOS)
@@ -540,43 +446,26 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
                                               mainAxisSpacing: 10,
                                               itemCount: filteredVideos.length,
                                               shrinkWrap: true,
-                                              physics:
-                                                  const BouncingScrollPhysics(),
-                                              builder: (BuildContext context,
-                                                  int index) {
-                                                final video =
-                                                    filteredVideos[index];
-                                                final topicId =
-                                                    video?.sId ?? "";
-                                                final offlineCount =
-                                                    offlineCounts[topicId] ?? 0;
+                                              physics: const BouncingScrollPhysics(),
+                                              builder: (BuildContext context, int index) {
+                                                final video = filteredVideos[index];
+                                                final topicId = video?.sId ?? "";
+                                                final offlineCount = offlineCounts[topicId] ?? 0;
                                                 return _buildItem(
-                                                    context,
-                                                    filteredVideos[index],
-                                                    index,
-                                                    offlineCount);
+                                                    context, filteredVideos[index], index, offlineCount);
                                               },
                                             )
                                           : ListView.builder(
                                               itemCount: filteredVideos.length,
                                               shrinkWrap: true,
                                               padding: EdgeInsets.zero,
-                                              physics:
-                                                  const BouncingScrollPhysics(),
-                                              itemBuilder:
-                                                  (BuildContext context,
-                                                      int index) {
-                                                final video =
-                                                    filteredVideos[index];
-                                                final topicId =
-                                                    video?.sId ?? "";
-                                                final offlineCount =
-                                                    offlineCounts[topicId] ?? 0;
+                                              physics: const BouncingScrollPhysics(),
+                                              itemBuilder: (BuildContext context, int index) {
+                                                final video = filteredVideos[index];
+                                                final topicId = video?.sId ?? "";
+                                                final offlineCount = offlineCounts[topicId] ?? 0;
                                                 return _buildItem(
-                                                    context,
-                                                    filteredVideos[index],
-                                                    index,
-                                                    offlineCount);
+                                                    context, filteredVideos[index], index, offlineCount);
                                               },
                                             )
                               : const NoInternetScreen();
@@ -593,14 +482,12 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
     );
   }
 
-  Widget _buildItem(BuildContext context, VideoTopicCategoryModel? videoSubCat,
-      int index, int offlineCount) {
+  Widget _buildItem(BuildContext context, VideoTopicCategoryModel? videoSubCat, int index, int offlineCount) {
     final store = Provider.of<VideoCategoryStore>(context, listen: false);
     // VideoTopicCategoryModel? videoSubCat = store.videotopiccategory[index];
     int completeVideoCount = videoSubCat?.completVideoCount ?? 0;
     int videoCount = videoSubCat?.videoCount ?? 0;
-    double? progressCount =
-        videoCount > 0 ? completeVideoCount / videoCount : 0;
+    double? progressCount = videoCount > 0 ? completeVideoCount / videoCount : 0;
     String indexCount = (index + 1).toString().padLeft(2, '0');
     String alphabeticalChar = String.fromCharCode('A'.codeUnitAt(0) + index);
 
@@ -608,8 +495,7 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
       padding: const EdgeInsets.only(bottom: Dimensions.PADDING_SIZE_SMALL),
       child: InkWell(
         onTap: () {
-          Navigator.of(context)
-              .pushNamed(Routes.videoChapterDetail, arguments: {
+          Navigator.of(context).pushNamed(Routes.videoChapterDetail, arguments: {
             "chapter": videoSubCat?.topicName,
             "subject": widget.subject,
             "subcatId": videoSubCat?.sId,
@@ -631,8 +517,7 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
                   Container(
                     height: Dimensions.PADDING_SIZE_LARGE * 3.4,
                     width: Dimensions.PADDING_SIZE_LARGE * 3.4,
-                    padding:
-                        const EdgeInsets.all(Dimensions.PADDING_SIZE_DEFAULT),
+                    padding: const EdgeInsets.all(Dimensions.PADDING_SIZE_DEFAULT),
                     decoration: BoxDecoration(
                       color: ThemeManager.continueContainerTrans,
                       borderRadius: BorderRadius.circular(14.4),
@@ -644,9 +529,7 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
                     ),
                     child: SvgPicture.asset(
                       "assets/image/book-open2.svg",
-                      color: ThemeManager.currentTheme == AppTheme.Dark
-                          ? AppColors.white
-                          : null,
+                      color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,
                     ),
                   ),
                   const SizedBox(
@@ -680,8 +563,7 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
                                     style: interSemiBold.copyWith(
                                       fontSize: Dimensions.fontSizeExtraSmall,
                                       fontWeight: FontWeight.w500,
-                                      color:
-                                          ThemeManager.black.withOpacity(0.5),
+                                      color: ThemeManager.black.withOpacity(0.5),
                                     ),
                                   )
                                 : const SizedBox(),
@@ -809,6 +691,13 @@ class _VideoTopicCategoryScreenState extends State<VideoTopicCategoryScreen> {
                     ),
                 ],
               ),
+              videoSubCat?.priorityLabel != null ? const Divider() : SizedBox.shrink(),
+              Center(
+                child: PriorityBadge(
+                  priorityLabel: videoSubCat?.priorityLabel,
+                  priorityColor: videoSubCat?.priorityColor,
+                ),
+              ),
             ],
           ),
         ),
@@ -829,8 +718,7 @@ class SearchItemWidget extends StatelessWidget {
     String? topicName = videoSubcat?.topicName;
     String? title = videoSubcat?.title;
 
-    String displayText =
-        categoryName ?? subcategoryName ?? topicName ?? title ?? "";
+    String displayText = categoryName ?? subcategoryName ?? topicName ?? title ?? "";
     String type = categoryName != null
         ? "Category"
         : subcategoryName != null
@@ -850,13 +738,9 @@ class SearchItemWidget extends StatelessWidget {
                 arguments: {"subject": categoryName, "vid": videoSubcat?.id});
           } else if (type == "Subcategory") {
             Navigator.of(context).pushNamed(Routes.VideoTopicCategory,
-                arguments: {
-                  "chapter": subcategoryName,
-                  "subcatId": videoSubcat?.id
-                });
+                arguments: {"chapter": subcategoryName, "subcatId": videoSubcat?.id});
           } else if (type == "Topic") {
-            Navigator.of(context)
-                .pushNamed(Routes.videoChapterDetail, arguments: {
+            Navigator.of(context).pushNamed(Routes.videoChapterDetail, arguments: {
               "chapter": topicName,
               "subject": videoSubcat?.subName,
               "subcatId": videoSubcat?.id
@@ -868,7 +752,7 @@ class SearchItemWidget extends StatelessWidget {
               // "topicId": videoSubcat?.topicId,
               "isCompleted": false,
               'title': videoSubcat?.title ?? '',
-              'isDownloaded': Provider.of<VideoCategoryStore>(context, listen: false).isVideoDownloadedCached(videoSubcat?.id?.toString() ?? ''),
+              'isDownloaded': false,
               'titleId': videoSubcat?.id,
               'contentId': videoSubcat?.id,
               // 'pauseTime': videoCat?.pausedTime,
@@ -908,9 +792,7 @@ class SearchItemWidget extends StatelessWidget {
                 ),
                 child: SvgPicture.asset(
                   "assets/image/book-open2.svg",
-                  color: ThemeManager.currentTheme == AppTheme.Dark
-                      ? AppColors.white
-                      : null,
+                  color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,
                 ),
               ),
               const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),

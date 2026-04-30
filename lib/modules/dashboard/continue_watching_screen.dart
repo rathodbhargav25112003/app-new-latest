@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:developer';
 import '../../app/routes.dart';
+import '../../helpers/app_skeleton.dart';
 import '../../helpers/colors.dart';
+import '../../helpers/refresh_helper.dart';
 import '../../helpers/styles.dart';
 import '../../helpers/app_tokens.dart';
 import 'package:flutter_svg/svg.dart';
@@ -117,11 +119,7 @@ class _ContinueWatchingScreenState extends State<ContinueWatchingScreen>
         child: Observer(
           builder: (_) {
             if (store.isLoading) {
-              return Center(
-                child: CircularProgressIndicator(
-                  color: AppTokens.accent(context),
-                ),
-              );
+              return const SkeletonList(count: 5, itemHeight: 90);
             }
             if (!store.isConnected) return const NoInternetScreen();
             if (store.getContinueListData.isEmpty) {
@@ -134,9 +132,18 @@ class _ContinueWatchingScreenState extends State<ContinueWatchingScreen>
               physics: const BouncingScrollPhysics(),
               controller: _tabController,
               children: [
-                _buildVideosList(store),
-                _buildNotesList(store),
-                _buildMCQList(store),
+                AppRefresh(
+                  onRefresh: () => store.onGetContinueListApiCall(),
+                  child: _buildVideosList(store),
+                ),
+                AppRefresh(
+                  onRefresh: () => store.onGetContinueListApiCall(),
+                  child: _buildNotesList(store),
+                ),
+                AppRefresh(
+                  onRefresh: () => store.onGetContinueListApiCall(),
+                  child: _buildMCQList(store),
+                ),
               ],
             );
           },

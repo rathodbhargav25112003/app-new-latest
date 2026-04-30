@@ -1,22 +1,22 @@
-// ignore_for_file: use_super_parameters, deprecated_member_use, use_build_context_synchronously, unused_import, unused_field, unused_element, unused_local_variable
-
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:shusruta_lms/services/daily_review_recorder.dart';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
+import 'package:shusruta_lms/helpers/comman_widget.dart';
 import 'package:shusruta_lms/models/get_explanation_model.dart';
+import 'package:shusruta_lms/modules/reports/explanation_common_widget.dart';
 import 'package:shusruta_lms/modules/reports/store/report_by_category_store.dart';
 import 'package:shusruta_lms/modules/widgets/bottom_stick_notes_window.dart';
 import 'package:super_tooltip/super_tooltip.dart';
 import 'package:typewritertext/typewritertext.dart';
 
-import '../../helpers/app_tokens.dart';
-import 'package:shusruta_lms/modules/new_exam_component/widgets/post_attempt_analytics_panel.dart';
 import '../../helpers/colors.dart';
 import '../../helpers/dimensions.dart';
 import '../../helpers/styles.dart';
@@ -24,6 +24,7 @@ import '../../models/get_notes_solution_model.dart';
 import '../widgets/bottom_stick_notes.dart';
 import '../widgets/bottom_toast.dart';
 import '../widgets/custom_bottom_sheet.dart';
+import '../widgets/custom_button.dart';
 import 'custom_test_bottom_raise_query.dart';
 import 'model/custom_test_solution_reports_model.dart';
 
@@ -32,16 +33,11 @@ class CustomTestSolutionReportScreen extends StatefulWidget {
   final String filter;
   final String userExamId;
   const CustomTestSolutionReportScreen(
-      {Key? key,
-      this.solutionReport,
-      required this.filter,
-      required this.userExamId})
+      {Key? key, this.solutionReport, required this.filter, required this.userExamId})
       : super(key: key);
 
   @override
-  State<CustomTestSolutionReportScreen> createState() =>
-      _CustomTestSolutionReportScreenState();
-
+  State<CustomTestSolutionReportScreen> createState() => _CustomTestSolutionReportScreenState();
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map<String, dynamic>;
     return CupertinoPageRoute(
@@ -54,26 +50,21 @@ class CustomTestSolutionReportScreen extends StatefulWidget {
   }
 }
 
-class _CustomTestSolutionReportScreenState
-    extends State<CustomTestSolutionReportScreen> {
+class _CustomTestSolutionReportScreenState extends State<CustomTestSolutionReportScreen> {
   String filterValue = 'View all';
   int _currentQuestionIndex = 0;
   Uint8List? answerImgBytes;
   Uint8List? quesImgBytes;
   Uint8List? explanationImgBytes;
-  bool lastQue = false,
-      firstQue = true,
-      isBookmarked = false,
-      isbutton = false,
-      isprocess = false;
+  bool lastQue = false, firstQue = true, isBookmarked = false, isbutton = false, isprocess = false;
   List<CustomTestSolutionReportsModel>? filteredSolutionReport;
   Widget? explanationWidget;
   Widget? questionWidget;
   final _controller = SuperTooltipController();
   Key _viewerKey = GlobalKey();
   double _textSize = Dimensions.fontSizeDefault;
+  late QuillController _quillController = QuillController.basic();
   double showfontSize = 100;
-  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -96,8 +87,13 @@ class _CustomTestSolutionReportScreenState
     } else {
       filteredSolutionReport = widget.solutionReport;
     }
-    _getNotesData(
-        filteredSolutionReport?[_currentQuestionIndex].questionId ?? "");
+    _getNotesData(filteredSolutionReport?[_currentQuestionIndex].questionId ?? "");
+
+    // Sync solution report into daily-review pools.
+    if (widget.solutionReport != null) {
+      // ignore: discarded_futures
+      DailyReviewRecorder.ingestCustomSolutionReport(widget.solutionReport!);
+    }
   }
 
   Future<void> _getNotesData(String queId) async {
@@ -126,12 +122,13 @@ class _CustomTestSolutionReportScreenState
       } else {
         lastQue = false;
       }
+
       explanationWidget = getExplanationText(context);
       questionWidget = getQuestionText(context);
       _scrollToIndex(_currentQuestionIndex);
     });
-    _getNotesData(
-        filteredSolutionReport?[_currentQuestionIndex].questionId ?? "");
+
+    _getNotesData(filteredSolutionReport?[_currentQuestionIndex].questionId ?? "");
   }
 
   void _showPreviousQuestion() {
@@ -146,93 +143,228 @@ class _CustomTestSolutionReportScreenState
         _viewerKey = GlobalKey();
         firstQue = false;
       }
+
       explanationWidget = getExplanationText(context);
       questionWidget = getQuestionText(context);
       _scrollToIndex(_currentQuestionIndex);
     });
-    _getNotesData(
-        filteredSolutionReport?[_currentQuestionIndex].questionId ?? "");
+    _getNotesData(filteredSolutionReport?[_currentQuestionIndex].questionId ?? "");
   }
+
+  // Widget getExplanationText(BuildContext context) {
+  //   if (filteredSolutionReport == null ||
+  //       _currentQuestionIndex < 0 ||
+  //       _currentQuestionIndex >= (filteredSolutionReport?.length ?? 0)) {
+  //     return Center(
+  //       child: Text(
+  //         "No filtered data available",
+  //         style: interRegular.copyWith(
+  //           fontSize: Dimensions.fontSizeDefault,
+  //           fontWeight: FontWeight.w400,
+  //           color: ThemeManager.black,
+  //         ),
+  //       ),
+  //     );
+  //   }
+  //
+  //   String explanation =
+  //       filteredSolutionReport?[_currentQuestionIndex].explanation ?? "";
+  //   explanation = explanation.replaceAllMapped(
+  //       RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
+  //   List<String> splittedText = explanation.split("splittedImage");
+  //   List<Widget> columns = [];
+  //   int index = 0;
+  //   for (String text in splittedText) {
+  //     List<Widget> explanationImageWidget = [];
+  //     if (filteredSolutionReport?[_currentQuestionIndex]
+  //             .explanationImg
+  //             ?.isNotEmpty ??
+  //         false) {
+  //       for (String base64String
+  //           in filteredSolutionReport![_currentQuestionIndex].explanationImg!) {
+  //         try {
+  //           // Uint8List explanationImgBytes = base64Decode(base64String);
+  //           explanationImageWidget.add(
+  //             GestureDetector(
+  //               onTap: () {
+  //                 showDialog(
+  //                   context: context,
+  //                   builder: (context) {
+  //                     return Dialog(
+  //                       child: PhotoView(
+  //                         // imageProvider: MemoryImage(explanationImgBytes),
+  //                         imageProvider: NetworkImage(base64String),
+  //                         minScale: PhotoViewComputedScale.contained,
+  //                         maxScale: PhotoViewComputedScale.covered * 2,
+  //                       ),
+  //                     );
+  //                   },
+  //                 );
+  //               },
+  //               child: Row(
+  //                 children: [
+  //                   Expanded(
+  //                     child: InteractiveViewer(
+  //                       // minScale: 1.0,
+  //                       // maxScale: 3.0,
+  //                       scaleEnabled: false,
+  //                       child: Center(
+  //                         child: Container(
+  //                           padding: const EdgeInsets.only(bottom: 8.0),
+  //                           // width: MediaQuery.of(context).size.width * 0.6,
+  //                           // height: MediaQuery.of(context).size.height * 0.4,
+  //                           child: Stack(
+  //                             children: [
+  //                               // Image.memory(explanationImgBytes),
+  //                               Image.network(base64String, fit: BoxFit.cover),
+  //                               Container(color: Colors.transparent),
+  //                             ],
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //           );
+  //         } catch (e) {
+  //           debugPrint("Error decoding base64 string: $e");
+  //         }
+  //       }
+  //     }
+  //     columns.add(
+  //       Column(
+  //                   crossAxisAlignment: CrossAxisAlignment.start,
+  //
+  //         children: [
+  //           // Html(
+  //           //   data:  text.replaceAll("			--", "                 •").replaceAll("		--", "           •").replaceAll("	--", "     •").replaceAll("--", "•"),
+  //           // ),
+  //           Text(
+  //             text
+  //                 .trim()
+  //                 .replaceAll("			--", "                 •")
+  //                 .replaceAll("		--", "           •")
+  //                 .replaceAll("	--", "     •")
+  //                 .replaceAll("--", "•"),
+  //             textAlign: TextAlign.justify,
+  //             style: interBlack.copyWith(
+  //               fontSize: _textSize,
+  //               fontWeight: FontWeight.w400,
+  //               color: ThemeManager.black,
+  //             ),
+  //           ),
+  //           const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+  //           Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: explanationImageWidget,
+  //           ),
+  //           const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+  //           explanationImageWidget.isNotEmpty
+  //               ? Text(
+  //                   "Tap the image to zoom In/Out",
+  //                   style: interBlack.copyWith(
+  //                     fontSize: Dimensions.fontSizeSmall,
+  //                     fontWeight: FontWeight.w400,
+  //                     color: ThemeManager.black,
+  //                   ),
+  //                 )
+  //               : const SizedBox(),
+  //         ],
+  //       ),
+  //     );
+  //     index++;
+  //
+  //     if (index >=
+  //         (filteredSolutionReport?[_currentQuestionIndex]
+  //                     .explanationImg
+  //                     ?.length ??
+  //                 0) -
+  //             1) {
+  //       break;
+  //     }
+  //   }
+  //
+  //   return Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //
+  //     children: columns,
+  //   );
+  // }
 
   Widget getExplanationText(BuildContext context) {
     if (filteredSolutionReport == null ||
         _currentQuestionIndex < 0 ||
-        _currentQuestionIndex >= (filteredSolutionReport?.length ?? 0)) {
-      return const SizedBox();
+        _currentQuestionIndex >= filteredSolutionReport!.length) {
+      return const Center(
+        child: Text("No data available"),
+      );
     }
 
-    String explanation =
-        filteredSolutionReport?[_currentQuestionIndex].explanation ?? "";
-    explanation = explanation.replaceAllMapped(
-        RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
-    List<String> splittedText = explanation.split("splittedImage");
+    final currentData = filteredSolutionReport![_currentQuestionIndex];
+
     List<Widget> columns = [];
-    int index = 0;
-    for (String text in splittedText) {
-      List<Widget> explanationImageWidget = [];
-      if (filteredSolutionReport?[_currentQuestionIndex]
-              .explanationImg
-              ?.isNotEmpty ??
-          false) {
-        for (String base64String
-            in filteredSolutionReport![_currentQuestionIndex].explanationImg!) {
-          try {
-            explanationImageWidget.add(
-              _ZoomableImage(src: base64String, maxHeight: 260),
-            );
-          } catch (e) {
-            debugPrint("Error decoding base64 string: $e");
-          }
-        }
-      }
+
+    /// TEXT
+    String explanation = currentData.explanation ?? "";
+    final documentContent = preprocessDocument(explanation);
+
+    Document document;
+
+    /// ✅ ⭐ MOST IMPORTANT PART
+    final parsed = documentContent.trim().isEmpty ? null : parseCustomSyntax(documentContent);
+
+    document = (parsed == null || parsed.isEmpty)
+        ? (Document()..insert(0, "No explanation available\n"))
+        : Document.fromJson(parsed);
+
+    debugPrint("⚪ Loaded ORIGINAL content");
+
+    /// ✅ IMPORTANT: recreate controller with document
+
+    _quillController = QuillController(
+      document: document,
+      selection: const TextSelection.collapsed(offset: 0),
+    );
+
+    columns.add(
+      CommonExplanationWidget(
+        textPercentage: showfontSize.toInt(),
+        controller: _quillController,
+      ),
+    );
+
+    /// IMAGES
+    if (currentData.explanationImg != null && currentData.explanationImg!.isNotEmpty) {
+      columns.add(const SizedBox(height: 12));
+
       columns.add(
         Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              text
-                  .trim()
-                  .replaceAll("			--", "                 •")
-                  .replaceAll("		--", "           •")
-                  .replaceAll("	--", "     •")
-                  .replaceAll("--", "•"),
-              textAlign: TextAlign.justify,
-              style: AppTokens.bodyLg(context).copyWith(
-                fontSize: _textSize,
-                color: AppTokens.ink(context),
+          children: currentData.explanationImg!.map<Widget>((imageUrl) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => Dialog(
+                      child: PhotoView(
+                        imageProvider: NetworkImage(imageUrl),
+                      ),
+                    ),
+                  );
+                },
+                child: Image.network(imageUrl),
               ),
-            ),
-            if (explanationImageWidget.isNotEmpty)
-              const SizedBox(height: AppTokens.s12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: explanationImageWidget,
-            ),
-            if (explanationImageWidget.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: AppTokens.s4),
-                child: Text(
-                  "Tap any image to zoom in / out",
-                  style: AppTokens.caption(context),
-                ),
-              ),
-          ],
+            );
+          }).toList(),
         ),
       );
-      index++;
-      if (index >=
-          (filteredSolutionReport?[_currentQuestionIndex]
-                      .explanationImg
-                      ?.length ??
-                  0) -
-              1) {
-        break;
-      }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: columns,
+    return SingleChildScrollView(
+      child: Column(children: columns),
     );
   }
 
@@ -240,27 +372,71 @@ class _CustomTestSolutionReportScreenState
     if (filteredSolutionReport == null ||
         _currentQuestionIndex < 0 ||
         _currentQuestionIndex >= (filteredSolutionReport?.length ?? 0)) {
-      return const SizedBox();
+      return Center(
+        child: Text(
+          "No filtered data available",
+          style: interRegular.copyWith(
+            fontSize: Dimensions.fontSizeDefault,
+            fontWeight: FontWeight.w400,
+            color: ThemeManager.black,
+          ),
+        ),
+      );
     }
 
-    String questionTxt =
-        filteredSolutionReport?[_currentQuestionIndex].questionText ?? "";
-    questionTxt = questionTxt.replaceAllMapped(
-        RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
+    String questionTxt = filteredSolutionReport?[_currentQuestionIndex].questionText ?? "";
+    questionTxt =
+        questionTxt.replaceAllMapped(RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
     List<String> splittedText = questionTxt.split("splittedImage");
     List<Widget> columns = [];
     int index = 0;
     for (String text in splittedText) {
       List<Widget> questionImageWidget = [];
-      if (filteredSolutionReport?[_currentQuestionIndex]
-              .questionImg
-              ?.isNotEmpty ??
-          false) {
-        for (String base64String
-            in filteredSolutionReport![_currentQuestionIndex].questionImg!) {
+      if (filteredSolutionReport?[_currentQuestionIndex].questionImg?.isNotEmpty ?? false) {
+        for (String base64String in filteredSolutionReport![_currentQuestionIndex].questionImg!) {
           try {
+            // Uint8List quesImgBytes = base64Decode(base64String);
             questionImageWidget.add(
-              _ZoomableImage(src: base64String, maxHeight: 240),
+              GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return Dialog(
+                        child: PhotoView(
+                          // imageProvider: MemoryImage(quesImgBytes),
+                          imageProvider: NetworkImage(base64String),
+                          minScale: PhotoViewComputedScale.contained,
+                          maxScale: PhotoViewComputedScale.covered * 2,
+                        ),
+                      );
+                    },
+                  );
+                },
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InteractiveViewer(
+                        scaleEnabled: false,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            // width: MediaQuery.of(context).size.width * 0.6,
+                            // height: MediaQuery.of(context).size.height * 0.4,
+                            child: Stack(
+                              children: [
+                                // Image.memory(quesImgBytes),
+                                Image.network(base64String, fit: BoxFit.cover),
+                                Container(color: Colors.transparent),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           } catch (e) {
             debugPrint("Error decoding base64 string: $e");
@@ -279,35 +455,34 @@ class _CustomTestSolutionReportScreenState
                   .replaceAll("	--", "     •")
                   .replaceAll("--", "•"),
               textAlign: TextAlign.left,
-              style: AppTokens.titleMd(context).copyWith(
+              style: interBlack.copyWith(
                 fontSize: Dimensions.fontSizeLarge,
-                fontWeight: FontWeight.w600,
-                height: 1.35,
-                color: AppTokens.ink(context),
+                fontWeight: FontWeight.w500,
+                color: ThemeManager.black,
               ),
             ),
-            if (questionImageWidget.isNotEmpty)
-              const SizedBox(height: AppTokens.s12),
+            const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: questionImageWidget,
             ),
-            if (questionImageWidget.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: AppTokens.s4),
-                child: Text(
-                  "Tap any image to zoom in / out",
-                  style: AppTokens.caption(context),
-                ),
-              ),
+            const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+            questionImageWidget.isNotEmpty
+                ? Text(
+                    "Tap the image to zoom In/Out",
+                    style: interBlack.copyWith(
+                      fontSize: Dimensions.fontSizeSmall,
+                      fontWeight: FontWeight.w400,
+                      color: ThemeManager.black,
+                    ),
+                  )
+                : const SizedBox(),
           ],
         ),
       );
       index++;
-      if (index >=
-          (filteredSolutionReport?[_currentQuestionIndex].questionImg?.length ??
-                  0) -
-              1) {
+
+      if (index >= (filteredSolutionReport?[_currentQuestionIndex].questionImg?.length ?? 0) - 1) {
         break;
       }
     }
@@ -318,26 +493,27 @@ class _CustomTestSolutionReportScreenState
     );
   }
 
-  Future<void> putBookMarkApiCall(
-      String examId, String? questionId, String? bookMarkNote) async {
+  Future<void> putBookMarkApiCall(String examId, String? questionId, String? bookMarkNote) async {
     setState(() {
       filteredSolutionReport?[_currentQuestionIndex].bookmarks =
           !(filteredSolutionReport?[_currentQuestionIndex].bookmarks ?? false);
     });
 
     final store = Provider.of<ReportsCategoryStore>(context, listen: false);
+    final isBookmarkedNow =
+        filteredSolutionReport?[_currentQuestionIndex].bookmarks ?? false;
     await store.onBookMarkQuestion(
-        context,
-        filteredSolutionReport?[_currentQuestionIndex].bookmarks ?? false,
-        examId,
-        questionId ?? "",
-        bookMarkNote);
+        context, isBookmarkedNow, examId, questionId ?? "", bookMarkNote);
+    final q = filteredSolutionReport?[_currentQuestionIndex];
+    if (q != null) {
+      // ignore: discarded_futures
+      DailyReviewRecorder.bookmarkToggleCustomSolution(q, isBookmarkedNow);
+    }
     BottomToast.showBottomToastOverlay(
       context: context,
-      errorMessage:
-          filteredSolutionReport?[_currentQuestionIndex].bookmarks ?? false
-              ? "Question Bookmarked Successfully!"
-              : "Bookmark Removed!",
+      errorMessage: isBookmarkedNow
+          ? "Question Bookmarked Successfully!"
+          : "Bookmark Removed!",
       backgroundColor: Theme.of(context).primaryColor,
     );
   }
@@ -345,8 +521,7 @@ class _CustomTestSolutionReportScreenState
   Future<void> addNotes(String? questionId, String? notes) async {
     final store = Provider.of<ReportsCategoryStore>(context, listen: false);
     await store.onCreateNotes(context, questionId ?? "", notes ?? "");
-    _getNotesData(
-        filteredSolutionReport?[_currentQuestionIndex].questionId ?? "");
+    _getNotesData(filteredSolutionReport?[_currentQuestionIndex].questionId ?? "");
     BottomToast.showBottomToastOverlay(
       context: context,
       errorMessage: "Notes Added Successfully!",
@@ -354,40 +529,255 @@ class _CustomTestSolutionReportScreenState
     );
   }
 
-  void _showDialog(BuildContext context, String questionId, String questionText,
-      String allOption) {
+  // Future<void> addQuery(String questionId, String queryTxt, BuildContext context) async {
+  //   final store = Provider.of<ReportsCategoryStore>(context, listen: false);
+  //   await store.onCreateQuerySolutionReport(context, questionId, queryTxt);
+  //   BottomToast.showBottomToastOverlay(
+  //     context: context,
+  //     errorMessage: "Query Successfully Submitted",
+  //     backgroundColor: Theme.of(context).primaryColor,
+  //   );
+  //   Navigator.of(context).pop();
+  // }
+
+  void _showDialog(BuildContext context, String questionId, String questionText, String allOption) {
+    // showDialog(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (BuildContext context) {
+    //     TextEditingController queryController = TextEditingController();
+    //     String errorText = '';
+    //
+    //     return AlertDialog(
+    //       title: Text('Have a Query?',
+    //         style: interRegular.copyWith(
+    //           fontSize: Dimensions.fontSizeExtraLarge,
+    //           fontWeight: FontWeight.w500,
+    //           color: ThemeManager.black,
+    //         ),),
+    //       content: Form(
+    //         child: SizedBox(
+    //           width: MediaQuery.of(context).size.width * 0.9,
+    //           height: MediaQuery.of(context).size.height * 0.2,
+    //           child: TextFormField(
+    //             cursorColor: Theme.of(context).primaryColor,
+    //             controller: queryController,
+    //             maxLines: 7,
+    //             decoration: InputDecoration(
+    //               enabledBorder: UnderlineInputBorder(
+    //                 borderSide: BorderSide(color: Theme.of(context).primaryColor),
+    //               ),
+    //               focusedBorder: UnderlineInputBorder(
+    //                 borderSide: BorderSide(color:Theme.of(context).primaryColor),
+    //               ),
+    //               hintText: 'Enter your query...',
+    //               hintStyle: interRegular.copyWith(
+    //                 fontSize: Dimensions.fontSizeLarge,
+    //                 fontWeight: FontWeight.w400,
+    //                 color: Theme.of(context).hintColor,
+    //               ),
+    //               errorText: 'Please enter your query',
+    //               errorStyle: interRegular.copyWith(
+    //                 fontSize: Dimensions.fontSizeLarge,
+    //                 fontWeight: FontWeight.w400,
+    //                 color: Theme.of(context).hintColor,
+    //               ),
+    //             ),
+    //             style: interRegular.copyWith(
+    //               fontSize: Dimensions.fontSizeLarge,
+    //               fontWeight: FontWeight.w400,
+    //               color: ThemeManager.black,
+    //             ),
+    //           ),
+    //         ),
+    //       ),
+    //       actions: [
+    //         Row(
+    //           mainAxisAlignment: MainAxisAlignment.center,
+    //           children: [
+    //             SizedBox(
+    //               height: Dimensions.PADDING_SIZE_LARGE * 2,
+    //               child: ElevatedButton(
+    //                 onPressed: () {
+    //                   Navigator.of(context).pop();
+    //                 },
+    //                 style: ElevatedButton.styleFrom(
+    //                     shape: RoundedRectangleBorder(
+    //                       borderRadius: BorderRadius.circular(8),
+    //                     ),
+    //                     backgroundColor: Theme.of(context).hintColor
+    //                 ),
+    //                 child: Text('Cancel',
+    //                   style: interRegular.copyWith(
+    //                     fontSize: Dimensions.fontSizeLarge,
+    //                     fontWeight: FontWeight.w400,
+    //                     color: Colors.white,
+    //                   ),),
+    //               ),
+    //             ),
+    //             const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
+    //             SizedBox(
+    //               height: Dimensions.PADDING_SIZE_LARGE * 2,
+    //               child: ElevatedButton(
+    //                 style: ElevatedButton.styleFrom(
+    //                     shape: RoundedRectangleBorder(
+    //                       borderRadius: BorderRadius.circular(8),
+    //                     ),
+    //                     backgroundColor: Theme.of(context).primaryColor
+    //                 ),
+    //                 onPressed: () {
+    //                   String enteredText = queryController.text;
+    //                   if (enteredText.isEmpty) {
+    //                     setState(() {
+    //                       errorText = 'Please enter your query';
+    //                     });
+    //                   } else {
+    //                     addQuery(questionId, enteredText,context);
+    //                   }
+    //                 },
+    //                 child: Text('Submit',
+    //                   style: interRegular.copyWith(
+    //                     fontSize: Dimensions.fontSizeLarge,
+    //                     fontWeight: FontWeight.w400,
+    //                     color: Colors.white,
+    //                   ),),
+    //               ),
+    //             ),
+    //           ],
+    //         ),
+    //         const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT,),
+    //       ],
+    //     );
+    //   },
+    // );
     showModalBottomSheet<String>(
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTokens.r28)),
-      ),
-      clipBehavior: Clip.antiAliasWithSaveLayer,
-      backgroundColor: AppTokens.surface(context),
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return CustomTestBottomRaiseQuery(
-          questionId: questionId,
-          questionText: questionText,
-          allOptions: allOption,
-        );
-      },
-    );
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(25),
+          ),
+        ),
+        clipBehavior: Clip.antiAliasWithSaveLayer,
+        context: context,
+        builder: (BuildContext context) {
+          // return CustomBottomRaiseQuery(questionId: questionId);
+          return CustomTestBottomRaiseQuery(
+            questionId: questionId,
+            questionText: questionText,
+            allOptions: allOption,
+          );
+        });
   }
 
   void _showNotesDialog(BuildContext context, String questionId, String notes) {
+    // showDialog(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (BuildContext context) {
+    //     TextEditingController queryController = TextEditingController();
+    //     queryController.text = notes;
+    //     return AlertDialog(
+    //       title: Text('Add Notes',
+    //         style: interRegular.copyWith(
+    //           fontSize: Dimensions.fontSizeExtraLarge,
+    //           fontWeight: FontWeight.w500,
+    //           color: ThemeManager.black,
+    //         ),),
+    //       content: Form(
+    //         child: SizedBox(
+    //           width: MediaQuery.of(context).size.width * 0.9,
+    //           height: MediaQuery.of(context).size.height * 0.2,
+    //           child: TextFormField(
+    //             cursorColor: Theme.of(context).primaryColor,
+    //             controller: queryController,
+    //             maxLines: 50,
+    //             keyboardType: TextInputType.multiline,
+    //             decoration: InputDecoration(
+    //               enabledBorder: UnderlineInputBorder(
+    //                 borderSide: BorderSide(color: Theme.of(context).primaryColor),
+    //               ),
+    //               focusedBorder: UnderlineInputBorder(
+    //                 borderSide: BorderSide(color:Theme.of(context).primaryColor),
+    //               ),
+    //               hintText: 'Enter your notes...',
+    //               hintStyle: interRegular.copyWith(
+    //                 fontSize: Dimensions.fontSizeLarge,
+    //                 fontWeight: FontWeight.w400,
+    //                 color: Theme.of(context).hintColor,
+    //               ),
+    //             ),
+    //             style: interRegular.copyWith(
+    //               fontSize: Dimensions.fontSizeLarge,
+    //               fontWeight: FontWeight.w400,
+    //               color: ThemeManager.black,
+    //             ),
+    //           ),
+    //         ),
+    //       ),
+    //       actions: [
+    //         Row(
+    //           mainAxisAlignment: MainAxisAlignment.center,
+    //           children: [
+    //             SizedBox(
+    //               height: Dimensions.PADDING_SIZE_LARGE * 2,
+    //               child: ElevatedButton(
+    //                 onPressed: () {
+    //                   Navigator.of(context).pop();
+    //                 },
+    //                 style: ElevatedButton.styleFrom(
+    //                     shape: RoundedRectangleBorder(
+    //                       borderRadius: BorderRadius.circular(8),
+    //                     ),
+    //                     backgroundColor: Theme.of(context).hintColor
+    //                 ),
+    //                 child: Text('Cancel',
+    //                   style: interRegular.copyWith(
+    //                     fontSize: Dimensions.fontSizeLarge,
+    //                     fontWeight: FontWeight.w400,
+    //                     color: Colors.white,
+    //                   ),),
+    //               ),
+    //             ),
+    //             const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
+    //             SizedBox(
+    //               height: Dimensions.PADDING_SIZE_LARGE * 2,
+    //               child: ElevatedButton(
+    //                 style: ElevatedButton.styleFrom(
+    //                     shape: RoundedRectangleBorder(
+    //                       borderRadius: BorderRadius.circular(8),
+    //                     ),
+    //                     backgroundColor: Theme.of(context).primaryColor
+    //                 ),
+    //                 onPressed: () {
+    //                   String notes = queryController.text;
+    //                   debugPrint('enterTxt$notes');
+    //                   addNotes(filteredSolutionReport?[_currentQuestionIndex].questionId,notes);
+    //                   Navigator.of(context).pop();
+    //                 },
+    //                 child: Text('Submit',
+    //                   style: interRegular.copyWith(
+    //                     fontSize: Dimensions.fontSizeLarge,
+    //                     fontWeight: FontWeight.w400,
+    //                     color: Colors.white,
+    //                   ),),
+    //               ),
+    //             ),
+    //           ],
+    //         ),
+    //         const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT,),
+    //       ],
+    //     );
+    //   },
+    // );
     if (Platform.isWindows || Platform.isMacOS) {
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: AppTokens.surface(context),
+            backgroundColor: ThemeManager.mainBackground,
             actionsPadding: EdgeInsets.zero,
             insetPadding: const EdgeInsets.symmetric(horizontal: 250),
-            shape: const RoundedRectangleBorder(
-                borderRadius: AppTokens.radius20),
             actions: [
-              CustomBottomStickNotesWindow(
-                  questionId: questionId, notes: notes),
+              CustomBottomStickNotesWindow(questionId: questionId, notes: notes),
             ],
           );
         },
@@ -406,20 +796,23 @@ class _CustomTestSolutionReportScreenState
     }
   }
 
+  ScrollController _scrollController = ScrollController();
+
   void _scrollToIndex(int index) {
-    const double pillSize = 40;
-    const double pillGap = 10;
-    final double totalWidth =
-        (filteredSolutionReport?.length ?? 0) * (pillSize + pillGap);
-    final double viewportWidth = MediaQuery.of(context).size.width;
+    double totalWidth = (filteredSolutionReport?.length ?? 0) *
+        (Dimensions.PADDING_SIZE_SMALL * 2.675 + Dimensions.PADDING_SIZE_SMALL * 1.7);
+
+    // Get the viewport width
+    double viewportWidth = MediaQuery.of(context).size.width;
     double maxScrollExtent = totalWidth - viewportWidth;
     maxScrollExtent = maxScrollExtent.clamp(0.0, double.infinity);
-    double targetScrollPosition = index * (pillSize + pillGap);
+    double targetScrollPosition =
+        index * (Dimensions.PADDING_SIZE_SMALL * 2.675 + Dimensions.PADDING_SIZE_SMALL * 1.7);
     targetScrollPosition = targetScrollPosition.clamp(0.0, maxScrollExtent);
-    if (!_scrollController.hasClients) return;
+
     _scrollController.animateTo(
       targetScrollPosition,
-      duration: const Duration(milliseconds: 420),
+      duration: const Duration(milliseconds: 500),
       curve: Curves.easeInOut,
     );
   }
@@ -427,85 +820,6 @@ class _CustomTestSolutionReportScreenState
   void _questionChange(int index) {
     setState(() {
       _currentQuestionIndex = index;
-      explanationWidget = getExplanationText(context);
-      questionWidget = getQuestionText(context);
-      firstQue = index == 0;
-      lastQue = index >= (filteredSolutionReport?.length ?? 1) - 1;
-      isbutton = false;
-    });
-    _getNotesData(
-        filteredSolutionReport?[_currentQuestionIndex].questionId ?? "");
-  }
-
-  void _openInsights(BuildContext context) {
-    if (widget.userExamId.isEmpty) return;
-    Navigator.of(context).push(MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => Scaffold(
-        appBar: AppBar(title: const Text('Performance insights')),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: PostAttemptAnalyticsPanel(
-            userExamId: widget.userExamId,
-            onRemediationCreated: (newId, count) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('Remediation set ready ($count Qs). Find it in In-progress attempts.'),
-              ));
-            },
-          ),
-        ),
-      ),
-    ));
-  }
-
-  void _openFilterSheet() {
-    showModalBottomSheet<String>(
-      shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppTokens.r28)),
-      ),
-      clipBehavior: Clip.antiAliasWithSaveLayer,
-      context: context,
-      builder: (BuildContext context) {
-        return CustomBottomSheet(
-            heightSize: MediaQuery.of(context).size.height * 0.55,
-            selectedVal: filterValue,
-            radioItems: const [
-              'View all',
-              'Correct',
-              'Incorrect',
-              'Skipped',
-              'Guessed'
-            ]);
-      },
-    ).then((selectedValue) {
-      if (selectedValue != null) {
-        setState(() {
-          filterValue = selectedValue;
-          _currentQuestionIndex = 0;
-          firstQue = true;
-          lastQue = false;
-          if (filterValue.isNotEmpty && filterValue != "View all") {
-            filteredSolutionReport =
-                widget.solutionReport?.where((report) {
-              if (filterValue == "Correct") {
-                return report.isCorrect == true;
-              } else if (filterValue == "Incorrect") {
-                return report.isCorrect == false;
-              } else if (filterValue == "Skipped") {
-                return report.skipped == true;
-              } else if (filterValue == "Guessed") {
-                return report.guess?.isNotEmpty ?? false;
-              }
-              return false;
-            }).toList();
-          } else {
-            filteredSolutionReport = widget.solutionReport;
-          }
-          explanationWidget = getExplanationText(context);
-          questionWidget = getQuestionText(context);
-        });
-      }
     });
   }
 
@@ -515,162 +829,1105 @@ class _CustomTestSolutionReportScreenState
     explanationWidget = getExplanationText(context);
     questionWidget = getQuestionText(context);
 
-    final int total = filteredSolutionReport?.length ?? 0;
-    final bool hasData = total > 0;
-
     return Scaffold(
-      backgroundColor: AppTokens.scaffold(context),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
-        child: _GradientHeader(
-          currentIndex: _currentQuestionIndex,
-          total: total,
-          filterLabel: filterValue,
-          onBack: () => Navigator.pop(context),
-          onFilter: _openFilterSheet,
-          // Wave-2 Insights — opens PostAttemptAnalyticsPanel.
-          onInsights: widget.userExamId.isEmpty ? null : () => _openInsights(context),
-        ),
-      ),
-      body: !hasData
-          ? const _EmptyState()
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: AppTokens.s16),
-                _QuestionPager(
-                  reports: filteredSolutionReport!,
-                  currentIndex: _currentQuestionIndex,
-                  scrollController: _scrollController,
-                  onTap: _questionChange,
-                ),
-                const SizedBox(height: AppTokens.s16),
-                _QuestionActionsRow(
-                  index: _currentQuestionIndex,
-                  report:
-                      filteredSolutionReport![_currentQuestionIndex],
-                  isProcessing: isprocess,
-                  onAskCortex: _handleAskCortex,
-                  onRaiseQuery: () {
-                    final r =
-                        filteredSolutionReport![_currentQuestionIndex];
-                    final options = r.options ?? [];
-                    _showDialog(
-                      context,
-                      r.questionId ?? "",
-                      r.questionText ?? '',
-                      "a) ${options.isNotEmpty ? options[0].answerTitle : ''}"
-                          "\nb) ${options.length > 1 ? options[1].answerTitle : ''}"
-                          "\nc) ${options.length > 2 ? options[2].answerTitle : ''}"
-                          "\nd) ${options.length > 3 ? options[3].answerTitle : ''}",
-                    );
+      backgroundColor: ThemeManager.white,
+      // appBar: AppBar(
+      //   elevation: 0,
+      //   automaticallyImplyLeading: false,
+      //   backgroundColor: ThemeManager.white,
+      //   leading: Padding(
+      //     padding: const EdgeInsets.only(left: Dimensions.PADDING_SIZE_SMALL),
+      //     child:       IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,
+      //       icon:  Icon(Icons.arrow_back_ios, color: ThemeManager.iconColor),
+      //       onPressed: () {
+      //         Navigator.pop(context);
+      //       },
+      //     ),
+      //   ),
+      //   title: Padding(
+      //     padding: const EdgeInsets.only(right: Dimensions.PADDING_SIZE_DEFAULT),
+      //     child: Row(
+      //       children: [
+      //         Expanded(
+      //           child: Column(
+      //             children: [
+      //               Text(
+      //                 "Solution Report",
+      //                 style: interRegular.copyWith(
+      //                   fontSize: Dimensions.fontSizeLarge,
+      //                   fontWeight: FontWeight.w500,
+      //                   color: ThemeManager.black,
+      //                 ),),
+      //               Text(
+      //                 "${widget.solutionReport?.length} Questions",
+      //                 style: interRegular.copyWith(
+      //                   fontSize: Dimensions.fontSizeExtraSmall,
+      //                   fontWeight: FontWeight.w400,
+      //                   color: Theme.of(context).hintColor,
+      //                 ),
+      //               ),
+      //             ],
+      //           ),
+      //         ),
+      //         const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
+      //         //filter
+      //         InkWell(
+      //             onTap: (){
+      //               showModalBottomSheet<String>(
+      //                 shape: const RoundedRectangleBorder(
+      //                   borderRadius: BorderRadius.vertical(
+      //                     top: Radius.circular(25),
+      //                   ),
+      //                 ),
+      //                 clipBehavior: Clip.antiAliasWithSaveLayer,
+      //                 context: context,
+      //                 builder: (BuildContext context) {
+      //                   return CustomBottomSheet(
+      //                       heightSize: MediaQuery.of(context).size.height * 0.3,
+      //                       selectedVal: filterValue,
+      //                       radioItems: const ['View all', 'Correct','Incorrect']);
+      //                 },
+      //               ).then((selectedValue) {
+      //                 if (selectedValue != null) {
+      //                   setState(() {
+      //                     filterValue = selectedValue;
+      //                     _currentQuestionIndex = 0;
+      //                     if (filterValue.isNotEmpty && filterValue != "View all") {
+      //                       filteredSolutionReport = widget.solutionReport
+      //                           ?.where((report) {
+      //                         if (filterValue == "Correct") {
+      //                           return report.isCorrect == true;
+      //                         } else if (filterValue == "Incorrect") {
+      //                           return report.isCorrect == false;
+      //                         }
+      //                         return false;
+      //                       })
+      //                           .toList();
+      //                     } else {
+      //                       filteredSolutionReport = widget.solutionReport;
+      //                     }
+      //                     debugPrint('Selected value: $filterValue');
+      //                   });
+      //                 }
+      //               });
+      //             },
+      //             child: SvgPicture.asset("assets/image/filter_icon.svg",color:ThemeManager.currentTheme==AppTheme.Dark ?ThemeManager.black : null,)),
+      //       ],
+      //     ),
+      //   ),
+      // ),
+      appBar: AppBar(
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        backgroundColor: ThemeManager.white,
+        title: Padding(
+          padding: const EdgeInsets.only(left: Dimensions.PADDING_SIZE_DEFAULT * 1.2),
+          child: Row(
+            children: [
+              // Text(
+              //   widget.testExamPaper?.examName??"Test",
+              //   style: interRegular.copyWith(
+              //     fontSize: Dimensions.fontSizeLarge,
+              //     fontWeight: FontWeight.w500,
+              //     color: Colors.white,
+              //   ),
+              // ),
+              InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
                   },
-                ),
-                const SizedBox(height: AppTokens.s16),
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding:
-                        const EdgeInsets.fromLTRB(AppTokens.s16, 0, AppTokens.s16, AppTokens.s24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _QuestionCard(child: questionWidget ?? const SizedBox()),
-                        const SizedBox(height: AppTokens.s16),
-                        ..._buildOptions(),
-                        const SizedBox(height: AppTokens.s24),
-                        _ExplanationHeader(
-                          onNotes: () {
-                            final noteModel = store.notesData.value;
-                            _showNotesDialog(
-                                context,
-                                filteredSolutionReport?[_currentQuestionIndex]
-                                        .questionId ??
-                                    "",
-                                noteModel?.notes ?? "");
-                          },
-                          onFontSize: () => _showBottomSheet(context),
-                        ),
-                        const SizedBox(height: AppTokens.s12),
-                        _ExplanationCard(child: explanationWidget ?? const SizedBox()),
-                        const SizedBox(height: AppTokens.s16),
-                        if (isbutton)
-                          Observer(builder: (BuildContext context) {
-                            final GetExplanationModel? getExplainModel =
-                                store.getExplanationText.value;
-                            return _CortexAIPanel(
-                              text: getExplainModel?.text ?? '',
-                            );
-                          }),
-                      ],
+                  child: SvgPicture.asset(
+                    "assets/image/arrow_back.svg",
+                    color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,
+                  )),
+              // const Spacer(),
+              //       IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,onPressed: (){
+              //   showDialog(
+              //     context: context,
+              //     builder: (context) => CustomTestCancelDialogBox(timer,remainingTimeNotifier,false),
+              //   );
+              // }, icon: const Icon(Icons.close,color: Colors.white,)),
+              // const SizedBox(width: Dimensions.RADIUS_EXTRA_LARGE*1.1,),
+              // InkWell(
+              //   onTap: (){
+              //     //_scaffoldKey.currentState?.openDrawer();
+              //   },
+              //   child: Image.asset("assets/image/questionplatte.png",color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,),
+              // ),
+              // const Spacer(),
+              // SvgPicture.asset("assets/image/testTimeIcon.svg",color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,),
+              // ValueListenableBuilder<Duration>(
+              //   valueListenable: remainingTimeNotifier,
+              //   builder: (context, remainingTime, child) {
+              //     return Text(
+              //       " ${remainingTime!.inHours.toString().padLeft(2, '0')}:${remainingTime!.inMinutes.remainder(60).toString().padLeft(2, '0')}:${remainingTime!.inSeconds.remainder(60).toString().padLeft(2, '0')}",
+              //       style: interRegular.copyWith(
+              //         fontSize: Dimensions.fontSizeDefault,
+              //         fontWeight: FontWeight.w500,
+              //         color: ThemeManager.black,
+              //       ),
+              //     );
+              //   },
+              // ),
+              // const SizedBox(width: Dimensions.PADDING_SIZE_EXTRA_SMALL,),
+              // Text(
+              //   "09:05",
+              //   style: interRegular.copyWith(
+              //     fontSize: Dimensions.fontSizeDefault,
+              //     fontWeight: FontWeight.w500,
+              //     color: ThemeManager.black,
+              //   ),
+              // ),
+              const Spacer(),
+              // InkWell(
+              //   onTap: (){
+              //     putBookMarkApiCall(filteredSolutionReport?[_currentQuestionIndex].examId??"",filteredSolutionReport?[_currentQuestionIndex].questionId,"");
+              //   },
+              //   child: Container(
+              //     height: Dimensions.PADDING_SIZE_LARGE*1.2,
+              //     width: Dimensions.PADDING_SIZE_LARGE*1.2,
+              //     alignment: Alignment.center,
+              //     decoration: BoxDecoration(
+              //       color: filteredSolutionReport?[_currentQuestionIndex].bookmarks??false ? ThemeManager.primaryColor : ThemeManager.primaryColor.withOpacity(0.4),
+              //       shape: BoxShape.circle,
+              //     ),
+              //     child: Icon(filteredSolutionReport?[_currentQuestionIndex].bookmarks??false ? Icons.bookmark : Icons.bookmark_border,color: ThemeManager.white,size: 18,),
+              //   ),
+              // ),
+              const SizedBox(
+                width: Dimensions.PADDING_SIZE_LARGE,
+              ),
+              InkWell(
+                onTap: () {
+                  showModalBottomSheet<String>(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(28.72),
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAliasWithSaveLayer,
+                    context: context,
+                    builder: (BuildContext context) {
+                      return CustomBottomSheet(
+                          heightSize: MediaQuery.of(context).size.height * 0.55,
+                          selectedVal: filterValue,
+                          radioItems: const ['View all', 'Correct', 'Incorrect', 'Skipped', 'Guessed']);
+                    },
+                  ).then((selectedValue) {
+                    if (selectedValue != null) {
+                      setState(() {
+                        filterValue = selectedValue;
+                        _currentQuestionIndex = 0;
+                        if (filterValue.isNotEmpty && filterValue != "View all") {
+                          filteredSolutionReport = widget.solutionReport?.where((report) {
+                            if (filterValue == "Correct") {
+                              return report.isCorrect == true;
+                            } else if (filterValue == "Incorrect") {
+                              return report.isCorrect == false;
+                            } else if (filterValue == "Skipped") {
+                              return report.skipped == true;
+                            } else if (filterValue == "Guessed") {
+                              return report.guess?.isNotEmpty ?? false;
+                            }
+                            return false;
+                          }).toList();
+                        } else {
+                          filteredSolutionReport = widget.solutionReport;
+                        }
+                        debugPrint('Selected value: $filterValue');
+                      });
+                    }
+                  });
+                },
+                child: Container(
+                  height: Dimensions.PADDING_SIZE_SMALL * 2.7,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_LARGE),
+                  decoration: BoxDecoration(
+                      border: Border.all(
+                        color: ThemeManager.blueFinal,
+                      ),
+                      borderRadius: BorderRadius.circular(60)),
+                  child: Text(
+                    "Filter",
+                    style: interRegular.copyWith(
+                      fontSize: Dimensions.fontSizeSmall,
+                      fontWeight: FontWeight.w600,
+                      color: ThemeManager.blueFinal,
                     ),
                   ),
                 ),
-                _BottomNavBar(
-                  firstQue: firstQue,
-                  lastQue: lastQue,
-                  isProcessing: isprocess,
-                  onPrev: _showPreviousQuestion,
-                  onNext: _showNextQuestion,
-                ),
-              ],
-            ),
-    );
-  }
-
-  List<Widget> _buildOptions() {
-    final r = filteredSolutionReport![_currentQuestionIndex];
-    final options = r.options ?? [];
-    final List<Widget> rows = [];
-    for (int i = 0; i < options.length; i++) {
-      final opt = options[i];
-      final String val = opt.value ?? "";
-      _OptionState state = _OptionState.neutral;
-      if ((r.correctOption ?? "") == val) {
-        state = _OptionState.correct;
-      } else if ((r.selectedOption ?? "") == val) {
-        state = _OptionState.incorrect;
-      } else if ((r.guess ?? "") == val) {
-        state = _OptionState.guess;
-      }
-      rows.add(Padding(
-        padding: const EdgeInsets.only(bottom: AppTokens.s12),
-        child: _OptionCard(
-          label: opt.value ?? "",
-          text: opt.answerTitle ?? "",
-          imageUrl: opt.answerImg ?? "",
-          state: state,
+              ),
+            ],
+          ),
         ),
-      ));
-    }
-    return rows;
-  }
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (filteredSolutionReport?.isEmpty ?? true)
+            Center(
+              child: Text(
+                "No filtered data available",
+                style: interRegular.copyWith(
+                  fontSize: Dimensions.fontSizeDefault,
+                  fontWeight: FontWeight.w400,
+                  color: ThemeManager.black,
+                ),
+              ),
+            ),
 
-  Future<void> _handleAskCortex() async {
-    if (!isbutton) {
-      setState(() => isprocess = true);
-    }
-    final solutionReport = filteredSolutionReport?[_currentQuestionIndex];
-    final questionText = solutionReport?.questionText;
-    final currentOption = solutionReport?.correctOption;
-    final answerTitle = solutionReport?.options?.map((e) => e.answerTitle);
-    int currentIndex = solutionReport?.options
-            ?.indexWhere((e) => e.value == currentOption) ??
-        -1;
-    String? currentAnswerTitle =
-        currentIndex >= 0 ? answerTitle?.elementAt(currentIndex) : null;
-    List<String?> notMatchingAnswerTitles = answerTitle
-            ?.where((title) => title != currentAnswerTitle)
-            .toList() ??
-        [];
-    String concatenatedTitles = notMatchingAnswerTitles
-        .where((title) => title != null)
-        .join(", ");
-    String question =
-        "Explain why $currentAnswerTitle is the answer to the Question $questionText and why the remaining $concatenatedTitles are not correct answer";
-    if (!isbutton) {
-      await _getExplanationData(question);
-    }
+          if (filteredSolutionReport?.isNotEmpty ?? false)
+            Padding(
+              padding: const EdgeInsets.only(
+                top: Dimensions.PADDING_SIZE_LARGE * 1.4,
+                left: Dimensions.PADDING_SIZE_SMALL * 1.6,
+                right: Dimensions.PADDING_SIZE_SMALL * 1.4,
+                // bottom: Dimensions.PADDING_SIZE_LARGE*1.4,
+              ),
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(filteredSolutionReport?.length ?? 0, (index) {
+                    CustomTestSolutionReportsModel? solutionReport = filteredSolutionReport?[index];
+                    // String showTxt = ((solutionReport?.correctOption??"") == (solutionReport?.options?[index].value??"")) ?
+                    // "Correct Answer" : ((solutionReport?.selectedOption??"") == (solutionReport?.options?[index].value??""))
+                    //     ? "Incorrect Answer" : ((solutionReport?.guess??"") == (solutionReport?.options?[index].value??"")) ? "Guess" : "";
+
+                    // Color showColor = ((solutionReport?.correctOption??"") == (solutionReport?.options?[index].value??"")) ?
+                    // ThemeManager.greenBorder : ((solutionReport?.selectedOption??"") == (solutionReport?.options?[index].value??""))
+                    //     ? ThemeManager.redText : ThemeManager.borderBlue;
+                    // ? ThemeManager.redText : ((solutionReport?.guess??"") == (solutionReport?.options?[index].value??"")) ? (ThemeManager.currentTheme == AppTheme.Dark ? ThemeManager.black : Colors.brown) : ThemeManager.borderBlue;
+
+                    // debugPrint("sssssssssss:${solutionReport?.correctOption}");
+                    // debugPrint("aaaaaaaaaaaa:${solutionReport?.selectedOption??""}ssssss:${solutionReport?.guess}");
+                    // Color showColor = ((solutionReport?.correctOption??"") == (solutionReport?.selectedOption??"")) ?
+                    // ThemeManager.greenBorder : ((solutionReport?.correctOption??"") == (solutionReport?.selectedOption??""))
+                    //     ? ThemeManager.redText : ThemeManager.borderBlue;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: Dimensions.PADDING_SIZE_SMALL * 1.7),
+                      child: GestureDetector(
+                        onTap: () {
+                          _questionChange(index);
+                        },
+                        child: Container(
+                          height: Dimensions.PADDING_SIZE_SMALL * 2.675,
+                          width: Dimensions.PADDING_SIZE_SMALL * 2.675,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                              color: _currentQuestionIndex == index
+                                  ? (solutionReport?.correctOption ?? "") ==
+                                          (solutionReport?.selectedOption ?? "")
+                                      ? ThemeManager.greenBorder
+                                      : ThemeManager.redText
+                                  : ThemeManager.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: (solutionReport?.correctOption ?? "") ==
+                                        (solutionReport?.selectedOption ?? "")
+                                    ? ThemeManager.greenBorder
+                                    : ThemeManager.redText,
+                              )),
+                          child: Text(
+                            "${index + 1}",
+                            style: interRegular.copyWith(
+                              fontSize: Dimensions.fontSizeSmall,
+                              fontWeight: FontWeight.w500,
+                              color: (solutionReport?.correctOption ?? "") ==
+                                      (solutionReport?.selectedOption ?? "")
+                                  ? _currentQuestionIndex == index
+                                      ? ThemeManager.white
+                                      : ThemeManager.greenBorder
+                                  : _currentQuestionIndex == index
+                                      ? ThemeManager.white
+                                      : ThemeManager.redText,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+
+          if (filteredSolutionReport?.isNotEmpty ?? false)
+            Padding(
+              padding: const EdgeInsets.only(
+                top: Dimensions.PADDING_SIZE_LARGE * 2,
+                left: Dimensions.PADDING_SIZE_SMALL * 1.6,
+                right: Dimensions.PADDING_SIZE_SMALL * 1.5,
+                // bottom: Dimensions.PADDING_SIZE_LARGE*1.4,
+              ),
+              child: Row(
+                children: [
+                  // Row(
+                  //   crossAxisAlignment: CrossAxisAlignment.center,
+                  //   children: [
+                  //     Container(
+                  //       height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                  //       width: Dimensions.PADDING_SIZE_DEFAULT * 5,
+                  //       decoration: BoxDecoration(
+                  //           color: ThemeManager.borderBlue,
+                  //           borderRadius: BorderRadius.circular(Dimensions.RADIUS_LARGE)
+                  //       ),
+                  //       child: Center(
+                  //         child: Text("Q-${(filteredSolutionReport?[_currentQuestionIndex].questionNumber ??
+                  //             (widget.solutionReport?[_currentQuestionIndex].questionNumber ?? "").toString().padLeft(2, '0'))}",
+                  //           style: interRegular.copyWith(
+                  //             fontSize: Dimensions.fontSizeDefault,
+                  //             fontWeight: FontWeight.w400,
+                  //             color: ThemeManager.black,
+                  //           ),
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     const SizedBox(width: Dimensions.PADDING_SIZE_SMALL,),
+                  //     Text("Out of ${filteredSolutionReport?.length}",
+                  //       style: interRegular.copyWith(
+                  //         fontSize: Dimensions.fontSizeDefault,
+                  //         fontWeight: FontWeight.w400,
+                  //         color: Theme.of(context).hintColor,
+                  //       ),),
+                  //   ],
+                  // ),
+                  Text(
+                    "${_currentQuestionIndex + 1}.",
+                    style: interRegular.copyWith(
+                      fontSize: Dimensions.fontSizeOverLarge,
+                      fontWeight: FontWeight.w500,
+                      color: ThemeManager.black,
+                    ),
+                  ),
+                  const SizedBox(
+                    width: Dimensions.PADDING_SIZE_EXTRA_SMALL * 1.2,
+                  ),
+                  filteredSolutionReport?[_currentQuestionIndex].guess != ""
+                      ? Container(
+                          height: Dimensions.PADDING_SIZE_SMALL * 2.7,
+                          width: Dimensions.PADDING_SIZE_LARGE * 3.85,
+                          alignment: Alignment.center,
+                          //padding: EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_DEFAULT,vertical: Dimensions.PADDING_SIZE_SMALL),
+                          decoration: BoxDecoration(
+                              color: ThemeManager.skipColor, borderRadius: BorderRadius.circular(60.87)),
+                          child: Text(
+                            "Guessed",
+                            style: interRegular.copyWith(
+                              fontSize: Dimensions.fontSizeSmall,
+                              fontWeight: FontWeight.w500,
+                              color: ThemeManager.black,
+                            ),
+                          ),
+                        )
+                      : filteredSolutionReport?[_currentQuestionIndex].selectedOption == true
+                          ? Container(
+                              height: Dimensions.PADDING_SIZE_SMALL * 2.7,
+                              width: Dimensions.PADDING_SIZE_LARGE * 3.85,
+                              alignment: Alignment.center,
+                              //padding: EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_DEFAULT,vertical: Dimensions.PADDING_SIZE_SMALL),
+                              decoration: BoxDecoration(
+                                  color: ThemeManager.skipColor, borderRadius: BorderRadius.circular(60.87)),
+                              child: Text(
+                                "Skipped",
+                                style: interRegular.copyWith(
+                                  fontSize: Dimensions.fontSizeSmall,
+                                  fontWeight: FontWeight.w500,
+                                  color: ThemeManager.black,
+                                ),
+                              ),
+                            )
+                          : const SizedBox(),
+                  const Spacer(),
+                  InkWell(
+                    onTap: () async {
+                      if (!isbutton) {
+                        setState(() {
+                          isprocess = true;
+                        });
+                      }
+                      CustomTestSolutionReportsModel? solutionReport =
+                          filteredSolutionReport?[_currentQuestionIndex];
+
+                      final questionText = solutionReport?.questionText;
+                      final currentOption = solutionReport?.correctOption;
+
+                      final answerTitle = solutionReport?.options?.map((e) => e.answerTitle);
+
+                      int currentIndex =
+                          solutionReport?.options?.indexWhere((e) => e.value == currentOption) ?? -1;
+                      String? currentAnswerTitle = answerTitle?.elementAt(currentIndex);
+
+                      List<String?> notMatchingAnswerTitles =
+                          answerTitle?.where((title) => title != currentAnswerTitle).toList() ?? [];
+                      String concatenatedTitles =
+                          notMatchingAnswerTitles.where((title) => title != null).join(", ");
+
+                      String question =
+                          "Explain why $currentAnswerTitle is the answer to the Question $questionText and why the remaining $concatenatedTitles are not correct answer";
+                      isbutton == false ? await _getExplanationData(question ?? '') : null;
+                    },
+                    child: Container(
+                      height: Dimensions.PADDING_SIZE_SMALL * 2.7,
+                      width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 4,
+                      alignment: Alignment.center,
+                      // padding: EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_DEFAULT),
+                      decoration: BoxDecoration(
+                          color: ThemeManager.primaryWhite, borderRadius: BorderRadius.circular(18.71)),
+                      child: isprocess == true
+                          ? Center(
+                              child: SizedBox(
+                                  height: 25,
+                                  width: 25,
+                                  child: CircularProgressIndicator(
+                                    color: ThemeManager.white,
+                                  )))
+                          : Text(
+                              "Ask Cortex.AI",
+                              style: interRegular.copyWith(
+                                fontSize: Dimensions.fontSizeSmall,
+                                fontWeight: FontWeight.w500,
+                                color: ThemeManager.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(
+                    width: Dimensions.PADDING_SIZE_EXTRA_SMALL * 1.6,
+                  ),
+                  InkWell(
+                    onTap: () {
+                      _showDialog(
+                          context,
+                          filteredSolutionReport?[_currentQuestionIndex].questionId ?? "",
+                          filteredSolutionReport?[_currentQuestionIndex].questionText ?? '',
+                          "a) ${filteredSolutionReport?[_currentQuestionIndex].options?[0].answerTitle}\nb) ${filteredSolutionReport?[_currentQuestionIndex].options?[1].answerTitle}\nc) ${filteredSolutionReport?[_currentQuestionIndex].options?[2].answerTitle}\nd) ${filteredSolutionReport?[_currentQuestionIndex].options?[3].answerTitle}");
+                    },
+                    child: Container(
+                      height: Dimensions.PADDING_SIZE_SMALL * 2.7,
+                      width: Dimensions.PADDING_SIZE_LARGE * 4.7,
+                      alignment: Alignment.center,
+                      //padding: EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_DEFAULT,vertical: Dimensions.PADDING_SIZE_SMALL),
+                      decoration: BoxDecoration(
+                          color: ThemeManager.whitePrimary,
+                          borderRadius: BorderRadius.circular(18.71),
+                          border: Border.all(
+                            color: ThemeManager.primaryColor,
+                          )),
+                      child: Text(
+                        "Raise Query",
+                        style: interRegular.copyWith(
+                          fontSize: Dimensions.fontSizeSmall,
+                          fontWeight: FontWeight.w400,
+                          color: ThemeManager.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT,),
+
+          //Question and options
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: Dimensions.PADDING_SIZE_SMALL * 1.5,
+                right: Dimensions.PADDING_SIZE_SMALL * 2,
+                // bottom: Dimensions.PADDING_SIZE_LARGE*1.4,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // if (filteredSolutionReport?.isEmpty ?? true)
+                    //   Center(
+                    //     child: Text(
+                    //       "No filtered data available",
+                    //       style: interRegular.copyWith(
+                    //         fontSize: Dimensions.fontSizeDefault,
+                    //         fontWeight: FontWeight.w400,
+                    //         color: ThemeManager.black,
+                    //       ),
+                    //     ),
+                    //   )
+                    // else
+                    //   filteredSolutionReport?[_currentQuestionIndex].guess != ""
+                    //       ? Text(
+                    //     "You have Guessed this question",
+                    //     style: interRegular.copyWith(
+                    //       fontSize: Dimensions.fontSizeDefault,
+                    //       fontWeight: FontWeight.w400,
+                    //       color: ThemeManager.currentTheme == AppTheme.Dark ? ThemeManager.black : Colors.brown,
+                    //     ),
+                    //   ): filteredSolutionReport?[_currentQuestionIndex].selectedOption == ""
+                    //       ? Text(
+                    //     "You have skipped this question",
+                    //     style: interRegular.copyWith(
+                    //       fontSize: Dimensions.fontSizeDefault,
+                    //       fontWeight: FontWeight.w400,
+                    //       color: Colors.orangeAccent,
+                    //     ),
+                    //   ): const SizedBox(),
+                    const SizedBox(
+                      height: Dimensions.PADDING_SIZE_SMALL * 1.2,
+                    ),
+
+                    if (filteredSolutionReport?.isNotEmpty ?? false)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Text(
+                          //   filteredSolutionReport?[_currentQuestionIndex].questionText ??
+                          //       (widget.solutionReport?[_currentQuestionIndex].questionText ?? ""),
+                          //   style: interRegular.copyWith(
+                          //     fontSize: Dimensions.fontSizeDefault,
+                          //     fontWeight: FontWeight.w400,
+                          //     color: ThemeManager.black,
+                          //   ),
+                          // ),
+                          // const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT,),
+                          //
+                          // //Question Image
+                          // (filteredSolutionReport?[_currentQuestionIndex].questionImg?.isNotEmpty ?? false)?
+                          // // filteredSolutionReport?[_currentQuestionIndex].questionImg?[0] != ""?
+                          // InteractiveViewer(
+                          //   minScale: 1.0,
+                          //   maxScale: 3.0,
+                          //   child: Center(
+                          //     child: SizedBox(
+                          //       width: MediaQuery.of(context).size.width * 0.6,
+                          //       height: 250,
+                          //       child: Stack(
+                          //         children: [
+                          //           if (quesImgBytes != null)
+                          //             Image.memory(quesImgBytes!),
+                          //           Container(color: Colors.transparent),
+                          //         ],
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ):const SizedBox(),
+
+                          // Row(
+                          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          //   crossAxisAlignment: CrossAxisAlignment.start,
+                          //   children: [
+                          //     Expanded(child: questionWidget??const SizedBox()),
+                          //               IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,onPressed: (){
+                          //             putBookMarkApiCall(filteredSolutionReport?[_currentQuestionIndex].examId??"",filteredSolutionReport?[_currentQuestionIndex].questionId,"");
+                          //         }, icon: Icon(filteredSolutionReport?[_currentQuestionIndex].bookmarks??false ? Icons.bookmark : Icons.bookmark_border,color: Theme.of(context).hintColor,)),
+                          //   ],
+                          // ),
+
+                          //Questions and options
+                          questionWidget ?? const SizedBox(),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: filteredSolutionReport?[_currentQuestionIndex].options?.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              CustomTestSolutionReportsModel? solutionReport =
+                                  filteredSolutionReport?[_currentQuestionIndex];
+                              String showTxt = ((solutionReport?.correctOption ?? "") ==
+                                      (solutionReport?.options?[index].value ?? ""))
+                                  ? "Correct Answer"
+                                  : ((solutionReport?.selectedOption ?? "") ==
+                                          (solutionReport?.options?[index].value ?? ""))
+                                      ? "Incorrect Answer"
+                                      : ((solutionReport?.guess ?? "") ==
+                                              (solutionReport?.options?[index].value ?? ""))
+                                          ? "Guess"
+                                          : "";
+
+                              Color showColor2 = ((solutionReport?.correctOption ?? "") ==
+                                      (solutionReport?.options?[index].value ?? ""))
+                                  ? ThemeManager.greenSuccess
+                                  : ((solutionReport?.selectedOption ?? "") ==
+                                          (solutionReport?.options?[index].value ?? ""))
+                                      ? ThemeManager.redAlert
+                                      : ((solutionReport?.guess ?? "") ==
+                                              (solutionReport?.options?[index].value ?? ""))
+                                          ? (ThemeManager.currentTheme == AppTheme.Dark
+                                              ? ThemeManager.black
+                                              : Colors.brown)
+                                          : ThemeManager.black;
+
+                              Color showColor = ((solutionReport?.correctOption ?? "") ==
+                                      (solutionReport?.options?[index].value ?? ""))
+                                  ? ThemeManager.correctChart
+                                  : ((solutionReport?.selectedOption ?? "") ==
+                                          (solutionReport?.options?[index].value ?? ""))
+                                      ? ThemeManager.evolveRed
+                                      : ((solutionReport?.guess ?? "") ==
+                                              (solutionReport?.options?[index].value ?? ""))
+                                          ? Colors.brown
+                                          : ThemeManager.white;
+
+                              Color showColorBorder = ((solutionReport?.correctOption ?? "") ==
+                                      (solutionReport?.options?[index].value ?? ""))
+                                  ? ThemeManager.correctChart
+                                  : ((solutionReport?.selectedOption ?? "") ==
+                                          (solutionReport?.options?[index].value ?? ""))
+                                      ? ThemeManager.evolveRed
+                                      : ((solutionReport?.guess ?? "") ==
+                                              (solutionReport?.options?[index].value ?? ""))
+                                          ? Colors.brown
+                                          : ThemeManager.grey1;
+
+                              String base64String = solutionReport?.options?[index].answerImg ?? "";
+                              try {
+                                // answerImgBytes = base64Decode(base64String);
+                              } catch (e) {
+                                print("Error decoding base64 string: $e");
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(top: Dimensions.PADDING_SIZE_DEFAULT),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(color: showColorBorder, width: 0.84),
+                                        borderRadius: BorderRadius.circular(33.44),
+                                        color: showColor.withOpacity(0.1),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: Dimensions.PADDING_SIZE_LARGE,
+                                          vertical: Dimensions.PADDING_SIZE_SMALL * 1.3,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Container(
+                                            //   height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                                            //   width: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                                            //   decoration: BoxDecoration(
+                                            //       color: ThemeManager.borderBlue,
+                                            //       borderRadius: BorderRadius.circular(Dimensions.RADIUS_LARGE)
+                                            //   ),
+                                            //   child: Center(
+                                            //     child: Text(solutionReport?.options?[index].value??"",
+                                            //       style: interRegular.copyWith(
+                                            //         fontSize: Dimensions.fontSizeDefault,
+                                            //         fontWeight: FontWeight.w400,
+                                            //         color: ThemeManager.black,
+                                            //       ),
+                                            //     ),
+                                            //   ),
+                                            // ),
+                                            // Text(solutionReport?.options?[index].value??"",
+                                            //   style: interRegular.copyWith(
+                                            //     fontSize: Dimensions.fontSizeDefault,
+                                            //     fontWeight: FontWeight.w400,
+                                            //     color: ThemeManager.black,
+                                            //   ),
+                                            // ),
+                                            // const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                // SizedBox(
+                                                //   width: MediaQuery.of(context).size.width * 0.6,
+                                                //   child: Text(
+                                                //     "${solutionReport?.options?[index].value??""}.  ${solutionReport?.options?[index].answerTitle??""}",
+                                                //     style: TextStyle(
+                                                //       fontSize: Dimensions.fontSizeLarge,
+                                                //       fontWeight: FontWeight.w500,
+                                                //       color: showColor2,
+                                                //     ),
+                                                //   ),
+                                                // ),
+                                                Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      "${solutionReport?.options?[index].value ?? ""}.  ",
+                                                      style: TextStyle(
+                                                        fontSize: Dimensions.fontSizeLarge,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: showColor2,
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      width: MediaQuery.of(context).size.width * 0.6,
+                                                      child: Text(
+                                                        "${solutionReport?.options?[index].answerTitle ?? ""}",
+                                                        style: TextStyle(
+                                                          fontSize: Dimensions.fontSizeLarge,
+                                                          fontWeight: FontWeight.w400,
+                                                          color: showColor2,
+                                                        ),
+                                                      ),
+                                                    )
+                                                  ],
+                                                ),
+                                                solutionReport?.options?[index].answerImg != ""
+                                                    ? Row(
+                                                        children: [
+                                                          InteractiveViewer(
+                                                            minScale: 1.0,
+                                                            maxScale: 3.0,
+                                                            child: Center(
+                                                              child: SizedBox(
+                                                                width:
+                                                                    MediaQuery.of(context).size.width * 0.6,
+                                                                height: 250,
+                                                                child: Stack(
+                                                                  children: [
+                                                                    // if (answerImgBytes != null)
+                                                                    //   Image.memory(answerImgBytes!),
+                                                                    if (base64String != '')
+                                                                      Image.network(base64String!),
+                                                                    Container(color: Colors.transparent),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      )
+                                                    : const SizedBox(),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    // const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL,),
+                                    // ((solutionReport?.correctOption??"") == (solutionReport?.options?[index].value??"")) ||
+                                    //     ((solutionReport?.selectedOption??"") == (solutionReport?.options?[index].value??"")) || ((solutionReport?.guess??"") == (solutionReport?.options?[index].value??"")) ?
+                                    // Text(
+                                    //   showTxt,
+                                    //   style: TextStyle(
+                                    //       fontSize: Dimensions.fontSizeSmall,
+                                    //       fontWeight: FontWeight.w400,
+                                    //       color: showColor
+                                    //   ),):const SizedBox()
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(
+                            height: Dimensions.PADDING_SIZE_SMALL * 1.7,
+                          ),
+                          //Solution Explanation
+                          Observer(
+                            builder: (BuildContext context) {
+                              GetNotesSolutionModel? noteModel = store.notesData.value;
+                              return Row(
+                                children: [
+                                  Text(
+                                    "Explanation:",
+                                    style: interBlack.copyWith(
+                                      fontSize: Dimensions.fontSizeLarge,
+                                      fontWeight: FontWeight.w700,
+                                      color: ThemeManager.black,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  // InkWell(
+                                  //   onTap: () {
+                                  //     _showNotesDialog(
+                                  //         context,
+                                  //         filteredSolutionReport?[
+                                  //                     _currentQuestionIndex]
+                                  //                 .questionId ??
+                                  //             "",
+                                  //         noteModel?.notes ?? "");
+                                  //   },
+                                  //   child: Container(
+                                  //     padding: const EdgeInsets.symmetric(
+                                  //         horizontal: 17, vertical: 6),
+                                  //     decoration: BoxDecoration(
+                                  //         color: ThemeManager.whiteTrans,
+                                  //         borderRadius:
+                                  //             BorderRadius.circular(18.71),
+                                  //         border: Border.all(
+                                  //             color: ThemeManager.blueFinal)),
+                                  //     child: Text(
+                                  //       "Stick Notes",
+                                  //       style: interBlack.copyWith(
+                                  //         fontSize: Dimensions.fontSizeSmall,
+                                  //         fontWeight: FontWeight.w400,
+                                  //         color: AppColors.black,
+                                  //       ),
+                                  //     ),
+                                  //   ),
+                                  // ),
+                                  IconButton(
+                                    icon: Image.asset("assets/image/stickyIcon.png",
+                                        width: Dimensions.PADDING_SIZE_LARGE * 1.6,
+                                        height: Dimensions.PADDING_SIZE_LARGE * 1.6),
+                                    onPressed: () {
+                                      _showNotesDialog(
+                                          context,
+                                          filteredSolutionReport?[_currentQuestionIndex].questionId ?? "",
+                                          noteModel?.notes ?? "");
+                                    },
+                                  ),
+                                  const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                                  IconButton(
+                                    icon: Image.asset("assets/image/font_icon.png",
+                                        width: Dimensions.PADDING_SIZE_LARGE * 1.6,
+                                        height: Dimensions.PADDING_SIZE_LARGE * 1.6),
+                                    onPressed: () => _showBottomSheet(context),
+                                  ),
+                                  //       IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,onPressed: (){
+                                  //   _showNotesDialog(context, filteredSolutionReport?[_currentQuestionIndex].questionId ?? "", noteModel?.notes??"");
+                                  // }, icon: Icon(Icons.edit_note_sharp,color: Theme.of(context).hintColor,)),
+                                  // const SizedBox(width: Dimensions.PADDING_SIZE_EXTRA_LARGE,),
+                                  // if((noteModel?.notes??"") !="")
+                                  //   GestureDetector(
+                                  //     onTap: () async {
+                                  //       await _controller.showTooltip();
+                                  //     },
+                                  //     child: SuperTooltip(
+                                  //       showBarrier: true,
+                                  //       controller: _controller,
+                                  //       content: Text(
+                                  //         noteModel?.notes??"",
+                                  //         softWrap: true,
+                                  //         style: TextStyle(
+                                  //           fontSize: Dimensions.fontSizeDefault,
+                                  //           fontWeight: FontWeight.w400,
+                                  //           color: Theme.of(context).primaryColor,
+                                  //         ),
+                                  //       ),
+                                  //       child: SvgPicture.asset("assets/image/messageIcon.svg"),
+                                  //     ),
+                                  //   ),
+                                ],
+                              );
+                            },
+                          ),
+                          const SizedBox(
+                            height: Dimensions.PADDING_SIZE_DEFAULT,
+                          ),
+                          // Text(modifiedExplanation,
+                          //   style: interBlack.copyWith(
+                          //     fontSize: Dimensions.fontSizeDefault,
+                          //     fontWeight: FontWeight.w400,
+                          //     color: ThemeManager.black,
+                          //   ),),
+                          // const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT,),
+                          // (filteredSolutionReport?[_currentQuestionIndex].explanationImg?.isNotEmpty ?? false)?
+                          // InteractiveViewer(
+                          //   minScale: 1.0,
+                          //   maxScale: 3.0,
+                          //   child: Center(
+                          //     child: SizedBox(
+                          //       width: MediaQuery.of(context).size.width * 0.6,
+                          //       height: 250,
+                          //       child: Stack(
+                          //         children: [
+                          //           if (explanationImgBytes != null)
+                          //             Image.memory(explanationImgBytes!),
+                          //           Container(color: Colors.transparent),
+                          //         ],
+                          //       ),
+                          //     ),
+                          //   ),
+                          // ):const SizedBox(),
+
+                          explanationWidget ?? const SizedBox(),
+                          const SizedBox(
+                            height: Dimensions.PADDING_SIZE_DEFAULT,
+                          ),
+
+                          isbutton == true
+                              ? Observer(
+                                  builder: (BuildContext context) {
+                                    GetExplanationModel? getExplainModel = store.getExplanationText.value;
+                                    // debugPrint("store.getExplanationText.value.text: ${store.getExplanationText.value?.text}");
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: Dimensions.PADDING_SIZE_LARGE,
+                                          vertical: Dimensions.PADDING_SIZE_LARGE),
+                                      decoration: BoxDecoration(
+                                          color: ThemeManager.explainContainer,
+                                          borderRadius: BorderRadius.circular(Dimensions.RADIUS_DEFAULT)),
+                                      child: Column(
+                                        children: [
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            children: [
+                                              Container(
+                                                width: Dimensions.PADDING_SIZE_DEFAULT * 2.4,
+                                                height: Dimensions.PADDING_SIZE_DEFAULT * 2.4,
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: ThemeManager.whitePrimary,
+                                                ),
+                                                child: Text(
+                                                  "AI",
+                                                  style: interBlack.copyWith(
+                                                    fontSize: Dimensions.fontSizeLarge,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: ThemeManager.primaryWhite,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                width: Dimensions.PADDING_SIZE_SMALL,
+                                              ),
+                                              Text(
+                                                "Cortex.AI ",
+                                                style: interBlack.copyWith(
+                                                  fontSize: Dimensions.fontSizeExtraLarge,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: AppColors.white,
+                                                ),
+                                              ),
+                                              Text(
+                                                "Explains",
+                                                style: interBlack.copyWith(
+                                                  fontSize: Dimensions.fontSizeExtraLarge,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(
+                                            height: Dimensions.PADDING_SIZE_DEFAULT,
+                                          ),
+                                          TypeWriterText(
+                                            text: Text(
+                                              getExplainModel?.text ?? '',
+                                              style: interBlack.copyWith(
+                                                fontSize: Dimensions.fontSizeDefault,
+                                                fontWeight: FontWeight.w400,
+                                                color: AppColors.white,
+                                              ),
+                                            ),
+                                            maintainSize: false,
+                                            duration: const Duration(milliseconds: 10),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                )
+                              : const SizedBox(),
+                          const SizedBox(
+                            height: Dimensions.PADDING_SIZE_DEFAULT,
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(
+            height: Dimensions.PADDING_SIZE_DEFAULT,
+          ),
+
+          //next and previous buttons
+          if (filteredSolutionReport?.isNotEmpty ?? false)
+            Container(
+              color: ThemeManager.buttonBackground,
+              padding: const EdgeInsets.only(
+                  top: Dimensions.PADDING_SIZE_DEFAULT * 1.2,
+                  left: Dimensions.PADDING_SIZE_EXTRA_LARGE * 1.1,
+                  right: Dimensions.PADDING_SIZE_LARGE * 1.3,
+                  bottom: Dimensions.PADDING_SIZE_LARGE * 1.33),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  InkWell(
+                    onTap: isprocess == true ? null : (firstQue ? null : _showPreviousQuestion),
+                    child: Container(
+                      height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                      width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color:
+                                firstQue ? ThemeManager.nextButtonBorder : ThemeManager.previousNextPrimary,
+                          )),
+                      child: SvgPicture.asset(
+                        "assets/image/arrow_back.svg",
+                        color: firstQue ? ThemeManager.nextButtonBorder : ThemeManager.previousNextPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    width: Dimensions.PADDING_SIZE_DEFAULT * 1.1,
+                  ),
+                  InkWell(
+                    onTap: isprocess == true ? null : (lastQue ? null : _showNextQuestion),
+                    child: Container(
+                      height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                      width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: ThemeManager.previousNextPrimary)),
+                      child: Transform.flip(
+                          flipX: true,
+                          child: SvgPicture.asset(
+                            "assets/image/arrow_back.svg",
+                            color: ThemeManager.previousNextPrimary,
+                          )),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          //   Row(
+          //   children: [
+          //     Expanded(
+          //       child: SizedBox(
+          //         height: Dimensions.PADDING_SIZE_EXTRA_LARGE*2,
+          //         child: ElevatedButton(
+          //             style: ElevatedButton.styleFrom(
+          //                 shape: RoundedRectangleBorder(
+          //                   borderRadius: BorderRadius.circular(8),
+          //                 ),
+          //                 backgroundColor: Theme.of(context).primaryColor
+          //             ),
+          //             onPressed:isprocess == true ? null : (firstQue?null:_showPreviousQuestion),
+          //             child: Text("Previous",
+          //               style: TextStyle(
+          //                 fontSize: Dimensions.fontSizeDefault,
+          //                 fontWeight: FontWeight.w400,
+          //                 color: firstQue ? ThemeManager.black : ThemeManager.home1,
+          //               ),)),
+          //       ),
+          //     ),
+          //     const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
+          //     Expanded(
+          //       child: SizedBox(
+          //         height: Dimensions.PADDING_SIZE_EXTRA_LARGE*2,
+          //         child: ElevatedButton(
+          //             style: ElevatedButton.styleFrom(
+          //                 shape: RoundedRectangleBorder(
+          //                   borderRadius: BorderRadius.circular(8),
+          //                 ),
+          //                 backgroundColor: Theme.of(context).primaryColor
+          //             ),
+          //             onPressed:isprocess == true ? null : (lastQue?null:_showNextQuestion),
+          //             child: Text("Next",
+          //               style: TextStyle(
+          //                 fontSize: Dimensions.fontSizeDefault,
+          //                 fontWeight: FontWeight.w400,
+          //                 color: ThemeManager.home1,
+          //               ),)),
+          //       ),
+          //     ),
+          //   ],
+          // ),
+        ],
+      ),
+    );
   }
 
   Future<void> _showBottomSheet(BuildContext context) async {
@@ -680,1142 +1937,266 @@ class _CustomTestSolutionReportScreenState
         builder: (BuildContext context) {
           double currentFontSize = _textSize;
           double showCurrFontSize = showfontSize;
+
           return AlertDialog(
             insetPadding: const EdgeInsets.symmetric(horizontal: 250),
-            backgroundColor: AppTokens.surface(context),
-            shape: const RoundedRectangleBorder(
-                borderRadius: AppTokens.radius20),
+            backgroundColor: ThemeManager.mainBackground,
             content: StatefulBuilder(
               builder: (BuildContext context, StateSetter setModalState) {
-                return _FontSizePanel(
-                  currentFontSize: currentFontSize,
-                  showCurrFontSize: showCurrFontSize,
-                  onDecrement: () {
-                    setModalState(() {
-                      if (showCurrFontSize > 50) {
-                        showCurrFontSize -= 10;
-                        currentFontSize -= 1;
-                      }
-                    });
-                  },
-                  onIncrement: () {
-                    setModalState(() {
-                      showCurrFontSize += 10;
-                      currentFontSize += 1;
-                    });
-                  },
-                  onCancel: () => Navigator.pop(context),
-                  onApply: () => Navigator.pop(context, currentFontSize),
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Sample Text',
+                          style: interBlack.copyWith(
+                            fontSize: currentFontSize,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Font size',
+                          style: interBlack.copyWith(
+                            fontSize: Dimensions.fontSizeDefault,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.black,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  if (showCurrFontSize > 50) {
+                                    showCurrFontSize -= 10;
+                                    currentFontSize -= 1;
+                                  }
+                                });
+                              },
+                              icon: const Icon(Icons.remove_circle_outline),
+                              color: Colors.grey[600],
+                            ),
+                            Text(
+                              '$showCurrFontSize',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  showCurrFontSize += 10;
+                                  currentFontSize += 1;
+                                });
+                              },
+                              icon: const Icon(Icons.add_circle_outline),
+                              color: Colors.grey[600],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CustomButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          buttonText: "Cancel",
+                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 6,
+                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                          textAlign: TextAlign.center,
+                          radius: Dimensions.RADIUS_DEFAULT,
+                          transparent: true,
+                          bgColor: ThemeManager.btnGrey,
+                          fontSize: Dimensions.fontSizeDefault,
+                        ),
+                        CustomButton(
+                          onPressed: () {
+                            Navigator.pop(context, currentFontSize);
+                          },
+                          buttonText: "Apply",
+                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 6,
+                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                          textAlign: TextAlign.center,
+                          radius: Dimensions.RADIUS_DEFAULT,
+                          transparent: true,
+                          bgColor: Theme.of(context).primaryColor,
+                          fontSize: Dimensions.fontSizeDefault,
+                        ),
+                      ],
+                    ),
+                  ],
                 );
               },
             ),
           );
         },
       );
+
       if (selectedFontSize != null) {
         setState(() {
           _textSize = selectedFontSize;
-          showfontSize = (100 +
-              ((selectedFontSize - Dimensions.fontSizeDefault) * 10));
+          showfontSize = (100 + ((selectedFontSize - Dimensions.fontSizeDefault) * 10));
         });
       }
     } else {
       final double? selectedFontSize = await showModalBottomSheet<double>(
         context: context,
-        backgroundColor: AppTokens.surface(context),
         shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppTokens.r28)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(20),
+          ),
         ),
         builder: (BuildContext context) {
           double currentFontSize = _textSize;
           double showCurrFontSize = showfontSize;
+
           return StatefulBuilder(
             builder: (BuildContext context, StateSetter setModalState) {
               return Padding(
-                padding: const EdgeInsets.all(AppTokens.s16),
-                child: _FontSizePanel(
-                  currentFontSize: currentFontSize,
-                  showCurrFontSize: showCurrFontSize,
-                  onDecrement: () {
-                    setModalState(() {
-                      if (showCurrFontSize > 50) {
-                        showCurrFontSize -= 10;
-                        currentFontSize -= 1;
-                      }
-                    });
-                  },
-                  onIncrement: () {
-                    setModalState(() {
-                      showCurrFontSize += 10;
-                      currentFontSize += 1;
-                    });
-                  },
-                  onCancel: () => Navigator.pop(context),
-                  onApply: () => Navigator.pop(context, currentFontSize),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Sample Text',
+                          style: interBlack.copyWith(
+                            fontSize: currentFontSize,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Font size',
+                          style: interBlack.copyWith(
+                            fontSize: Dimensions.fontSizeDefault,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.black,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  if (showCurrFontSize > 50) {
+                                    showCurrFontSize -= 10;
+                                    currentFontSize -= 1;
+                                  }
+                                });
+                              },
+                              icon: const Icon(Icons.remove_circle_outline),
+                              color: Colors.grey[600],
+                            ),
+                            Text(
+                              '$showCurrFontSize',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  showCurrFontSize += 10;
+                                  currentFontSize += 1;
+                                });
+                              },
+                              icon: const Icon(Icons.add_circle_outline),
+                              color: Colors.grey[600],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CustomButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          buttonText: "Cancel",
+                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 6,
+                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                          textAlign: TextAlign.center,
+                          radius: Dimensions.RADIUS_DEFAULT,
+                          transparent: true,
+                          bgColor: ThemeManager.btnGrey,
+                          fontSize: Dimensions.fontSizeDefault,
+                        ),
+                        CustomButton(
+                          onPressed: () {
+                            Navigator.pop(context, currentFontSize);
+                          },
+                          buttonText: "Apply",
+                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 6,
+                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                          textAlign: TextAlign.center,
+                          radius: Dimensions.RADIUS_DEFAULT,
+                          transparent: true,
+                          bgColor: Theme.of(context).primaryColor,
+                          fontSize: Dimensions.fontSizeDefault,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               );
             },
           );
         },
       );
+
       if (selectedFontSize != null) {
         setState(() {
           _textSize = selectedFontSize;
-          showfontSize = (100 +
-              ((selectedFontSize - Dimensions.fontSizeDefault) * 10));
+          showfontSize = (100 + ((selectedFontSize - Dimensions.fontSizeDefault) * 10));
         });
       }
     }
-  }
-}
-
-// -----------------------------------------------------------------------------
-//  Primitives
-// -----------------------------------------------------------------------------
-
-class _GradientHeader extends StatelessWidget {
-  const _GradientHeader({
-    Key? key,
-    required this.currentIndex,
-    required this.total,
-    required this.filterLabel,
-    required this.onBack,
-    required this.onFilter,
-    this.onInsights,
-  }) : super(key: key);
-
-  final int currentIndex;
-  final int total;
-  final String filterLabel;
-  final VoidCallback onBack;
-  final VoidCallback onFilter;
-  // Wave-2 Insights button — null hides the button.
-  final VoidCallback? onInsights;
-
-  @override
-  Widget build(BuildContext context) {
-    final subtitle = total == 0
-        ? "No questions"
-        : "Question ${currentIndex + 1} of $total";
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTokens.brand, AppTokens.brand2],
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-          AppTokens.s12, MediaQuery.of(context).padding.top + 10, AppTokens.s12, AppTokens.s12),
-      child: Row(
-        children: [
-          _HeaderChip(
-            icon: Icons.arrow_back_ios_new_rounded,
-            onTap: onBack,
-          ),
-          const SizedBox(width: AppTokens.s12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Solution Review",
-                  style: AppTokens.titleMd(context).copyWith(
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: AppTokens.caption(context).copyWith(
-                    color: Colors.white.withOpacity(0.82),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (onInsights != null) ...[
-            _HeaderChip(icon: Icons.insights_rounded, onTap: onInsights!),
-            const SizedBox(width: AppTokens.s8),
-          ],
-          _FilterChip(label: filterLabel, onTap: onFilter),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderChip extends StatelessWidget {
-  const _HeaderChip({Key? key, required this.icon, required this.onTap})
-      : super(key: key);
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withOpacity(0.18),
-      borderRadius: AppTokens.radius12,
-      child: InkWell(
-        borderRadius: AppTokens.radius12,
-        onTap: onTap,
-        child: const SizedBox(
-          width: 40,
-          height: 40,
-          child: Center(
-            child: Icon(Icons.arrow_back_ios_new_rounded,
-                color: Colors.white, size: 18),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({Key? key, required this.label, required this.onTap})
-      : super(key: key);
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white.withOpacity(0.20),
-      borderRadius: AppTokens.radius12,
-      child: InkWell(
-        borderRadius: AppTokens.radius12,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.s12, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.tune_rounded,
-                  color: Colors.white, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                label.isEmpty ? "Filter" : label,
-                style: AppTokens.caption(context).copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTokens.s24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppTokens.surface2(context),
-                borderRadius: AppTokens.radius20,
-              ),
-              child: Icon(Icons.filter_alt_off_rounded,
-                  color: AppTokens.muted(context), size: 32),
-            ),
-            const SizedBox(height: AppTokens.s12),
-            Text("No filtered data available",
-                style: AppTokens.titleSm(context)),
-            const SizedBox(height: AppTokens.s4),
-            Text(
-              "Try choosing a different filter from the top-right.",
-              style: AppTokens.caption(context),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuestionPager extends StatelessWidget {
-  const _QuestionPager({
-    Key? key,
-    required this.reports,
-    required this.currentIndex,
-    required this.scrollController,
-    required this.onTap,
-  }) : super(key: key);
-
-  final List<CustomTestSolutionReportsModel> reports;
-  final int currentIndex;
-  final ScrollController scrollController;
-  final ValueChanged<int> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        controller: scrollController,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppTokens.s16),
-        itemCount: reports.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppTokens.s8),
-        itemBuilder: (context, i) {
-          final r = reports[i];
-          final bool isCorrect =
-              (r.correctOption ?? "") == (r.selectedOption ?? "");
-          final bool isActive = currentIndex == i;
-          final Color accent =
-              isCorrect ? AppTokens.success(context) : AppTokens.danger(context);
-          return GestureDetector(
-            onTap: () => onTap(i),
-            child: Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isActive ? accent : Colors.transparent,
-                shape: BoxShape.circle,
-                border: Border.all(color: accent, width: 1.4),
-              ),
-              child: Text(
-                "${i + 1}",
-                style: AppTokens.caption(context).copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: isActive ? Colors.white : accent,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _QuestionActionsRow extends StatelessWidget {
-  const _QuestionActionsRow({
-    Key? key,
-    required this.index,
-    required this.report,
-    required this.isProcessing,
-    required this.onAskCortex,
-    required this.onRaiseQuery,
-  }) : super(key: key);
-
-  final int index;
-  final CustomTestSolutionReportsModel report;
-  final bool isProcessing;
-  final Future<void> Function() onAskCortex;
-  final VoidCallback onRaiseQuery;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget? tag;
-    if ((report.guess ?? "") != "") {
-      tag = _StatusTag(
-        label: "Guessed",
-        background: AppTokens.warningSoft(context),
-        foreground: AppTokens.warning(context),
-      );
-    } else if (
-        // ignore: unrelated_type_equality_checks
-        report.selectedOption == true) {
-      tag = _StatusTag(
-        label: "Skipped",
-        background: AppTokens.surface3(context),
-        foreground: AppTokens.ink2(context),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppTokens.s16),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.s12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTokens.accentSoft(context),
-              borderRadius: AppTokens.radius8,
-            ),
-            child: Text(
-              "Q ${index + 1}",
-              style: AppTokens.caption(context).copyWith(
-                color: AppTokens.accent(context),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          if (tag != null) ...[
-            const SizedBox(width: AppTokens.s8),
-            tag,
-          ],
-          const Spacer(),
-          _AskCortexButton(
-              isProcessing: isProcessing,
-              onTap: isProcessing ? null : () => onAskCortex()),
-          const SizedBox(width: AppTokens.s8),
-          _RaiseQueryButton(onTap: onRaiseQuery),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusTag extends StatelessWidget {
-  const _StatusTag({
-    Key? key,
-    required this.label,
-    required this.background,
-    required this.foreground,
-  }) : super(key: key);
-  final String label;
-  final Color background;
-  final Color foreground;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.s12, vertical: 6),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: AppTokens.radius8,
-      ),
-      child: Text(
-        label,
-        style: AppTokens.caption(context).copyWith(
-          color: foreground,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _AskCortexButton extends StatelessWidget {
-  const _AskCortexButton(
-      {Key? key, required this.isProcessing, required this.onTap})
-      : super(key: key);
-
-  final bool isProcessing;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: AppTokens.radius12,
-      child: InkWell(
-        borderRadius: AppTokens.radius12,
-        onTap: onTap,
-        child: Container(
-          height: 36,
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppTokens.s12),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTokens.brand, AppTokens.brand2],
-            ),
-            borderRadius: AppTokens.radius12,
-            boxShadow: [
-              BoxShadow(
-                color: AppTokens.brand.withOpacity(0.25),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isProcessing)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              else
-                const Icon(Icons.auto_awesome_rounded,
-                    color: Colors.white, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                isProcessing ? "Thinking..." : "Ask Cortex.AI",
-                style: AppTokens.caption(context).copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RaiseQueryButton extends StatelessWidget {
-  const _RaiseQueryButton({Key? key, required this.onTap}) : super(key: key);
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: AppTokens.radius12,
-      child: InkWell(
-        borderRadius: AppTokens.radius12,
-        onTap: onTap,
-        child: Container(
-          height: 36,
-          padding:
-              const EdgeInsets.symmetric(horizontal: AppTokens.s12),
-          decoration: BoxDecoration(
-            color: AppTokens.surface(context),
-            borderRadius: AppTokens.radius12,
-            border: Border.all(color: AppTokens.accent(context)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.report_gmailerrorred_rounded,
-                  color: AppTokens.accent(context), size: 16),
-              const SizedBox(width: 6),
-              Text(
-                "Raise Query",
-                style: AppTokens.caption(context).copyWith(
-                  color: AppTokens.accent(context),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuestionCard extends StatelessWidget {
-  const _QuestionCard({Key? key, required this.child}) : super(key: key);
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppTokens.s16),
-      decoration: BoxDecoration(
-        color: AppTokens.surface(context),
-        borderRadius: AppTokens.radius16,
-        border: Border.all(color: AppTokens.border(context)),
-        boxShadow: AppTokens.shadow1(context),
-      ),
-      child: child,
-    );
-  }
-}
-
-enum _OptionState { correct, incorrect, guess, neutral }
-
-class _OptionCard extends StatelessWidget {
-  const _OptionCard({
-    Key? key,
-    required this.label,
-    required this.text,
-    required this.imageUrl,
-    required this.state,
-  }) : super(key: key);
-
-  final String label;
-  final String text;
-  final String imageUrl;
-  final _OptionState state;
-
-  @override
-  Widget build(BuildContext context) {
-    Color border;
-    Color background;
-    Color ink;
-    IconData? icon;
-    switch (state) {
-      case _OptionState.correct:
-        border = AppTokens.success(context);
-        background = AppTokens.successSoft(context);
-        ink = AppTokens.success(context);
-        icon = Icons.check_circle_rounded;
-        break;
-      case _OptionState.incorrect:
-        border = AppTokens.danger(context);
-        background = AppTokens.dangerSoft(context);
-        ink = AppTokens.danger(context);
-        icon = Icons.cancel_rounded;
-        break;
-      case _OptionState.guess:
-        border = AppTokens.warning(context);
-        background = AppTokens.warningSoft(context);
-        ink = AppTokens.warning(context);
-        icon = Icons.help_rounded;
-        break;
-      case _OptionState.neutral:
-        border = AppTokens.border(context);
-        background = AppTokens.surface(context);
-        ink = AppTokens.ink(context);
-        icon = null;
-        break;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.s16, vertical: AppTokens.s12),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: AppTokens.radius16,
-        border: Border.all(color: border, width: 1.2),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: state == _OptionState.neutral
-                  ? AppTokens.surface2(context)
-                  : ink.withOpacity(0.18),
-              shape: BoxShape.circle,
-              border: Border.all(color: ink, width: 1.2),
-            ),
-            child: Text(
-              label,
-              style: AppTokens.caption(context).copyWith(
-                color: ink,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppTokens.s12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  text,
-                  style: AppTokens.bodyLg(context).copyWith(
-                    color: ink,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (imageUrl.isNotEmpty) ...[
-                  const SizedBox(height: AppTokens.s8),
-                  _ZoomableImage(src: imageUrl, maxHeight: 220),
-                ],
-              ],
-            ),
-          ),
-          if (icon != null) ...[
-            const SizedBox(width: AppTokens.s8),
-            Icon(icon, color: ink, size: 22),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ExplanationHeader extends StatelessWidget {
-  const _ExplanationHeader(
-      {Key? key, required this.onNotes, required this.onFontSize})
-      : super(key: key);
-  final VoidCallback onNotes;
-  final VoidCallback onFontSize;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 20,
-          decoration: BoxDecoration(
-            color: AppTokens.accent(context),
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        const SizedBox(width: AppTokens.s8),
-        Text(
-          "Explanation",
-          style: AppTokens.titleSm(context).copyWith(fontWeight: FontWeight.w700),
-        ),
-        const Spacer(),
-        _ExplainIconBtn(
-          icon: Icons.sticky_note_2_rounded,
-          tooltip: "Stick notes",
-          onTap: onNotes,
-        ),
-        const SizedBox(width: AppTokens.s8),
-        _ExplainIconBtn(
-          icon: Icons.text_fields_rounded,
-          tooltip: "Font size",
-          onTap: onFontSize,
-        ),
-      ],
-    );
-  }
-}
-
-class _ExplainIconBtn extends StatelessWidget {
-  const _ExplainIconBtn(
-      {Key? key, required this.icon, required this.tooltip, required this.onTap})
-      : super(key: key);
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: AppTokens.surface2(context),
-        borderRadius: AppTokens.radius12,
-        child: InkWell(
-          borderRadius: AppTokens.radius12,
-          onTap: onTap,
-          child: SizedBox(
-            width: 38,
-            height: 38,
-            child: Center(
-                child: Icon(icon, size: 18, color: AppTokens.ink(context))),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ExplanationCard extends StatelessWidget {
-  const _ExplanationCard({Key? key, required this.child}) : super(key: key);
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppTokens.s16),
-      decoration: BoxDecoration(
-        color: AppTokens.surface(context),
-        borderRadius: AppTokens.radius16,
-        border: Border.all(color: AppTokens.border(context)),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _CortexAIPanel extends StatelessWidget {
-  const _CortexAIPanel({Key? key, required this.text}) : super(key: key);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppTokens.s16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTokens.brand, AppTokens.brand2],
-        ),
-        borderRadius: AppTokens.radius16,
-        boxShadow: [
-          BoxShadow(
-            color: AppTokens.brand.withOpacity(0.25),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.22),
-                ),
-                child: const Icon(Icons.auto_awesome_rounded,
-                    size: 18, color: Colors.white),
-              ),
-              const SizedBox(width: AppTokens.s8),
-              Text(
-                "Cortex.AI",
-                style: AppTokens.titleSm(context).copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: AppTokens.s4),
-              Text(
-                "Explains",
-                style: AppTokens.titleSm(context).copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTokens.s12),
-          TypeWriterText(
-            text: Text(
-              text,
-              style: AppTokens.bodyLg(context).copyWith(
-                color: Colors.white,
-              ),
-            ),
-            maintainSize: false,
-            duration: const Duration(milliseconds: 10),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BottomNavBar extends StatelessWidget {
-  const _BottomNavBar({
-    Key? key,
-    required this.firstQue,
-    required this.lastQue,
-    required this.isProcessing,
-    required this.onPrev,
-    required this.onNext,
-  }) : super(key: key);
-
-  final bool firstQue;
-  final bool lastQue;
-  final bool isProcessing;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-          AppTokens.s16, AppTokens.s12, AppTokens.s16,
-          AppTokens.s12 + MediaQuery.of(context).padding.bottom),
-      decoration: BoxDecoration(
-        color: AppTokens.surface(context),
-        border: Border(
-          top: BorderSide(color: AppTokens.border(context)),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _NavCircle(
-            icon: Icons.arrow_back_ios_new_rounded,
-            enabled: !isProcessing && !firstQue,
-            onTap: onPrev,
-          ),
-          const SizedBox(width: AppTokens.s16),
-          _NavCircle(
-            icon: Icons.arrow_forward_ios_rounded,
-            enabled: !isProcessing && !lastQue,
-            onTap: onNext,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavCircle extends StatelessWidget {
-  const _NavCircle(
-      {Key? key, required this.icon, required this.enabled, required this.onTap})
-      : super(key: key);
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color tint = enabled
-        ? AppTokens.accent(context)
-        : AppTokens.border(context);
-    return Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: enabled ? onTap : null,
-        child: Container(
-          width: 48,
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: tint, width: 1.4),
-            color: AppTokens.surface(context),
-          ),
-          child: Icon(icon, color: tint, size: 18),
-        ),
-      ),
-    );
-  }
-}
-
-class _FontSizePanel extends StatelessWidget {
-  const _FontSizePanel({
-    Key? key,
-    required this.currentFontSize,
-    required this.showCurrFontSize,
-    required this.onDecrement,
-    required this.onIncrement,
-    required this.onCancel,
-    required this.onApply,
-  }) : super(key: key);
-
-  final double currentFontSize;
-  final double showCurrFontSize;
-  final VoidCallback onDecrement;
-  final VoidCallback onIncrement;
-  final VoidCallback onCancel;
-  final VoidCallback onApply;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 44,
-          height: 4,
-          margin: const EdgeInsets.only(bottom: AppTokens.s16),
-          decoration: BoxDecoration(
-            color: AppTokens.border(context),
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppTokens.s16),
-          decoration: BoxDecoration(
-            color: AppTokens.surface2(context),
-            borderRadius: AppTokens.radius16,
-          ),
-          child: Center(
-            child: Text(
-              'Sample Text',
-              style: AppTokens.bodyLg(context).copyWith(
-                fontSize: currentFontSize,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppTokens.s12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Font size',
-                style: AppTokens.titleSm(context).copyWith(fontWeight: FontWeight.w600)),
-            Row(
-              children: [
-                _StepBtn(
-                    icon: Icons.remove_rounded, onTap: onDecrement),
-                const SizedBox(width: AppTokens.s8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppTokens.s12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppTokens.surface2(context),
-                    borderRadius: AppTokens.radius8,
-                  ),
-                  child: Text(
-                    '${showCurrFontSize.toInt()}%',
-                    style: AppTokens.body(context)
-                        .copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                const SizedBox(width: AppTokens.s8),
-                _StepBtn(
-                    icon: Icons.add_rounded, onTap: onIncrement),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: AppTokens.s16),
-        Row(
-          children: [
-            Expanded(
-              child: _DialogBtn(
-                  label: "Cancel", outlined: true, onTap: onCancel),
-            ),
-            const SizedBox(width: AppTokens.s12),
-            Expanded(
-              child: _DialogBtn(
-                  label: "Apply", outlined: false, onTap: onApply),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _StepBtn extends StatelessWidget {
-  const _StepBtn({Key? key, required this.icon, required this.onTap})
-      : super(key: key);
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppTokens.surface2(context),
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          width: 34,
-          height: 34,
-          child: Center(
-              child:
-                  Icon(icon, size: 18, color: AppTokens.ink(context))),
-        ),
-      ),
-    );
-  }
-}
-
-class _DialogBtn extends StatelessWidget {
-  const _DialogBtn(
-      {Key? key,
-      required this.label,
-      required this.outlined,
-      required this.onTap})
-      : super(key: key);
-  final String label;
-  final bool outlined;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    if (outlined) {
-      return OutlinedButton(
-        onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(44),
-          shape: const RoundedRectangleBorder(
-              borderRadius: AppTokens.radius12),
-          side: BorderSide(color: AppTokens.border(context)),
-          foregroundColor: AppTokens.ink(context),
-        ),
-        child: Text(label,
-            style: AppTokens.titleSm(context).copyWith(fontWeight: FontWeight.w600)),
-      );
-    }
-    return Material(
-      borderRadius: AppTokens.radius12,
-      child: InkWell(
-        borderRadius: AppTokens.radius12,
-        onTap: onTap,
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: AppTokens.radius12,
-            gradient: const LinearGradient(
-              colors: [AppTokens.brand, AppTokens.brand2],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppTokens.brand.withOpacity(0.25),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Text(
-            label,
-            style: AppTokens.titleSm(context).copyWith(
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ZoomableImage extends StatelessWidget {
-  const _ZoomableImage({Key? key, required this.src, required this.maxHeight})
-      : super(key: key);
-  final String src;
-  final double maxHeight;
-
-  @override
-  Widget build(BuildContext context) {
-    if (src.isEmpty) return const SizedBox();
-    return GestureDetector(
-      onTap: () {
-        showDialog(
-          context: context,
-          builder: (context) {
-            return Dialog(
-              shape: const RoundedRectangleBorder(
-                  borderRadius: AppTokens.radius20),
-              clipBehavior: Clip.antiAlias,
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.7,
-                child: PhotoView(
-                  imageProvider: NetworkImage(src),
-                  minScale: PhotoViewComputedScale.contained,
-                  maxScale: PhotoViewComputedScale.covered * 2,
-                  backgroundDecoration: BoxDecoration(
-                    color: AppTokens.surface(context),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-      child: ClipRRect(
-        borderRadius: AppTokens.radius12,
-        child: Container(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          width: double.infinity,
-          color: AppTokens.surface2(context),
-          child: Image.network(src, fit: BoxFit.contain),
-        ),
-      ),
-    );
   }
 }

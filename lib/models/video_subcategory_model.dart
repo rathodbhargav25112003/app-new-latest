@@ -26,6 +26,8 @@ class VideoSubCategoryModel {
     this.completedVideoCount,
     this.notStart,
     this.bookmarkVideoCount,
+    this.priorityLabel,
+    this.priorityColor,
   });
 
   factory VideoSubCategoryModel.fromJson(Map<String, dynamic> json) => _$VideoSubCategoryModelFromJson(json);
@@ -55,6 +57,8 @@ class VideoSubCategoryModel {
   int? completedVideoCount;
   int? notStart;
   int? bookmarkVideoCount;
+  String? priorityLabel;
+  String? priorityColor;
 
   Map<String, dynamic> toJson() => _$VideoSubCategoryModelToJson(this);
 }

@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'package:shusruta_lms/services/daily_review_recorder.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -13,6 +14,21 @@ import 'package:flutter_svg/svg.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
 import 'package:shusruta_lms/modules/masterTest/question_master_pallet.dart';
+import 'package:shusruta_lms/modules/mcq_review_v3/mcq_review_service.dart';
+import 'package:shusruta_lms/modules/mcq_review_v3/reading_prefs.dart';
+import 'package:shusruta_lms/modules/mcq_review_v3/widgets/bookmark_categories_sheet.dart';
+import 'package:shusruta_lms/modules/mcq_review_v3/widgets/highlighter_toolbar.dart';
+// MCQ Review v3 — drop-in action bar (same idiom as practice solution screen,
+// but examType:'mock' so the Cortex / related-mcqs / debrief / SR queue
+// dispatch to MasterQuestion-backed endpoints).
+import 'package:shusruta_lms/modules/mcq_review_v3/widgets/mcq_solution_action_bar.dart';
+// Existing-feature upgrades — quick font, bookmark categories, sticky-note
+// multi-panel, highlighter toolbar, swipe-nav, smart summary
+import 'package:shusruta_lms/modules/mcq_review_v3/widgets/quick_font_controls.dart';
+import 'package:shusruta_lms/modules/mcq_review_v3/widgets/smart_summary_dialog.dart';
+import 'package:shusruta_lms/modules/mcq_review_v3/widgets/sticky_notes_panel.dart';
+import 'package:shusruta_lms/modules/mcq_review_v3/widgets/swipe_navigation_wrapper.dart';
+import 'package:shusruta_lms/modules/mcq_review_v3/widgets/time_vs_avg.dart';
 import 'package:shusruta_lms/modules/test/question_pallet.dart';
 import 'package:shusruta_lms/modules/test/store/test_category_store.dart';
 import 'package:shusruta_lms/modules/widgets/bottom_stick_notes_window.dart';
@@ -21,25 +37,6 @@ import 'package:typewritertext/typewritertext.dart';
 
 import '../../app/routes.dart';
 import '../../helpers/app_tokens.dart';
-// MCQ Review v3 — drop-in action bar (same idiom as practice solution screen,
-// but examType:'mock' so the Cortex / related-mcqs / debrief / SR queue
-// dispatch to MasterQuestion-backed endpoints).
-import 'package:shusruta_lms/modules/mcq_review_v3/widgets/mcq_solution_action_bar.dart';
-// Wave-2 post-attempt analytics panel (heatmap, time-pressure, calibration,
-// cohort percentile, pattern summary, "practice my mistakes" CTA). One-line
-// drop-in opened from the app-bar Insights button.
-import 'package:shusruta_lms/modules/new_exam_component/widgets/post_attempt_analytics_panel.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/widgets/time_vs_avg.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/mcq_review_service.dart';
-// Existing-feature upgrades — quick font, bookmark categories, sticky-note
-// multi-panel, highlighter toolbar, swipe-nav, smart summary
-import 'package:shusruta_lms/modules/mcq_review_v3/widgets/quick_font_controls.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/widgets/bookmark_categories_sheet.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/widgets/sticky_notes_panel.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/widgets/highlighter_toolbar.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/widgets/swipe_navigation_wrapper.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/widgets/smart_summary_dialog.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/reading_prefs.dart';
 import '../../helpers/colors.dart';
 import '../../helpers/dimensions.dart';
 import '../../helpers/styles.dart';
@@ -133,8 +130,7 @@ class MockPracticeTestSolutionExamScreen extends StatefulWidget {
   });
 
   @override
-  State<MockPracticeTestSolutionExamScreen> createState() =>
-      _MockPracticeTestSolutionExamScreenState();
+  State<MockPracticeTestSolutionExamScreen> createState() => _MockPracticeTestSolutionExamScreenState();
 
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map<String, dynamic>;
@@ -154,8 +150,7 @@ class MockPracticeTestSolutionExamScreen extends StatefulWidget {
   }
 }
 
-class _MockPracticeTestSolutionExamScreenState
-    extends State<MockPracticeTestSolutionExamScreen> {
+class _MockPracticeTestSolutionExamScreenState extends State<MockPracticeTestSolutionExamScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   int _selectedIndex = -1;
@@ -195,8 +190,10 @@ class _MockPracticeTestSolutionExamScreenState
         setState(() {
           final list = List<StickyNote>.from(_v3MultiNotes[questionId] ?? []);
           final i = list.indexWhere((x) => x.id == n.id);
-          if (i == -1) list.insert(0, n);
-          else list[i] = n;
+          if (i == -1)
+            list.insert(0, n);
+          else
+            list[i] = n;
           _v3MultiNotes[questionId] = list;
         });
       },
@@ -249,8 +246,7 @@ class _MockPracticeTestSolutionExamScreenState
     } else {
       filterTest = widget.testExamPaper?.test;
     }
-    int matchingIndex =
-        filterTest?.indexWhere((e) => e.questionNumber == widget.queNo) ?? -1;
+    int matchingIndex = filterTest?.indexWhere((e) => e.questionNumber == widget.queNo) ?? -1;
     if (matchingIndex != -1) {
       String? matchingQueId = filterTest?[matchingIndex].sId;
       _getSelectedAnswer(matchingQueId!);
@@ -290,23 +286,28 @@ class _MockPracticeTestSolutionExamScreenState
   Future<void> _putBookMarkApiCall(String examId, String? questionId) async {
     setState(() {
       widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks =
-          !(widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ??
-              false);
+          !(widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ?? false);
     });
     final store = Provider.of<ReportsCategoryStore>(context, listen: false);
+    final isBookmarkedNow =
+        widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ?? false;
     store.onBookMarkQuestion(
       context,
-      widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ?? false,
+      isBookmarkedNow,
       examId,
       questionId ?? "",
       "",
     );
+    final q = widget.testExamPaper?.test?[_currentQuestionIndex];
+    if (q != null) {
+      // ignore: discarded_futures
+      DailyReviewRecorder.bookmarkToggle(q, examId, isBookmarkedNow);
+    }
     BottomToast.showBottomToastOverlay(
       context: context,
-      errorMessage:
-          widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ?? false
-              ? "Question Bookmarked Successfully!"
-              : "Bookmark Removed!",
+      errorMessage: isBookmarkedNow
+          ? "Question Bookmarked Successfully!"
+          : "Bookmark Removed!",
       backgroundColor: Theme.of(context).primaryColor,
     );
   }
@@ -379,8 +380,7 @@ class _MockPracticeTestSolutionExamScreenState
       skipped: skipped,
       totalSeconds: null,
       userExamId: widget.userExamId,
-      onSaveAndExit: () =>
-          Navigator.of(context).pushNamed(Routes.allTestCategory),
+      onSaveAndExit: () => Navigator.of(context).pushNamed(Routes.allTestCategory),
     );
     return;
     showDialog(
@@ -425,32 +425,28 @@ class _MockPracticeTestSolutionExamScreenState
                 icon: Icons.check_rounded,
                 tone: _StatTone.success,
                 label: "Correct",
-                value:
-                    "${store.getMockReportPracticeCountData.value?.correctAnswers ?? 0}",
+                value: "${store.getMockReportPracticeCountData.value?.correctAnswers ?? 0}",
               ),
               const SizedBox(height: AppTokens.s8),
               _SummaryStat(
                 icon: Icons.close_rounded,
                 tone: _StatTone.danger,
                 label: "Incorrect",
-                value:
-                    "${store.getMockReportPracticeCountData.value?.incorrectAnswers ?? 0}",
+                value: "${store.getMockReportPracticeCountData.value?.incorrectAnswers ?? 0}",
               ),
               const SizedBox(height: AppTokens.s8),
               _SummaryStat(
                 icon: Icons.priority_high_rounded,
                 tone: _StatTone.warning,
                 label: "Unanswered",
-                value:
-                    "${store.getMockReportPracticeCountData.value?.notVisited ?? 0}",
+                value: "${store.getMockReportPracticeCountData.value?.notVisited ?? 0}",
               ),
               const SizedBox(height: AppTokens.s20),
               SizedBox(
                 width: double.infinity,
                 child: _PrimaryBtn(
                   label: "Save & Exit",
-                  onTap: () =>
-                      Navigator.of(ctx).pushNamed(Routes.allTestCategory),
+                  onTap: () => Navigator.of(ctx).pushNamed(Routes.allTestCategory),
                 ),
               ),
             ],
@@ -470,9 +466,8 @@ class _MockPracticeTestSolutionExamScreenState
     isTapped = false;
     String? questionId = filterTest?[_currentQuestionIndex].sId;
 
-    String? selectedOption = _selectedIndex == -1
-        ? ""
-        : filterTest?[_currentQuestionIndex].optionsData?[_selectedIndex].value;
+    String? selectedOption =
+        _selectedIndex == -1 ? "" : filterTest?[_currentQuestionIndex].optionsData?[_selectedIndex].value;
     if (selectedOption == "" && !isMarkedForReview) {
       isSkipped = true;
       isAttempted = false;
@@ -578,8 +573,7 @@ class _MockPracticeTestSolutionExamScreenState
     final tile = 40.0 + AppTokens.s8;
     double totalWidth = (filterTest?.length ?? 0) * tile;
     double viewportWidth = MediaQuery.of(context).size.width;
-    double maxScrollExtent =
-        (totalWidth - viewportWidth).clamp(0.0, double.infinity);
+    double maxScrollExtent = (totalWidth - viewportWidth).clamp(0.0, double.infinity);
     double targetScrollPosition = (index * tile).clamp(0.0, maxScrollExtent);
 
     _scrollController.animateTo(
@@ -595,18 +589,16 @@ class _MockPracticeTestSolutionExamScreenState
 
   Widget getExplanationText(BuildContext context) {
     String explanation = filterTest?[_currentQuestionIndex].explanation ?? "";
-    explanation = explanation.replaceAllMapped(
-        RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
+    explanation =
+        explanation.replaceAllMapped(RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
     List<String> splittedText = explanation.split("splittedImage");
     List<Widget> columns = [];
     int index = 0;
 
     for (String text in splittedText) {
       List<Widget> explanationImageWidget = [];
-      if (filterTest?[_currentQuestionIndex].explanationImg?.isNotEmpty ??
-          false) {
-        for (String base64String in widget
-            .testExamPaper!.test![_currentQuestionIndex].explanationImg!) {
+      if (filterTest?[_currentQuestionIndex].explanationImg?.isNotEmpty ?? false) {
+        for (String base64String in widget.testExamPaper!.test![_currentQuestionIndex].explanationImg!) {
           try {
             explanationImageWidget.add(
               GestureDetector(
@@ -664,16 +656,13 @@ class _MockPracticeTestSolutionExamScreenState
             if (explanationImageWidget.isNotEmpty)
               Text(
                 "Tap the image to zoom In/Out",
-                style: AppTokens.caption(context)
-                    .copyWith(color: AppTokens.ink2(context)),
+                style: AppTokens.caption(context).copyWith(color: AppTokens.ink2(context)),
               ),
           ],
         ),
       );
       index++;
-      if (index >=
-          (filterTest?[_currentQuestionIndex].explanationImg?.length ?? 0) -
-              1) {
+      if (index >= (filterTest?[_currentQuestionIndex].explanationImg?.length ?? 0) - 1) {
         break;
       }
     }
@@ -697,16 +686,15 @@ class _MockPracticeTestSolutionExamScreenState
     }
 
     String questionTxt = filterTest?[_currentQuestionIndex].questionText ?? "";
-    questionTxt = questionTxt.replaceAllMapped(
-        RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
+    questionTxt =
+        questionTxt.replaceAllMapped(RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
     List<String> splittedText = questionTxt.split("splittedImage");
     List<Widget> columns = [];
     int index = 0;
     for (String text in splittedText) {
       List<Widget> questionImageWidget = [];
       if (filterTest?[_currentQuestionIndex].questionImg?.isNotEmpty ?? false) {
-        for (String base64String in widget
-            .testExamPaper!.test![_currentQuestionIndex].questionImg!) {
+        for (String base64String in widget.testExamPaper!.test![_currentQuestionIndex].questionImg!) {
           try {
             questionImageWidget.add(
               GestureDetector(
@@ -764,15 +752,13 @@ class _MockPracticeTestSolutionExamScreenState
             if (questionImageWidget.isNotEmpty)
               Text(
                 "Tap the image to zoom In/Out",
-                style: AppTokens.caption(context)
-                    .copyWith(color: AppTokens.ink2(context)),
+                style: AppTokens.caption(context).copyWith(color: AppTokens.ink2(context)),
               ),
           ],
         ),
       );
       index++;
-      if (index >=
-          (filterTest?[_currentQuestionIndex].questionImg?.length ?? 0) - 1) {
+      if (index >= (filterTest?[_currentQuestionIndex].questionImg?.length ?? 0) - 1) {
         break;
       }
     }
@@ -826,13 +812,12 @@ class _MockPracticeTestSolutionExamScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       questionWidget ?? const SizedBox(),
-                    const SizedBox(height: AppTokens.s12),
-                    _buildOptionsList(),
-                    if (isTapped == true && widget.isPracticeExam == true)
-                      _buildExplanationPanel(store),
-                  ],
+                      const SizedBox(height: AppTokens.s12),
+                      _buildOptionsList(),
+                      if (isTapped == true && widget.isPracticeExam == true) _buildExplanationPanel(store),
+                    ],
+                  ),
                 ),
-              ),
               ), // close SwipeNavigationWrapper (V3)
             ),
             _buildNavBar(),
@@ -851,8 +836,7 @@ class _MockPracticeTestSolutionExamScreenState
     );
   }
 
-  PreferredSizeWidget _buildAppBar(
-      BuildContext context, TestCategoryStore store2) {
+  PreferredSizeWidget _buildAppBar(BuildContext context, TestCategoryStore store2) {
     return AppBar(
       elevation: 0,
       automaticallyImplyLeading: false,
@@ -861,8 +845,7 @@ class _MockPracticeTestSolutionExamScreenState
         children: [
           _CircleIconBtn(
             icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () =>
-                Navigator.of(context).pushNamed(Routes.allTestCategory),
+            onTap: () => Navigator.of(context).pushNamed(Routes.allTestCategory),
           ),
           const SizedBox(width: AppTokens.s12),
           _CircleIconBtn(
@@ -870,18 +853,6 @@ class _MockPracticeTestSolutionExamScreenState
             onTap: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           const Spacer(),
-          // Wave-2: Insights — opens a full-screen sheet with the
-          // post-attempt analytics panel (heatmap, time-pressure,
-          // calibration, cohort percentile, pattern summary, "practice
-          // my mistakes" CTA). Hidden when there's no userExamId
-          // (shouldn't happen on this screen but guard for safety).
-          if ((widget.userExamId ?? '').isNotEmpty) ...[
-            _CircleIconBtn(
-              icon: Icons.insights_rounded,
-              onTap: () => _openInsights(context),
-            ),
-            const SizedBox(width: AppTokens.s12),
-          ],
           InkWell(
             borderRadius: AppTokens.radius28,
             onTap: () => _showSummaryDialog(store2),
@@ -895,43 +866,14 @@ class _MockPracticeTestSolutionExamScreenState
                 border: Border.all(color: AppTokens.accent(context)),
               ),
               child: Text(
-                "Save & Exit",
-                style: AppTokens.titleSm(context)
-                    .copyWith(color: AppTokens.accent(context)),
+                "Save12 & Exit",
+                style: AppTokens.titleSm(context).copyWith(color: AppTokens.accent(context)),
               ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  /// Wave-2 post-attempt analytics — opens in a fullscreen sheet so
-  /// it doesn't disturb the existing per-question solution flow. The
-  /// "Practice my mistakes" callback creates a fresh remediation
-  /// UserExam server-side and routes the user back to the exam list
-  /// where they can pick it up via the in-progress prompt.
-  void _openInsights(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Performance insights'),
-          backgroundColor: AppTokens.surface(context),
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: PostAttemptAnalyticsPanel(
-            userExamId: widget.userExamId!,
-            onRemediationCreated: (newId, count) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('Remediation set ready ($count Qs). Find it in In-progress attempts.'),
-              ));
-            },
-          ),
-        ),
-      ),
-    ));
   }
 
   Widget _buildIndexStrip() {
@@ -950,12 +892,10 @@ class _MockPracticeTestSolutionExamScreenState
         child: Row(
           children: List.generate(length, (index) {
             final TestData? solutionReport = filterTest?[index];
-            final bool match = (solutionReport?.correctOption ?? "") ==
-                (solutionReport?.selectedOption ?? "");
+            final bool match =
+                (solutionReport?.correctOption ?? "") == (solutionReport?.selectedOption ?? "");
             final bool active = _currentQuestionIndex == index;
-            final Color tint = match
-                ? AppTokens.success(context)
-                : AppTokens.danger(context);
+            final Color tint = match ? AppTokens.success(context) : AppTokens.danger(context);
             return Padding(
               padding: const EdgeInsets.only(right: AppTokens.s8),
               child: GestureDetector(
@@ -1006,23 +946,16 @@ class _MockPracticeTestSolutionExamScreenState
                   isprocess = true;
                 });
               }
-              final TestData? solutionReport =
-                  filterTest?[_currentQuestionIndex];
+              final TestData? solutionReport = filterTest?[_currentQuestionIndex];
               final questionText = solutionReport?.questionText;
               final currentOption = solutionReport?.correctOption;
-              final answerTitle =
-                  solutionReport?.optionsData?.map((e) => e.answerTitle);
-              int currentIndex = solutionReport?.optionsData
-                      ?.indexWhere((e) => e.value == currentOption) ??
-                  -1;
+              final answerTitle = solutionReport?.optionsData?.map((e) => e.answerTitle);
+              int currentIndex =
+                  solutionReport?.optionsData?.indexWhere((e) => e.value == currentOption) ?? -1;
               String? currentAnswerTitle = answerTitle?.elementAt(currentIndex);
-              List<String?> notMatchingAnswerTitles = answerTitle
-                      ?.where((title) => title != currentAnswerTitle)
-                      .toList() ??
-                  [];
-              String concatenatedTitles = notMatchingAnswerTitles
-                  .where((title) => title != null)
-                  .join(", ");
+              List<String?> notMatchingAnswerTitles =
+                  answerTitle?.where((title) => title != currentAnswerTitle).toList() ?? [];
+              String concatenatedTitles = notMatchingAnswerTitles.where((title) => title != null).join(", ");
               String question =
                   "Explain why $currentAnswerTitle is the answer to the Question $questionText and why the remaining $concatenatedTitles are not correct answer";
               debugPrint("question12 :$question");
@@ -1055,11 +988,8 @@ class _MockPracticeTestSolutionExamScreenState
                       actionsPadding: EdgeInsets.zero,
                       actions: [
                         MockBottomRaiseQuery(
-                          questionId:
-                              filterTest?[_currentQuestionIndex].sId ?? "",
-                          questionText:
-                              filterTest?[_currentQuestionIndex].questionText ??
-                                  '',
+                          questionId: filterTest?[_currentQuestionIndex].sId ?? "",
+                          questionText: filterTest?[_currentQuestionIndex].questionText ?? '',
                           allOptions: _allOptionsPayload(),
                         ),
                       ],
@@ -1069,18 +999,14 @@ class _MockPracticeTestSolutionExamScreenState
               } else {
                 showModalBottomSheet<String>(
                   shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(25)),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                   ),
                   clipBehavior: Clip.antiAliasWithSaveLayer,
                   context: context,
                   builder: (BuildContext context) {
                     return MockBottomRaiseQuery(
-                      questionId:
-                          filterTest?[_currentQuestionIndex].sId ?? "",
-                      questionText:
-                          filterTest?[_currentQuestionIndex].questionText ??
-                              '',
+                      questionId: filterTest?[_currentQuestionIndex].sId ?? "",
+                      questionText: filterTest?[_currentQuestionIndex].questionText ?? '',
                       allOptions: _allOptionsPayload(),
                     );
                   },
@@ -1113,15 +1039,11 @@ class _MockPracticeTestSolutionExamScreenState
       itemCount: count,
       itemBuilder: (context, index) {
         final optionValue = testExamPaper?.optionsData?[index].value ?? "";
-        final optionTitle =
-            testExamPaper?.optionsData?[index].answerTitle ?? "";
-        final String answerImg =
-            testExamPaper?.optionsData?[index].answerImg ?? "";
+        final optionTitle = testExamPaper?.optionsData?[index].answerTitle ?? "";
+        final String answerImg = testExamPaper?.optionsData?[index].answerImg ?? "";
 
-        final bool isCorrect =
-            (testExamPaper?.correctOption ?? "") == optionValue;
-        final bool isSelected =
-            (testExamPaper?.selectedOption ?? "") == optionValue;
+        final bool isCorrect = (testExamPaper?.correctOption ?? "") == optionValue;
+        final bool isSelected = (testExamPaper?.selectedOption ?? "") == optionValue;
 
         Color borderColor = AppTokens.border(context);
         Color fillColor = AppTokens.surface(context);
@@ -1157,22 +1079,18 @@ class _MockPracticeTestSolutionExamScreenState
                   children: [
                     Text(
                       "$optionValue.  ",
-                      style: AppTokens.titleSm(context)
-                          .copyWith(color: textColor),
+                      style: AppTokens.titleSm(context).copyWith(color: textColor),
                     ),
                     Expanded(
                       child: Text(
                         optionTitle,
-                        style: AppTokens.body(context)
-                            .copyWith(color: textColor),
+                        style: AppTokens.body(context).copyWith(color: textColor),
                       ),
                     ),
                     if (isCorrect || isSelected) ...[
                       const SizedBox(width: AppTokens.s8),
                       Icon(
-                        isCorrect
-                            ? Icons.check_circle_rounded
-                            : Icons.cancel_rounded,
+                        isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
                         color: textColor,
                         size: 20,
                       ),
@@ -1246,7 +1164,8 @@ class _MockPracticeTestSolutionExamScreenState
               activeColor: _v3HighlightColor,
               eraserMode: _v3EraserMode,
               onSelectColor: (c) => setState(() {
-                _v3HighlightColor = c; _v3EraserMode = false;
+                _v3HighlightColor = c;
+                _v3EraserMode = false;
               }),
               onToggleEraser: () => setState(() => _v3EraserMode = !_v3EraserMode),
               onClose: () => setState(() {
@@ -1284,8 +1203,7 @@ class _MockPracticeTestSolutionExamScreenState
 
           if (isbutton == true)
             Observer(builder: (BuildContext context) {
-              final GetExplanationModel? getExplainModel =
-                  store.getExplanationText.value;
+              final GetExplanationModel? getExplainModel = store.getExplanationText.value;
               return Container(
                 padding: const EdgeInsets.all(AppTokens.s16),
                 decoration: BoxDecoration(
@@ -1448,16 +1366,13 @@ class _MockPracticeTestSolutionExamScreenState
                 maxLines: 7,
                 decoration: InputDecoration(
                   enabledBorder: UnderlineInputBorder(
-                    borderSide:
-                        BorderSide(color: AppTokens.accent(context)),
+                    borderSide: BorderSide(color: AppTokens.accent(context)),
                   ),
                   focusedBorder: UnderlineInputBorder(
-                    borderSide:
-                        BorderSide(color: AppTokens.accent(context)),
+                    borderSide: BorderSide(color: AppTokens.accent(context)),
                   ),
                   hintText: 'Enter your query...',
-                  hintStyle: AppTokens.body(context)
-                      .copyWith(color: AppTokens.muted(context)),
+                  hintStyle: AppTokens.body(context).copyWith(color: AppTokens.muted(context)),
                 ),
                 style: AppTokens.body(context),
               ),
@@ -1522,8 +1437,7 @@ class _MockPracticeTestSolutionExamScreenState
     if (selectedFontSize != null) {
       setState(() {
         _textSize = selectedFontSize;
-        showfontSize =
-            (100 + ((selectedFontSize - Dimensions.fontSizeDefault) * 10));
+        showfontSize = (100 + ((selectedFontSize - Dimensions.fontSizeDefault) * 10));
       });
     }
   }
@@ -1580,15 +1494,9 @@ class _ActionPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg = tone == _ActionTone.brand
-        ? AppTokens.accent(context)
-        : AppTokens.surface(context);
-    final Color fg = tone == _ActionTone.brand
-        ? Colors.white
-        : AppTokens.ink(context);
-    final Color border = tone == _ActionTone.brand
-        ? AppTokens.accent(context)
-        : AppTokens.border(context);
+    final Color bg = tone == _ActionTone.brand ? AppTokens.accent(context) : AppTokens.surface(context);
+    final Color fg = tone == _ActionTone.brand ? Colors.white : AppTokens.ink(context);
+    final Color border = tone == _ActionTone.brand ? AppTokens.accent(context) : AppTokens.border(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1625,9 +1533,7 @@ class _NavCircleBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color fg = enabled
-        ? AppTokens.accent(context)
-        : AppTokens.muted(context);
+    final Color fg = enabled ? AppTokens.accent(context) : AppTokens.muted(context);
     return InkWell(
       borderRadius: BorderRadius.circular(999),
       onTap: enabled ? onTap : null,
@@ -1638,9 +1544,7 @@ class _NavCircleBtn extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(color: fg),
-          color: enabled
-              ? AppTokens.accentSoft(context)
-              : AppTokens.surface(context),
+          color: enabled ? AppTokens.accentSoft(context) : AppTokens.surface(context),
         ),
         child: Icon(icon, color: fg, size: 18),
       ),
@@ -1660,12 +1564,8 @@ class _PrimaryBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg = tone == _PillTone.primary
-        ? AppTokens.accent(context)
-        : AppTokens.surface2(context);
-    final Color fg = tone == _PillTone.primary
-        ? Colors.white
-        : AppTokens.ink(context);
+    final Color bg = tone == _PillTone.primary ? AppTokens.accent(context) : AppTokens.surface2(context);
+    final Color fg = tone == _PillTone.primary ? Colors.white : AppTokens.ink(context);
     return InkWell(
       borderRadius: AppTokens.radius12,
       onTap: onTap,

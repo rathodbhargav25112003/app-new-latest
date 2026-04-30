@@ -1,30 +1,23 @@
-// ignore_for_file: deprecated_member_use, library_private_types_in_public_api, unused_import, use_super_parameters, unused_field, unused_local_variable, non_constant_identifier_names, dead_code, prefer_final_fields, use_build_context_synchronously, avoid_print, unused_element, unnecessary_string_interpolations, dead_null_aware_expression
-
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
-import 'package:shusruta_lms/api_service/exam_attempt_api.dart' show HeartbeatPayload, AnswerPatch;
-import 'package:shusruta_lms/helpers/app_tokens.dart';
 import 'package:shusruta_lms/helpers/constants.dart';
-// Wave-2 lifecycle helper for the exam-mode attempt screen
-import 'package:shusruta_lms/modules/new_exam_component/widgets/exam_attempt_attachment.dart';
 import 'package:shusruta_lms/modules/test/question_pallet.dart';
+import 'package:shusruta_lms/services/daily_review_recorder.dart';
+import 'package:shusruta_lms/services/smart_resume_service.dart';
 import 'package:shusruta_lms/modules/test/question_pallet_drawer.dart';
 import 'package:shusruta_lms/modules/test/store/test_category_store.dart';
 import 'package:vibration/vibration.dart';
-
 import '../../app/routes.dart';
 import '../../helpers/colors.dart';
 import '../../helpers/dimensions.dart';
 import '../../helpers/styles.dart';
 import '../../models/test_exampaper_list_model.dart';
-import '../../services/resume_orchestrator.dart';
 import '../widgets/bottom_toast.dart';
 import '../widgets/custom_test_cancel_dialogbox.dart';
 
@@ -73,11 +66,6 @@ class _TestExamScreenState extends State<TestExamScreen> {
   Timer? timer;
   Duration? remainingTime;
   late ValueNotifier<Duration> remainingTimeNotifier;
-  // Tracks whether remainingTimeNotifier has been initialized + disposed so
-  // we don't double-dispose (time-out branch used to dispose it, and
-  // widget.dispose() would then dispose it again → crash).
-  bool _notifierInitialized = false;
-  bool _notifierDisposed = false;
   int _selectedIndex = -1;
   int _currentQuestionIndex = 0;
   bool isLastQues = false, firstQue = true;
@@ -103,12 +91,6 @@ class _TestExamScreenState extends State<TestExamScreen> {
   String? _type;
   bool? _fromPallete;
   bool isLoading = false;
-
-  // Wave-2 attempt-lifecycle attachment — owns heartbeat to
-  // /api/exam-attempt/:id/heartbeat + SharedPreferences crash-recovery
-  // mirror + AppLifecycleState.paused flush. See exam_attempt_attachment.
-  ExamAttemptAttachment? _att;
-
   @override
   void initState() {
     super.initState();
@@ -125,46 +107,32 @@ class _TestExamScreenState extends State<TestExamScreen> {
 
     init();
 
-    setState(() {});
-
-    // Wave-2: attach lifecycle helper. Ships current question + the
-    // residual time-remaining in ms so resume restores the timer
-    // accurately. Skipped when there's no userExamId (legacy paths).
-    final uid = widget.userExamId;
-    if (uid != null && uid.isNotEmpty) {
-      _att = ExamAttemptAttachment(
-        userExamId: uid,
-        examId: widget.id,
-        mode: 'continuous',
-        readState: () {
-          final List<dynamic>? tests = _testExamPaper?.test;
-          final currentQ =
-              (tests != null && _currentQuestionIndex >= 0 && _currentQuestionIndex < tests.length)
-                  ? tests[_currentQuestionIndex]
-                  : null;
-          // Pull residual time from the existing remainingTimeNotifier
-          // (set up by updateTimer). Falls back to widget input.
-          int? remainingMs;
-          try {
-            final dur = _notifierInitialized && !_notifierDisposed
-                ? remainingTimeNotifier.value
-                : (_remainingTime?.value ?? Duration.zero);
-            if (dur.inMilliseconds > 0) remainingMs = dur.inMilliseconds;
-          } catch (_) {/* ignore */}
-          return HeartbeatPayload(
-            attemptId: uid,
-            currentQuestionId: currentQ?.sId,
-            timeRemainingMs: remainingMs,
-            answers: const <AnswerPatch>[],
-          );
-        },
-      )..attach();
+    // Smart Resume hook — push this in-progress test (mock or
+    // practice — distinguished by isPracticeExam) into
+    // SmartResumeService so the home banner can offer a 1-tap
+    // resume.
+    final userExamId = _userExamId ?? '';
+    final examName = _testExamPaper?.examName ?? 'Test';
+    final totalQs = _testExamPaper?.test?.length ?? 0;
+    if (userExamId.isNotEmpty) {
+      // ignore: discarded_futures
+      SmartResumeService.instance.recordMockExam(
+        userExamId: userExamId,
+        examName: examName,
+        currentQuestion: 1,
+        totalQuestions: totalQs,
+        examId: _testExamPaper?.examId,
+      );
     }
+
+    setState(() {});
   }
 
   void init() {
     updateTimer();
-    int matchingIndex = _testExamPaper?.test?.indexWhere((e) => e.questionNumber == _queNo) ?? -1;
+    int matchingIndex =
+        _testExamPaper?.test?.indexWhere((e) => e.questionNumber == _queNo) ??
+            -1;
     if (matchingIndex != -1) {
       String? matchingQueId = _testExamPaper?.test?[matchingIndex].sId;
       _getSelectedAnswer(matchingQueId!);
@@ -226,24 +194,23 @@ class _TestExamScreenState extends State<TestExamScreen> {
       remainingTimeNotifier = ValueNotifier<Duration>(remainingTime!);
     }
 
-    _notifierInitialized = true;
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
       if (remainingTimeNotifier.value.inSeconds > 0) {
-        remainingTimeNotifier.value = remainingTimeNotifier.value - const Duration(seconds: 1);
+        remainingTimeNotifier.value =
+            remainingTimeNotifier.value - const Duration(seconds: 1);
       } else {
         timer.cancel();
-        // Don't dispose the notifier here — widget.dispose() owns its
-        // lifecycle. Double-disposing a ValueNotifier throws.
+        remainingTimeNotifier.dispose();
         BottomToast.showBottomToastOverlay(
           context: context,
           errorMessage: "Your Exam Time is Up!",
           backgroundColor: Theme.of(context).primaryColor,
         );
         _getCount2(_userExamId);
+        // Navigator.of(context).pushNamed(Routes.reportsCategoryList,
+        //   arguments: {
+        //     'fromhome': true
+        //   });
       }
     });
   }
@@ -278,12 +245,7 @@ class _TestExamScreenState extends State<TestExamScreen> {
   @override
   void dispose() {
     timer?.cancel();
-    timer = null;
-    if (_notifierInitialized && !_notifierDisposed) {
-      _notifierDisposed = true;
-      remainingTimeNotifier.dispose();
-    }
-    _att?.detach();
+    remainingTimeNotifier.dispose();
     super.dispose();
   }
 
@@ -302,8 +264,17 @@ class _TestExamScreenState extends State<TestExamScreen> {
     });
     debugPrint("timeQues$time");
     final store = Provider.of<TestCategoryStore>(context, listen: false);
-    await store.userAnswerTest(context, userExamId ?? "", questionId ?? "", selectedOption ?? "", isAttempted,
-        isAttemptedAndMarkedForReview, isSkipped, isMarkedForReview, guess, time);
+    await store.userAnswerTest(
+        context,
+        userExamId ?? "",
+        questionId ?? "",
+        selectedOption ?? "",
+        isAttempted,
+        isAttemptedAndMarkedForReview,
+        isSkipped,
+        isMarkedForReview,
+        guess,
+        time);
     setState(() {
       isLoading = false;
     });
@@ -316,17 +287,23 @@ class _TestExamScreenState extends State<TestExamScreen> {
     final store = Provider.of<TestCategoryStore>(context, listen: false);
     await store.questionAnswerById(_userExamId ?? "", queId);
     setState(() {
-      String? nextOption = (store.userAnswerExam.value?.guess?.isNotEmpty ?? false)
-          ? store.userAnswerExam.value?.guess
-          : store.userAnswerExam.value?.selectedOption;
-      _selectedIndex = widget.testExamPaper?.test?[_currentQuestionIndex].optionsData
+      String? nextOption =
+          (store.userAnswerExam.value?.guess?.isNotEmpty ?? false)
+              ? store.userAnswerExam.value?.guess
+              : store.userAnswerExam.value?.selectedOption;
+      _selectedIndex = widget
+              .testExamPaper?.test?[_currentQuestionIndex].optionsData
               ?.indexWhere((option) => option.value == nextOption) ??
           -1;
-      guessed = (store.userAnswerExam.value?.guess?.isEmpty ?? false) ? false : true;
+      guessed =
+          (store.userAnswerExam.value?.guess?.isEmpty ?? false) ? false : true;
       print("guessed answer $guessed");
-      isGuess = (store.userAnswerExam.value?.guess?.isNotEmpty ?? false) ? true : false;
+      isGuess = (store.userAnswerExam.value?.guess?.isNotEmpty ?? false)
+          ? true
+          : false;
       isMarkedForReview = store.userAnswerExam.value?.markedForReview ?? false;
-      isAttemptedAndMarkedForReview = store.userAnswerExam.value?.attemptedMarkedForReview ?? false;
+      isAttemptedAndMarkedForReview =
+          store.userAnswerExam.value?.attemptedMarkedForReview ?? false;
     });
     setState(() {
       isLoading = false;
@@ -370,21 +347,39 @@ class _TestExamScreenState extends State<TestExamScreen> {
               attemptedandMarkedForReview = "0",
               notVisited = "0",
               guess = "0";
-          attempted = store.testQuePalleteCount.value?.isAttempted.toString().padLeft(2, '0') ?? "0";
-          markedForReview =
-              store.testQuePalleteCount.value?.isMarkedForReview.toString().padLeft(2, '0') ?? "0";
-          skipped = store.testQuePalleteCount.value?.isSkipped.toString().padLeft(2, '0') ?? "0";
-          attemptedandMarkedForReview =
-              store.testQuePalleteCount.value?.isAttemptedMarkedForReview.toString().padLeft(2, '0') ?? "0";
-          notVisited = store.testQuePalleteCount.value?.notVisited.toString().padLeft(2, '0') ?? "0";
-          guess = store.testQuePalleteCount.value?.isGuess.toString().padLeft(2, '0') ?? "0";
+          attempted = store.testQuePalleteCount.value?.isAttempted
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          markedForReview = store.testQuePalleteCount.value?.isMarkedForReview
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          skipped = store.testQuePalleteCount.value?.isSkipped
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          attemptedandMarkedForReview = store
+                  .testQuePalleteCount.value?.isAttemptedMarkedForReview
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          notVisited = store.testQuePalleteCount.value?.notVisited
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          guess = store.testQuePalleteCount.value?.isGuess
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
           return AlertDialog(
             backgroundColor: ThemeManager.mainBackground,
             actionsPadding: EdgeInsets.zero,
             actions: [
               Container(
                 height: MediaQuery.of(context).size.height * 0.60,
-                constraints: const BoxConstraints(maxWidth: Dimensions.WEB_MAX_WIDTH * 0.4),
+                constraints: const BoxConstraints(
+                    maxWidth: Dimensions.WEB_MAX_WIDTH * 0.4),
                 color: ThemeManager.reportContainer,
                 child: Padding(
                   padding: const EdgeInsets.only(
@@ -417,7 +412,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         "Time Left",
@@ -430,7 +426,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "${remainingTimeNotifier.value.inHours.toString().padLeft(2, '0')}:${remainingTimeNotifier.value.inMinutes.remainder(60).toString().padLeft(2, '0')}:${remainingTimeNotifier.value.inSeconds.remainder(60).toString().padLeft(2, '0')}",
                                         style: interSemiBold.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w600,
                                           color: ThemeManager.redText,
                                         ),
@@ -452,7 +449,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Attempted",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -461,7 +459,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         attempted,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
@@ -483,7 +482,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Marked for Review",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -492,14 +492,16 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         markedForReview,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
                                       )
                                     ],
                                   ),
-                                  const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                                  const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_SMALL),
                                   Row(
                                     children: [
                                       const CircleAvatar(
@@ -512,7 +514,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Attempted and Marked for Review",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -521,14 +524,16 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         attemptedandMarkedForReview,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
                                       )
                                     ],
                                   ),
-                                  const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                                  const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_SMALL),
                                   Row(
                                     children: [
                                       const CircleAvatar(
@@ -541,7 +546,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Skipped",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -550,14 +556,16 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         skipped,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
                                       )
                                     ],
                                   ),
-                                  const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                                  const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_SMALL),
                                   Row(
                                     children: [
                                       const CircleAvatar(
@@ -570,7 +578,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Guess",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -579,7 +588,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         guess,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
@@ -601,7 +611,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Not Visited",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -610,14 +621,17 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         notVisited,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
                                       )
                                     ],
                                   ),
-                                  const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT * 2.4),
+                                  const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_DEFAULT *
+                                          2.4),
                                 ],
                               ),
                             ),
@@ -689,7 +703,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                       //   ],
                       // ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2),
                         child: Row(
                           children: [
                             Expanded(
@@ -701,22 +716,28 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   height: Dimensions.PADDING_SIZE_LARGE * 2.7,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                      border: Border.all(color: ThemeManager.mainBorder),
+                                      border: Border.all(
+                                          color: ThemeManager.mainBorder),
                                       color: ThemeManager.secondaryBlue,
                                       borderRadius: BorderRadius.circular(7),
-                                      boxShadow: ThemeManager.currentTheme == AppTheme.Dark
+                                      boxShadow: ThemeManager.currentTheme ==
+                                              AppTheme.Dark
                                           ? []
                                           : [
                                               BoxShadow(
-                                                  offset: const Offset(0, 1.7733),
+                                                  offset:
+                                                      const Offset(0, 1.7733),
                                                   blurRadius: 3.5467,
                                                   spreadRadius: 0,
-                                                  color: ThemeManager.dropShadow.withOpacity(0.16)),
+                                                  color: ThemeManager.dropShadow
+                                                      .withOpacity(0.16)),
                                               BoxShadow(
                                                   offset: const Offset(0, 0),
                                                   blurRadius: 0.8866,
                                                   spreadRadius: 0,
-                                                  color: ThemeManager.dropShadow2.withOpacity(0.04)),
+                                                  color: ThemeManager
+                                                      .dropShadow2
+                                                      .withOpacity(0.04)),
                                             ]),
                                   child: Text(
                                     "Cancel",
@@ -748,18 +769,22 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   decoration: BoxDecoration(
                                       color: ThemeManager.blueprimary,
                                       borderRadius: BorderRadius.circular(7),
-                                      border: Border.all(color: ThemeManager.buttonBorder, width: 0.89),
+                                      border: Border.all(
+                                          color: ThemeManager.buttonBorder,
+                                          width: 0.89),
                                       boxShadow: [
                                         BoxShadow(
                                             offset: const Offset(0, 1.7733),
                                             blurRadius: 3.5467,
                                             spreadRadius: 0,
-                                            color: ThemeManager.dropShadow.withOpacity(0.16)),
+                                            color: ThemeManager.dropShadow
+                                                .withOpacity(0.16)),
                                         BoxShadow(
                                             offset: const Offset(0, 0),
                                             blurRadius: 0.8866,
                                             spreadRadius: 0,
-                                            color: ThemeManager.dropShadow2.withOpacity(0.04)),
+                                            color: ThemeManager.dropShadow2
+                                                .withOpacity(0.04)),
                                       ]),
                                   child: Text(
                                     "Submit",
@@ -801,14 +826,31 @@ class _TestExamScreenState extends State<TestExamScreen> {
               attemptedandMarkedForReview = "0",
               notVisited = "0",
               guess = "0";
-          attempted = store.testQuePalleteCount.value?.isAttempted.toString().padLeft(2, '0') ?? "0";
-          markedForReview =
-              store.testQuePalleteCount.value?.isMarkedForReview.toString().padLeft(2, '0') ?? "0";
-          skipped = store.testQuePalleteCount.value?.isSkipped.toString().padLeft(2, '0') ?? "0";
-          attemptedandMarkedForReview =
-              store.testQuePalleteCount.value?.isAttemptedMarkedForReview.toString().padLeft(2, '0') ?? "0";
-          notVisited = store.testQuePalleteCount.value?.notVisited.toString().padLeft(2, '0') ?? "0";
-          guess = store.testQuePalleteCount.value?.isGuess.toString().padLeft(2, '0') ?? "0";
+          attempted = store.testQuePalleteCount.value?.isAttempted
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          markedForReview = store.testQuePalleteCount.value?.isMarkedForReview
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          skipped = store.testQuePalleteCount.value?.isSkipped
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          attemptedandMarkedForReview = store
+                  .testQuePalleteCount.value?.isAttemptedMarkedForReview
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          notVisited = store.testQuePalleteCount.value?.notVisited
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          guess = store.testQuePalleteCount.value?.isGuess
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
           return Container(
             // height: MediaQuery.of(context).size.height * 0.60,
             color: ThemeManager.reportContainer,
@@ -843,7 +885,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     "Time Left",
@@ -925,7 +968,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   )
                                 ],
                               ),
-                              const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                              const SizedBox(
+                                  height: Dimensions.PADDING_SIZE_SMALL),
                               Row(
                                 children: [
                                   const CircleAvatar(
@@ -954,7 +998,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   )
                                 ],
                               ),
-                              const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                              const SizedBox(
+                                  height: Dimensions.PADDING_SIZE_SMALL),
                               Row(
                                 children: [
                                   const CircleAvatar(
@@ -983,7 +1028,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   )
                                 ],
                               ),
-                              const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                              const SizedBox(
+                                  height: Dimensions.PADDING_SIZE_SMALL),
                               Row(
                                 children: [
                                   const CircleAvatar(
@@ -1043,7 +1089,9 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   )
                                 ],
                               ),
-                              const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT * 2.4),
+                              const SizedBox(
+                                  height:
+                                      Dimensions.PADDING_SIZE_DEFAULT * 2.4),
                             ],
                           ),
                         ),
@@ -1052,7 +1100,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.only(
-                        left: Dimensions.PADDING_SIZE_DEFAULT * 2, right: Dimensions.PADDING_SIZE_LARGE * 2),
+                        left: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                        right: Dimensions.PADDING_SIZE_LARGE * 2),
                     child: Text(
                       "Are you sure you want to submit the test?",
                       style: interSemiBold.copyWith(
@@ -1114,7 +1163,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                   //   ],
                   // ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2),
                     child: Row(
                       children: [
                         Expanded(
@@ -1126,22 +1176,26 @@ class _TestExamScreenState extends State<TestExamScreen> {
                               height: Dimensions.PADDING_SIZE_LARGE * 2.7,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                  border: Border.all(color: ThemeManager.mainBorder),
+                                  border: Border.all(
+                                      color: ThemeManager.mainBorder),
                                   color: ThemeManager.secondaryBlue,
                                   borderRadius: BorderRadius.circular(7),
-                                  boxShadow: ThemeManager.currentTheme == AppTheme.Dark
+                                  boxShadow: ThemeManager.currentTheme ==
+                                          AppTheme.Dark
                                       ? []
                                       : [
                                           BoxShadow(
                                               offset: const Offset(0, 1.7733),
                                               blurRadius: 3.5467,
                                               spreadRadius: 0,
-                                              color: ThemeManager.dropShadow.withOpacity(0.16)),
+                                              color: ThemeManager.dropShadow
+                                                  .withOpacity(0.16)),
                                           BoxShadow(
                                               offset: const Offset(0, 0),
                                               blurRadius: 0.8866,
                                               spreadRadius: 0,
-                                              color: ThemeManager.dropShadow2.withOpacity(0.04)),
+                                              color: ThemeManager.dropShadow2
+                                                  .withOpacity(0.04)),
                                         ]),
                               child: Text(
                                 "Cancel",
@@ -1173,18 +1227,22 @@ class _TestExamScreenState extends State<TestExamScreen> {
                               decoration: BoxDecoration(
                                   color: ThemeManager.blueprimary,
                                   borderRadius: BorderRadius.circular(7),
-                                  border: Border.all(color: ThemeManager.buttonBorder, width: 0.89),
+                                  border: Border.all(
+                                      color: ThemeManager.buttonBorder,
+                                      width: 0.89),
                                   boxShadow: [
                                     BoxShadow(
                                         offset: const Offset(0, 1.7733),
                                         blurRadius: 3.5467,
                                         spreadRadius: 0,
-                                        color: ThemeManager.dropShadow.withOpacity(0.16)),
+                                        color: ThemeManager.dropShadow
+                                            .withOpacity(0.16)),
                                     BoxShadow(
                                         offset: const Offset(0, 0),
                                         blurRadius: 0.8866,
                                         spreadRadius: 0,
-                                        color: ThemeManager.dropShadow2.withOpacity(0.04)),
+                                        color: ThemeManager.dropShadow2
+                                            .withOpacity(0.04)),
                                   ]),
                               child: Text(
                                 "Submit",
@@ -1221,21 +1279,39 @@ class _TestExamScreenState extends State<TestExamScreen> {
               attemptedandMarkedForReview = "0",
               notVisited = "0",
               guess = "0";
-          attempted = store.testQuePalleteCount.value?.isAttempted.toString().padLeft(2, '0') ?? "0";
-          markedForReview =
-              store.testQuePalleteCount.value?.isMarkedForReview.toString().padLeft(2, '0') ?? "0";
-          skipped = store.testQuePalleteCount.value?.isSkipped.toString().padLeft(2, '0') ?? "0";
-          attemptedandMarkedForReview =
-              store.testQuePalleteCount.value?.isAttemptedMarkedForReview.toString().padLeft(2, '0') ?? "0";
-          notVisited = store.testQuePalleteCount.value?.notVisited.toString().padLeft(2, '0') ?? "0";
-          guess = store.testQuePalleteCount.value?.isGuess.toString().padLeft(2, '0') ?? "0";
+          attempted = store.testQuePalleteCount.value?.isAttempted
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          markedForReview = store.testQuePalleteCount.value?.isMarkedForReview
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          skipped = store.testQuePalleteCount.value?.isSkipped
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          attemptedandMarkedForReview = store
+                  .testQuePalleteCount.value?.isAttemptedMarkedForReview
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          notVisited = store.testQuePalleteCount.value?.notVisited
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          guess = store.testQuePalleteCount.value?.isGuess
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
           return AlertDialog(
             backgroundColor: ThemeManager.mainBackground,
             actionsPadding: EdgeInsets.zero,
             actions: [
               Container(
                 height: MediaQuery.of(context).size.height * 0.60,
-                constraints: const BoxConstraints(maxWidth: Dimensions.WEB_MAX_WIDTH * 0.4),
+                constraints: const BoxConstraints(
+                    maxWidth: Dimensions.WEB_MAX_WIDTH * 0.4),
                 color: ThemeManager.reportContainer,
                 child: Padding(
                   padding: const EdgeInsets.only(
@@ -1297,7 +1373,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Attempted",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -1306,7 +1383,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         attempted,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
@@ -1328,7 +1406,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Marked1 for Review",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -1337,14 +1416,16 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         markedForReview,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
                                       )
                                     ],
                                   ),
-                                  const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                                  const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_SMALL),
                                   Row(
                                     children: [
                                       const CircleAvatar(
@@ -1357,7 +1438,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Attempted and Marked for Review",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -1366,14 +1448,16 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         attemptedandMarkedForReview,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
                                       )
                                     ],
                                   ),
-                                  const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                                  const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_SMALL),
                                   Row(
                                     children: [
                                       const CircleAvatar(
@@ -1386,7 +1470,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Skipped",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -1395,14 +1480,16 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         skipped,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
                                       )
                                     ],
                                   ),
-                                  const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                                  const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_SMALL),
                                   Row(
                                     children: [
                                       const CircleAvatar(
@@ -1415,7 +1502,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Guess",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -1424,7 +1512,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         guess,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
@@ -1446,7 +1535,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         "Not Visited",
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w400,
                                           color: ThemeManager.black,
                                         ),
@@ -1455,14 +1545,17 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       Text(
                                         notVisited,
                                         style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmallLarge,
+                                          fontSize:
+                                              Dimensions.fontSizeSmallLarge,
                                           fontWeight: FontWeight.w500,
                                           color: ThemeManager.black,
                                         ),
                                       )
                                     ],
                                   ),
-                                  const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT * 2.4),
+                                  const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_DEFAULT *
+                                          2.4),
                                 ],
                               ),
                             ),
@@ -1529,7 +1622,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                       //   ],
                       // ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2),
                         child: Row(
                           children: [
                             // Expanded(
@@ -1581,18 +1675,22 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   decoration: BoxDecoration(
                                       color: ThemeManager.blueprimary,
                                       borderRadius: BorderRadius.circular(7),
-                                      border: Border.all(color: ThemeManager.buttonBorder, width: 0.89),
+                                      border: Border.all(
+                                          color: ThemeManager.buttonBorder,
+                                          width: 0.89),
                                       boxShadow: [
                                         BoxShadow(
                                             offset: const Offset(0, 1.7733),
                                             blurRadius: 3.5467,
                                             spreadRadius: 0,
-                                            color: ThemeManager.dropShadow.withOpacity(0.16)),
+                                            color: ThemeManager.dropShadow
+                                                .withOpacity(0.16)),
                                         BoxShadow(
                                             offset: const Offset(0, 0),
                                             blurRadius: 0.8866,
                                             spreadRadius: 0,
-                                            color: ThemeManager.dropShadow2.withOpacity(0.04)),
+                                            color: ThemeManager.dropShadow2
+                                                .withOpacity(0.04)),
                                       ]),
                                   child: Text(
                                     "Submit",
@@ -1634,14 +1732,31 @@ class _TestExamScreenState extends State<TestExamScreen> {
               attemptedandMarkedForReview = "0",
               notVisited = "0",
               guess = "0";
-          attempted = store.testQuePalleteCount.value?.isAttempted.toString().padLeft(2, '0') ?? "0";
-          markedForReview =
-              store.testQuePalleteCount.value?.isMarkedForReview.toString().padLeft(2, '0') ?? "0";
-          skipped = store.testQuePalleteCount.value?.isSkipped.toString().padLeft(2, '0') ?? "0";
-          attemptedandMarkedForReview =
-              store.testQuePalleteCount.value?.isAttemptedMarkedForReview.toString().padLeft(2, '0') ?? "0";
-          notVisited = store.testQuePalleteCount.value?.notVisited.toString().padLeft(2, '0') ?? "0";
-          guess = store.testQuePalleteCount.value?.isGuess.toString().padLeft(2, '0') ?? "0";
+          attempted = store.testQuePalleteCount.value?.isAttempted
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          markedForReview = store.testQuePalleteCount.value?.isMarkedForReview
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          skipped = store.testQuePalleteCount.value?.isSkipped
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          attemptedandMarkedForReview = store
+                  .testQuePalleteCount.value?.isAttemptedMarkedForReview
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          notVisited = store.testQuePalleteCount.value?.notVisited
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
+          guess = store.testQuePalleteCount.value?.isGuess
+                  .toString()
+                  .padLeft(2, '0') ??
+              "0";
           return Container(
             // height: MediaQuery.of(context).size.height * 0.60,
             color: ThemeManager.reportContainer,
@@ -1752,7 +1867,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   )
                                 ],
                               ),
-                              const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                              const SizedBox(
+                                  height: Dimensions.PADDING_SIZE_SMALL),
                               Row(
                                 children: [
                                   const CircleAvatar(
@@ -1781,7 +1897,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   )
                                 ],
                               ),
-                              const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                              const SizedBox(
+                                  height: Dimensions.PADDING_SIZE_SMALL),
                               Row(
                                 children: [
                                   const CircleAvatar(
@@ -1810,7 +1927,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   )
                                 ],
                               ),
-                              const SizedBox(height: Dimensions.PADDING_SIZE_SMALL),
+                              const SizedBox(
+                                  height: Dimensions.PADDING_SIZE_SMALL),
                               Row(
                                 children: [
                                   const CircleAvatar(
@@ -1870,7 +1988,9 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                   )
                                 ],
                               ),
-                              const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT * 2.4),
+                              const SizedBox(
+                                  height:
+                                      Dimensions.PADDING_SIZE_DEFAULT * 2.4),
                             ],
                           ),
                         ),
@@ -1937,7 +2057,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                   //   ],
                   // ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2),
                     child: Row(
                       children: [
                         // Expanded(
@@ -1989,18 +2110,22 @@ class _TestExamScreenState extends State<TestExamScreen> {
                               decoration: BoxDecoration(
                                   color: ThemeManager.blueprimary,
                                   borderRadius: BorderRadius.circular(7),
-                                  border: Border.all(color: ThemeManager.buttonBorder, width: 0.89),
+                                  border: Border.all(
+                                      color: ThemeManager.buttonBorder,
+                                      width: 0.89),
                                   boxShadow: [
                                     BoxShadow(
                                         offset: const Offset(0, 1.7733),
                                         blurRadius: 3.5467,
                                         spreadRadius: 0,
-                                        color: ThemeManager.dropShadow.withOpacity(0.16)),
+                                        color: ThemeManager.dropShadow
+                                            .withOpacity(0.16)),
                                     BoxShadow(
                                         offset: const Offset(0, 0),
                                         blurRadius: 0.8866,
                                         spreadRadius: 0,
-                                        color: ThemeManager.dropShadow2.withOpacity(0.04)),
+                                        color: ThemeManager.dropShadow2
+                                            .withOpacity(0.04)),
                                   ]),
                               child: Text(
                                 "Submit",
@@ -2032,7 +2157,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
 
     String? selectedOption = _selectedIndex == -1
         ? ""
-        : _testExamPaper?.test?[_currentQuestionIndex].optionsData?[_selectedIndex].value;
+        : _testExamPaper
+            ?.test?[_currentQuestionIndex].optionsData?[_selectedIndex].value;
     if (selectedOption == "" && !isMarkedForReview) {
       isSkipped = true;
       isAttempted = false;
@@ -2085,8 +2211,16 @@ class _TestExamScreenState extends State<TestExamScreen> {
           selectedOption!,
           usedExamTime ?? "00:00:00");
     } else {
-      await _postSelectedAnswerApiCall(_userExamId, selectedOption, questionId, isAttempted,
-          isAttemptedAndMarkedForReview, isSkipped, isMarkedForReview, "", usedExamTime ?? "00:00:00");
+      await _postSelectedAnswerApiCall(
+          _userExamId,
+          selectedOption,
+          questionId,
+          isAttempted,
+          isAttemptedAndMarkedForReview,
+          isSkipped,
+          isMarkedForReview,
+          "",
+          usedExamTime ?? "00:00:00");
     }
     isAttempted = false;
     isSkipped = false;
@@ -2121,7 +2255,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
 
     String? selectedOption = _selectedIndex == -1
         ? ""
-        : _testExamPaper?.test?[_currentQuestionIndex].optionsData?[_selectedIndex].value;
+        : _testExamPaper
+            ?.test?[_currentQuestionIndex].optionsData?[_selectedIndex].value;
     if (selectedOption == "" && !isMarkedForReview) {
       isSkipped = true;
       isAttempted = false;
@@ -2174,8 +2309,16 @@ class _TestExamScreenState extends State<TestExamScreen> {
           selectedOption!,
           usedExamTime ?? "00:00:00");
     } else {
-      await _postSelectedAnswerApiCall(_userExamId, selectedOption, questionId, isAttempted,
-          isAttemptedAndMarkedForReview, isSkipped, isMarkedForReview, "", usedExamTime ?? "00:00:00");
+      await _postSelectedAnswerApiCall(
+          _userExamId,
+          selectedOption,
+          questionId,
+          isAttempted,
+          isAttemptedAndMarkedForReview,
+          isSkipped,
+          isMarkedForReview,
+          "",
+          usedExamTime ?? "00:00:00");
     }
     isAttempted = false;
     isSkipped = false;
@@ -2249,16 +2392,20 @@ class _TestExamScreenState extends State<TestExamScreen> {
       );
     }
 
-    String questionTxt = _testExamPaper?.test?[_currentQuestionIndex].questionText ?? "";
-    questionTxt =
-        questionTxt.replaceAllMapped(RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
+    String questionTxt =
+        _testExamPaper?.test?[_currentQuestionIndex].questionText ?? "";
+    questionTxt = questionTxt.replaceAllMapped(
+        RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
     List<String> splittedText = questionTxt.split("splittedImage");
     List<Widget> columns = [];
     int index = 0;
     for (String text in splittedText) {
       List<Widget> questionImageWidget = [];
-      if (_testExamPaper?.test?[_currentQuestionIndex].questionImg?.isNotEmpty ?? false) {
-        for (String base64String in _testExamPaper!.test![_currentQuestionIndex].questionImg!) {
+      if (_testExamPaper
+              ?.test?[_currentQuestionIndex].questionImg?.isNotEmpty ??
+          false) {
+        for (String base64String
+            in _testExamPaper!.test![_currentQuestionIndex].questionImg!) {
           try {
             // Uint8List quesImgBytes = base64Decode(base64String);
             questionImageWidget.add(
@@ -2313,7 +2460,11 @@ class _TestExamScreenState extends State<TestExamScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              text.trim().replaceAll(RegExp(r'\n{2,}'), '\n').trim().replaceAll("--", "•"),
+              text
+                  .trim()
+                  .replaceAll(RegExp(r'\n{2,}'), '\n')
+                  .trim()
+                  .replaceAll("--", "•"),
               textAlign: TextAlign.left,
               style: interBlack.copyWith(
                 fontSize: Dimensions.fontSizeLarge,
@@ -2341,7 +2492,10 @@ class _TestExamScreenState extends State<TestExamScreen> {
         ),
       );
       index++;
-      if (index >= (_testExamPaper?.test?[_currentQuestionIndex].questionImg?.length ?? 0) - 1) {
+      if (index >=
+          (_testExamPaper?.test?[_currentQuestionIndex].questionImg?.length ??
+                  0) -
+              1) {
         break;
       }
     }
@@ -2358,7 +2512,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
     } else {
       bool confirmExit = await showDialog(
         context: context,
-        builder: (context) => CustomTestCancelDialogBox(timer, remainingTimeNotifier, false),
+        builder: (context) =>
+            CustomTestCancelDialogBox(timer, remainingTimeNotifier, false),
       );
       return confirmExit ?? false;
     }
@@ -2368,7 +2523,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
   Widget build(BuildContext context) {
     String? selectedOption = _selectedIndex == -1
         ? ""
-        : _testExamPaper?.test?[_currentQuestionIndex].optionsData?[_selectedIndex].value;
+        : _testExamPaper
+            ?.test?[_currentQuestionIndex].optionsData?[_selectedIndex].value;
 
     questionWidget = getQuestionText(context);
 
@@ -2376,14 +2532,14 @@ class _TestExamScreenState extends State<TestExamScreen> {
       onWillPop: _onBackPressed,
       child: Scaffold(
           key: _scaffoldKey,
-          backgroundColor: AppTokens.scaffold(context),
+          backgroundColor: ThemeManager.white,
           appBar: AppBar(
             elevation: 0,
             automaticallyImplyLeading: false,
-            backgroundColor: AppTokens.surface(context),
-            surfaceTintColor: AppTokens.surface(context),
+            backgroundColor: ThemeManager.white,
             title: Padding(
-              padding: const EdgeInsets.only(left: Dimensions.PADDING_SIZE_DEFAULT * 1.2),
+              padding: const EdgeInsets.only(
+                  left: Dimensions.PADDING_SIZE_DEFAULT * 1.2),
               child: Row(
                 children: [
                   // Text(
@@ -2398,13 +2554,15 @@ class _TestExamScreenState extends State<TestExamScreen> {
                       onTap: () {
                         showDialog(
                           context: context,
-                          builder: (context) =>
-                              CustomTestCancelDialogBox(timer, remainingTimeNotifier, false),
+                          builder: (context) => CustomTestCancelDialogBox(
+                              timer, remainingTimeNotifier, false),
                         );
                       },
                       child: SvgPicture.asset(
                         "assets/image/arrow_back.svg",
-                        color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,
+                        color: ThemeManager.currentTheme == AppTheme.Dark
+                            ? AppColors.white
+                            : null,
                       )),
                   // const Spacer(),
                   //       IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,onPressed: (){
@@ -2413,11 +2571,13 @@ class _TestExamScreenState extends State<TestExamScreen> {
                   //     builder: (context) => CustomTestCancelDialogBox(timer,remainingTimeNotifier,false),
                   //   );
                   // }, icon: const Icon(Icons.close,color: Colors.white,)),
-                  if (!(MediaQuery.of(context).size.width > 1160 && MediaQuery.of(context).size.height > 690))
+                  if (!(MediaQuery.of(context).size.width > 1160 &&
+                      MediaQuery.of(context).size.height > 690))
                     const SizedBox(
                       width: Dimensions.RADIUS_EXTRA_LARGE * 1.1,
                     ),
-                  if (!(MediaQuery.of(context).size.width > 1160 && MediaQuery.of(context).size.height > 690))
+                  if (!(MediaQuery.of(context).size.width > 1160 &&
+                      MediaQuery.of(context).size.height > 690))
                     InkWell(
                       onTap: () {
                         _scaffoldKey.currentState?.openDrawer();
@@ -2463,7 +2623,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                     child: Container(
                       height: Dimensions.PADDING_SIZE_SMALL * 2.7,
                       alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_LARGE),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: Dimensions.PADDING_SIZE_LARGE),
                       decoration: BoxDecoration(
                           border: Border.all(
                             color: ThemeManager.blueFinal,
@@ -2485,7 +2646,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
           ),
           body: Row(
             children: [
-              if (MediaQuery.of(context).size.width > 1160 && MediaQuery.of(context).size.height > 690)
+              if (MediaQuery.of(context).size.width > 1160 &&
+                  MediaQuery.of(context).size.height > 690)
                 SizedBox(
                   width: MediaQuery.of(context).size.width * 0.22,
                   child: QuestionPalletDrawer(
@@ -2508,7 +2670,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                   ),
                 ),
               SizedBox(
-                width: (MediaQuery.of(context).size.width > 1160 && MediaQuery.of(context).size.height > 690)
+                width: (MediaQuery.of(context).size.width > 1160 &&
+                        MediaQuery.of(context).size.height > 690)
                     ? MediaQuery.of(context).size.width * 0.78
                     : MediaQuery.of(context).size.width,
                 child: Column(
@@ -2536,7 +2699,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                             width: Dimensions.PADDING_SIZE_DEFAULT * 5,
                             decoration: BoxDecoration(
                                 color: ThemeManager.primaryColor,
-                                borderRadius: BorderRadius.circular(Dimensions.RADIUS_LARGE)),
+                                borderRadius: BorderRadius.circular(
+                                    Dimensions.RADIUS_LARGE)),
                             child: Center(
                               child: Text(
                                 "Q-${(_testExamPaper?.test?[_currentQuestionIndex].questionNumber ?? "").toString().padLeft(2, '0')}",
@@ -2630,24 +2794,34 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                 shrinkWrap: true,
                                 padding: EdgeInsets.zero,
                                 physics: const BouncingScrollPhysics(),
-                                itemCount: _testExamPaper?.test?[_currentQuestionIndex].optionsData?.length,
+                                itemCount: _testExamPaper
+                                    ?.test?[_currentQuestionIndex]
+                                    .optionsData
+                                    ?.length,
                                 itemBuilder: (BuildContext context, int index) {
-                                  TestData? testExamPaper = _testExamPaper?.test?[_currentQuestionIndex];
-                                  String base64String = testExamPaper?.optionsData?[index].answerImg ?? "";
+                                  TestData? testExamPaper = _testExamPaper
+                                      ?.test?[_currentQuestionIndex];
+                                  String base64String = testExamPaper
+                                          ?.optionsData?[index].answerImg ??
+                                      "";
                                   try {
                                     // answerImgBytes = base64Decode(base64String);
                                   } catch (e) {
-                                    debugPrint("Error decoding base64 string: $e");
+                                    debugPrint(
+                                        "Error decoding base64 string: $e");
                                   }
                                   bool isSelected = index == _selectedIndex;
                                   return Padding(
-                                    padding: const EdgeInsets.only(bottom: Dimensions.PADDING_SIZE_DEFAULT),
+                                    padding: const EdgeInsets.only(
+                                        bottom:
+                                            Dimensions.PADDING_SIZE_DEFAULT),
                                     child: InkWell(
                                       onTap: () {
                                         setState(() {
                                           if (isSelected) {
                                             _selectedIndex = -1;
-                                            isAttemptedAndMarkedForReview = false;
+                                            isAttemptedAndMarkedForReview =
+                                                false;
                                             isMarkedForReview = false;
                                             isGuess = false;
                                           } else {
@@ -2659,19 +2833,27 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       },
                                       child: Container(
                                         decoration: BoxDecoration(
-                                            color: isSelected ? ThemeManager.blueFinal : ThemeManager.white,
+                                            color: isSelected
+                                                ? ThemeManager.blueFinal
+                                                : ThemeManager.white,
                                             border: Border.all(
                                                 color: isSelected
-                                                    ? ThemeManager.selectedBorder.withOpacity(0.5)
+                                                    ? ThemeManager
+                                                        .selectedBorder
+                                                        .withOpacity(0.5)
                                                     : ThemeManager.grey1,
                                                 width: 0.84),
-                                            borderRadius: BorderRadius.circular(33.44)),
+                                            borderRadius:
+                                                BorderRadius.circular(33.44)),
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: Dimensions.PADDING_SIZE_LARGE,
-                                              vertical: Dimensions.PADDING_SIZE_DEFAULT),
+                                              horizontal:
+                                                  Dimensions.PADDING_SIZE_LARGE,
+                                              vertical: Dimensions
+                                                  .PADDING_SIZE_DEFAULT),
                                           child: Row(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               // Container(
                                               //   height: Dimensions.PADDING_SIZE_DEFAULT * 2,
@@ -2692,26 +2874,39 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                               // ),
 
                                               Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Row(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
                                                     children: [
                                                       Text(
                                                         "${testExamPaper?.optionsData?[index].value}.",
-                                                        style: interRegular.copyWith(
-                                                          fontSize: Dimensions.fontSizeLarge,
-                                                          fontWeight: FontWeight.w400,
+                                                        style: interRegular
+                                                            .copyWith(
+                                                          fontSize: Dimensions
+                                                              .fontSizeLarge,
+                                                          fontWeight:
+                                                              FontWeight.w400,
                                                           color: isSelected
-                                                              ? ThemeManager.white
-                                                              : ThemeManager.black,
+                                                              ? ThemeManager
+                                                                  .white
+                                                              : ThemeManager
+                                                                  .black,
                                                         ),
                                                       ),
                                                       const SizedBox(
-                                                        width: Dimensions.PADDING_SIZE_EXTRA_SMALL,
+                                                        width: Dimensions
+                                                            .PADDING_SIZE_EXTRA_SMALL,
                                                       ),
                                                       SizedBox(
-                                                        width: MediaQuery.of(context).size.width * 0.7,
+                                                        width: MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .width *
+                                                            0.7,
                                                         // child: Html(
                                                         //   data: '''
                                                         //     <div style="color: ${ThemeManager.currentTheme == AppTheme.Dark ? 'white' : 'black'};">
@@ -2726,20 +2921,32 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                                         //   // ),
                                                         // ),
                                                         child: Text(
-                                                          testExamPaper?.optionsData?[index].answerTitle ??
+                                                          testExamPaper
+                                                                  ?.optionsData?[
+                                                                      index]
+                                                                  .answerTitle ??
                                                               "",
-                                                          style: interRegular.copyWith(
-                                                            fontSize: Dimensions.fontSizeLarge,
-                                                            fontWeight: FontWeight.w400,
+                                                          style: interRegular
+                                                              .copyWith(
+                                                            fontSize: Dimensions
+                                                                .fontSizeLarge,
+                                                            fontWeight:
+                                                                FontWeight.w400,
                                                             color: isSelected
-                                                                ? ThemeManager.white
-                                                                : ThemeManager.black,
+                                                                ? ThemeManager
+                                                                    .white
+                                                                : ThemeManager
+                                                                    .black,
                                                           ),
                                                         ),
                                                       ),
                                                     ],
                                                   ),
-                                                  testExamPaper?.optionsData?[index].answerImg != ""
+                                                  testExamPaper
+                                                              ?.optionsData?[
+                                                                  index]
+                                                              .answerImg !=
+                                                          ""
                                                       ? Row(
                                                           children: [
                                                             InteractiveViewer(
@@ -2747,16 +2954,23 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                                               maxScale: 3.0,
                                                               child: Center(
                                                                 child: SizedBox(
-                                                                  width:
-                                                                      MediaQuery.of(context).size.width * 0.6,
+                                                                  width: MediaQuery.of(
+                                                                              context)
+                                                                          .size
+                                                                          .width *
+                                                                      0.6,
                                                                   height: 250,
                                                                   child: Stack(
                                                                     children: [
                                                                       // if (answerImgBytes != null)
                                                                       //   Image.memory(answerImgBytes!),
-                                                                      if (base64String != '')
-                                                                        Image.network(base64String),
-                                                                      Container(color: Colors.transparent),
+                                                                      if (base64String !=
+                                                                          '')
+                                                                        Image.network(
+                                                                            base64String),
+                                                                      Container(
+                                                                          color:
+                                                                              Colors.transparent),
                                                                     ],
                                                                   ),
                                                                 ),
@@ -2798,68 +3012,95 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                     setState(() {
                                       isGuess = false;
                                       if (selectedOption != "") {
-                                        isAttemptedAndMarkedForReview = !isAttemptedAndMarkedForReview;
+                                        isAttemptedAndMarkedForReview =
+                                            !isAttemptedAndMarkedForReview;
                                       } else {
                                         isMarkedForReview = !isMarkedForReview;
                                       }
                                     });
-                                    // isMarkedForReview=true;
-                                    // _showNextQuestion();
-                                    // Navigator.of(context).pushNamed(Routes.questionPallet);
+                                    // Sync to daily-review pool — push when
+                                    // marked, pull when unmarked.
+                                    final store2 = Provider.of<TestCategoryStore>(context, listen: false);
+                                    final q = store2.qutestionList
+                                        .value[_currentQuestionIndex];
+                                    if (isMarkedForReview ||
+                                        isAttemptedAndMarkedForReview) {
+                                      // ignore: discarded_futures
+                                      DailyReviewRecorder.recordReviewMark(
+                                          q, q.examId);
+                                    } else {
+                                      // ignore: discarded_futures
+                                      DailyReviewRecorder.recordReviewUnmark(q);
+                                    }
                                   },
                                   child: Container(
                                     height: Dimensions.PADDING_SIZE_LARGE * 2.2,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(7.91),
-                                        border: Border.all(color: ThemeManager.mainBorder),
+                                        borderRadius:
+                                            BorderRadius.circular(7.91),
+                                        border: Border.all(
+                                            color: ThemeManager.mainBorder),
                                         color: (isMarkedForReview
                                             ? Colors.blue
                                             : (isAttemptedAndMarkedForReview
                                                 ? Colors.orangeAccent
-                                                : ThemeManager.buttonBackground2)),
-                                        boxShadow: ThemeManager.currentTheme == AppTheme.Dark
+                                                : ThemeManager
+                                                    .buttonBackground2)),
+                                        boxShadow: ThemeManager.currentTheme ==
+                                                AppTheme.Dark
                                             ? []
                                             : [
                                                 ///first
                                                 BoxShadow(
                                                     offset: const Offset(0, 0),
-                                                    color: ThemeManager.black.withOpacity(0.04),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.04),
                                                     blurRadius: 0,
                                                     spreadRadius: 0),
 
                                                 ///second
                                                 BoxShadow(
-                                                    offset: const Offset(0, 4.62),
-                                                    color: ThemeManager.black.withOpacity(0.04),
+                                                    offset:
+                                                        const Offset(0, 4.62),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.04),
                                                     blurRadius: 10.165,
                                                     spreadRadius: 0),
 
                                                 ///third
                                                 BoxShadow(
-                                                    offset: const Offset(0, 19.40),
-                                                    color: ThemeManager.black.withOpacity(0.03),
+                                                    offset:
+                                                        const Offset(0, 19.40),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.03),
                                                     blurRadius: 19.40,
                                                     spreadRadius: 0),
 
                                                 ///four
                                                 BoxShadow(
-                                                    offset: const Offset(0, 43.436),
-                                                    color: ThemeManager.black.withOpacity(0.02),
+                                                    offset:
+                                                        const Offset(0, 43.436),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.02),
                                                     blurRadius: 25.876,
                                                     spreadRadius: 0),
 
                                                 ///five
                                                 BoxShadow(
-                                                    offset: const Offset(0, 76.706),
-                                                    color: ThemeManager.black.withOpacity(0.01),
+                                                    offset:
+                                                        const Offset(0, 76.706),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.01),
                                                     blurRadius: 30.497,
                                                     spreadRadius: 0),
 
                                                 ///six
                                                 BoxShadow(
-                                                    offset: const Offset(0, 120.142),
-                                                    color: ThemeManager.black.withOpacity(0),
+                                                    offset: const Offset(
+                                                        0, 120.142),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0),
                                                     blurRadius: 33.270,
                                                     spreadRadius: 0),
                                               ]),
@@ -2872,7 +3113,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                             ? Colors.white
                                             : (isAttemptedAndMarkedForReview
                                                 ? Colors.white
-                                                : ThemeManager.buttonGuessMark)),
+                                                : ThemeManager
+                                                    .buttonGuessMark)),
                                       ),
                                     ),
                                   ),
@@ -2894,7 +3136,8 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       // _showNextQuestion();
                                       // Navigator.of(context).pushNamed(Routes.questionPallet);
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(const SnackBar(
                                         content: Text('Please Select Option'),
                                       ));
                                     }
@@ -2903,52 +3146,67 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                     height: Dimensions.PADDING_SIZE_LARGE * 2.2,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                        border: Border.all(color: ThemeManager.mainBorder),
-                                        borderRadius: BorderRadius.circular(7.91),
-                                        color:
-                                            isGuess == true ? Colors.brown : ThemeManager.buttonBackground2,
-                                        boxShadow: ThemeManager.currentTheme == AppTheme.Dark
+                                        border: Border.all(
+                                            color: ThemeManager.mainBorder),
+                                        borderRadius:
+                                            BorderRadius.circular(7.91),
+                                        color: isGuess == true
+                                            ? Colors.brown
+                                            : ThemeManager.buttonBackground2,
+                                        boxShadow: ThemeManager.currentTheme ==
+                                                AppTheme.Dark
                                             ? []
                                             : [
                                                 ///first
                                                 BoxShadow(
                                                     offset: const Offset(0, 0),
-                                                    color: ThemeManager.black.withOpacity(0.04),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.04),
                                                     blurRadius: 0,
                                                     spreadRadius: 0),
 
                                                 ///second
                                                 BoxShadow(
-                                                    offset: const Offset(0, 4.62),
-                                                    color: ThemeManager.black.withOpacity(0.04),
+                                                    offset:
+                                                        const Offset(0, 4.62),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.04),
                                                     blurRadius: 10.165,
                                                     spreadRadius: 0),
 
                                                 ///third
                                                 BoxShadow(
-                                                    offset: const Offset(0, 19.40),
-                                                    color: ThemeManager.black.withOpacity(0.03),
+                                                    offset:
+                                                        const Offset(0, 19.40),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.03),
                                                     blurRadius: 19.40,
                                                     spreadRadius: 0),
 
                                                 ///four
                                                 BoxShadow(
-                                                    offset: const Offset(0, 43.436),
-                                                    color: ThemeManager.black.withOpacity(0.02),
+                                                    offset:
+                                                        const Offset(0, 43.436),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.02),
                                                     blurRadius: 25.876,
                                                     spreadRadius: 0),
 
                                                 ///five
                                                 BoxShadow(
-                                                    offset: const Offset(0, 76.706),
-                                                    color: ThemeManager.black.withOpacity(0.01),
+                                                    offset:
+                                                        const Offset(0, 76.706),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0.01),
                                                     blurRadius: 30.497,
                                                     spreadRadius: 0),
 
                                                 ///six
                                                 BoxShadow(
-                                                    offset: const Offset(0, 120.142),
-                                                    color: ThemeManager.black.withOpacity(0),
+                                                    offset: const Offset(
+                                                        0, 120.142),
+                                                    color: ThemeManager.black
+                                                        .withOpacity(0),
                                                     blurRadius: 33.270,
                                                     spreadRadius: 0),
                                               ]),
@@ -2957,7 +3215,9 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                       style: interRegular.copyWith(
                                         fontSize: Dimensions.fontSizeDefault,
                                         fontWeight: FontWeight.w500,
-                                        color: isGuess == true ? Colors.white : ThemeManager.buttonGuessMark,
+                                        color: isGuess == true
+                                            ? Colors.white
+                                            : ThemeManager.buttonGuessMark,
                                       ),
                                     ),
                                   ),
@@ -2974,8 +3234,10 @@ class _TestExamScreenState extends State<TestExamScreen> {
                               InkWell(
                                 onTap: firstQue ? null : _showPreviousQuestion,
                                 child: Container(
-                                  height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
-                                  width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                                  height: Dimensions.PADDING_SIZE_EXTRA_LARGE *
+                                      2.14,
+                                  width: Dimensions.PADDING_SIZE_EXTRA_LARGE *
+                                      2.14,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                       shape: BoxShape.circle,
@@ -2999,12 +3261,16 @@ class _TestExamScreenState extends State<TestExamScreen> {
                                 // onTap: _NextQuestion,
                                 onTap: _showNextQuestion,
                                 child: Container(
-                                  height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
-                                  width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                                  height: Dimensions.PADDING_SIZE_EXTRA_LARGE *
+                                      2.14,
+                                  width: Dimensions.PADDING_SIZE_EXTRA_LARGE *
+                                      2.14,
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: ThemeManager.previousNextPrimary)),
+                                      border: Border.all(
+                                          color: ThemeManager
+                                              .previousNextPrimary)),
                                   child: Transform.flip(
                                       flipX: true,
                                       child: SvgPicture.asset(

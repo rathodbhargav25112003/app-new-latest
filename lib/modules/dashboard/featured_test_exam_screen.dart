@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:shusruta_lms/services/smart_resume_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -93,6 +94,24 @@ class _FeaturedTestExamPageState extends State<FeaturedTestExamPage> {
       } else {
         isLastQues = false;
       }
+    }
+
+    // Smart Resume hook — push this in-progress featured/mock test
+    // into SmartResumeService so the home banner can offer a 1-tap
+    // resume.
+    final userExamId = widget.userExamId ?? '';
+    final examName = widget.featuredTestExamPaper?.examName ?? 'Mock test';
+    final totalQs = widget.featuredTestExamPaper?.questions?.length ?? 0;
+    if (userExamId.isNotEmpty) {
+      // ignore: discarded_futures
+      SmartResumeService.instance.recordMockExam(
+        userExamId: userExamId,
+        examName: examName,
+        currentQuestion: _currentQuestionIndex + 1,
+        totalQuestions: totalQs,
+        remainingSeconds: remainingTimeNotifier.value.inSeconds,
+        examId: widget.featuredTestExamPaper?.sid,
+      );
     }
   }
 

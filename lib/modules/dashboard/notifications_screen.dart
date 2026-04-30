@@ -6,8 +6,11 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shusruta_lms/modules/dashboard/store/home_store.dart';
 import '../../app/routes.dart';
+import '../../helpers/app_skeleton.dart';
 import '../../helpers/colors.dart';
 import '../../helpers/dimensions.dart';
+import '../../helpers/empty_state.dart';
+import '../../helpers/refresh_helper.dart';
 import '../../helpers/styles.dart';
 import '../../helpers/app_tokens.dart';
 import '../../models/notification_list_model.dart';
@@ -246,28 +249,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Expanded(
               child: Observer(builder: (context) {
                           if (store.isLoading) {
-                            return Center(
-                                child: CircularProgressIndicator(
-                              color: Theme.of(context).primaryColor,
-                            ));
+                            return const SkeletonList(count: 6, itemHeight: 90);
                           }
                           if (store.getNotificationList.isEmpty) {
-                            return Center(
-                              child: Text(
-                                'No Notifications Found',
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: ThemeManager.black),
-                              ),
+                            return const EmptyState(
+                              icon: Icons.notifications_none_rounded,
+                              title: 'You’re all caught up',
+                              subtitle:
+                                  'New notifications will appear here as they arrive.',
                             );
                           }
                           return store.isConnected
-                              ? ListView.builder(
+                              ? AppRefresh(
+                                onRefresh: () =>
+                                    store.onGetNotificationListApiCall(),
+                                child: ListView.builder(
                                   padding: EdgeInsets.zero,
                                   itemCount: store.getNotificationList.length,
                                   shrinkWrap: true,
-                                  physics: const BouncingScrollPhysics(),
+                                  physics: const AlwaysScrollableScrollPhysics(
+                                      parent: BouncingScrollPhysics()),
                                   itemBuilder:
                                       (BuildContext context, int index) {
                                     store.getNotificationList.sort((a, b) {
@@ -462,7 +463,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       ),
                                     );
                                   },
-                                )
+                                ),
+                              )
                               : const NoInternetScreen();
                         }),
             ),

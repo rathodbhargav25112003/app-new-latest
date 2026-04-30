@@ -23,7 +23,9 @@ class NotesSubCategoryModel {
     this.progressCount,
     this.notStart,
     this.notes,
-    this.bookmarkPdfCount
+    this.bookmarkPdfCount,
+    this.priorityLabel,
+    this.priorityColor,
   });
 
   factory NotesSubCategoryModel.fromJson(Map<String, dynamic> json) => _$NotesSubCategoryModelFromJson(json);
@@ -52,6 +54,8 @@ class NotesSubCategoryModel {
   String? updated_at;
   String? description;
   String? sid;
+  String? priorityLabel;
+  String? priorityColor;
 
   Map<String, dynamic> toJson() => _$NotesSubCategoryModelToJson(this);
 }

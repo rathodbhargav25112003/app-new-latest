@@ -4344,7 +4344,7 @@ class ApiService {
     String? token = prefs.getString("token");
 
     final response = await http.get(Uri.parse(getBlogsLists),
-        headers: {'Content-Type': 'application/json', 'Authorization': token!});
+        headers: {'Content-Type': 'application/json', 'Authorization': token ?? ''});
 
     log("response getBlogsList${response.body}");
     if (response.statusCode == 200) {
@@ -4363,7 +4363,7 @@ class ApiService {
     String? token = prefs.getString("token");
 
     final response = await http.get(Uri.parse("$getBlogDetails/$blogId"),
-        headers: {'Content-Type': 'application/json', 'Authorization': token!});
+        headers: {'Content-Type': 'application/json', 'Authorization': token ?? ''});
 
     log("response getBlogsDetails${response.body}");
     if (response.statusCode == 200) {

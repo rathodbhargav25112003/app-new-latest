@@ -1,49 +1,49 @@
-// ignore_for_file: deprecated_member_use, library_private_types_in_public_api, unused_import, use_super_parameters, unused_field, unused_local_variable, non_constant_identifier_names, dead_code, prefer_final_fields, unnecessary_import, use_build_context_synchronously, avoid_print, unused_element, unnecessary_string_interpolations, dead_null_aware_expression, prefer_interpolation_to_compose_strings, prefer_null_aware_operators, unnecessary_non_null_assertion, constant_identifier_names
-
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'dart:math' as math;
-import '../../helpers/app_tokens.dart';
-import '../../helpers/colors.dart';
-import '../../helpers/styles.dart';
-import '../notes/notes_viewer.dart';
-import '../../helpers/dbhelper.dart';
-import '../../helpers/constants.dart';
-import '../widgets/bottom_toast.dart';
+
+import 'package:shusruta_lms/helpers/app_tokens.dart';
+import 'package:shusruta_lms/services/recent_videos_service.dart';
+import 'package:shusruta_lms/services/smart_resume_service.dart';
+
+import 'package:better_player_plus/better_player_plus.dart';
+import 'package:chewie/chewie.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flick_video_player/flick_video_player.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' as material;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../helpers/dimensions.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'package:shusruta_lms/app/app.dart';
-import '../../models/video_data_model.dart';
-import 'package:video_player/video_player.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter/material.dart' as material;
-import '../../models/video_offline_data_model.dart';
-import '../../models/video_chapterization_list_model.dart';
-import 'package:flick_video_player/flick_video_player.dart';
-import 'package:better_player_plus/better_player_plus.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shusruta_lms/app/app.dart';
 import 'package:shusruta_lms/models/notes_topic_model.dart';
-import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
 import 'package:shusruta_lms/models/video_topic_detail_model.dart';
 import 'package:shusruta_lms/modules/dashboard/store/home_store.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
 import 'package:shusruta_lms/modules/videolectures/store/video_category_store.dart';
+import 'package:shusruta_lms/modules/widgets/video_bookmarks_sheet.dart';
+import 'package:shusruta_lms/services/download_service.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:video_player/video_player.dart';
 
+import '../../helpers/colors.dart';
+import '../../helpers/constants.dart';
+import '../../helpers/dbhelper.dart';
+import '../../helpers/dimensions.dart';
+import '../../helpers/styles.dart';
+import '../../models/video_chapterization_list_model.dart';
+import '../../models/video_data_model.dart';
+import '../../services/offline_encryptor.dart';
 // import 'package:better_player_plus/better_player_plus.dart';
 import '../../services/secure_keys.dart';
-import '../../services/offline_encryptor.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:shusruta_lms/services/download_service.dart';
-import 'package:shusruta_lms/modules/videolectures/widgets/download_manager_sheet.dart';
-import 'package:shusruta_lms/modules/widgets/video_bookmarks_sheet.dart';
+import '../notes/notes_viewer.dart';
+import '../widgets/bottom_toast.dart';
 
 class VideoPlayerDetail extends StatefulWidget {
   final String? topicId;
@@ -142,13 +142,11 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   String pdfUrl = '';
   String contentUrl = '';
   String topicName = '';
-  final GlobalKey<NotesViewerState> _notesViewerKey =
-      GlobalKey<NotesViewerState>();
+  final GlobalKey<NotesViewerState> _notesViewerKey = GlobalKey<NotesViewerState>();
   // Separate key for any secondary NotesViewer instances on desktop (e.g.,
   // the one embedded in the left column). Using distinct keys avoids
   // "Multiple widgets used the same GlobalKey" runtime exceptions.
-  final GlobalKey<NotesViewerState> _notesViewerKeySecondary =
-      GlobalKey<NotesViewerState>();
+  final GlobalKey<NotesViewerState> _notesViewerKeySecondary = GlobalKey<NotesViewerState>();
   final GlobalKey _pdfViewerKey = GlobalKey();
   late PdfViewerController _pdfViewerController;
   int duration = 0;
@@ -161,6 +159,12 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   bool isBookmarkedDone = false;
   int tabIndex = 2;
   File? _tempDecryptedFile; // holds a short-lived clear file during offline playback
+  HttpServer? _localFileServer; // serves decrypted file over localhost for iOS
+
+  // ── Offline Chewie fallback (BetterPlayer black-screen on iOS) ──────────
+  VideoPlayerController? _offlineVpc;
+  ChewieController? _offlineChewieController;
+  bool _useOfflineChewie = false;
 
   // late VideoPlayerController _videoPlayerController;
   late BetterPlayerController _betterPlayerController;
@@ -173,6 +177,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   int _seekTime = 10;
   final Map<String, String> _videoUrls = {};
   final Map<String, String> _qualityAndSize = {};
+  final Map<String, String> _downloadUrls = {};
   int downloadProgress = 0;
   int selectedIndex = 0;
   bool isOfflineMode = false;
@@ -194,8 +199,14 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   // awaits the first one's Completer and short-circuits if the same path
   // has already finished.
   bool _isDecrypting = false;
+  bool _isPreparingOffline = false; // true from DB-hit until player is ready
+  String _offlineLoadingStatus = ''; // step-by-step status text for the overlay
   Completer<bool>? _decryptInFlight;
   String? _decryptInFlightPath;
+
+  /// Eagerly loaded global encryption key — populated in initState so
+  /// _doDecryptAndPlay can skip the slow SecureStorage IPC call.
+  Future<List<int>?>? _preloadedKeyFuture;
 
   @override
   void initState() {
@@ -223,8 +234,41 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     if (contentUrl.isNotEmpty) {
       pdfUrl = "getPDF${contentUrl.substring(contentUrl.lastIndexOf('/'))}";
     }
-    // Preload the global key for diagnostics; do not generate locally.
-    SecureKeys.loadKey('global').then((k) {
+
+    // Push this video into the recents cache so the new
+    // VideoBrowseScreen can surface it in the "Continue watching"
+    // rail. Also record into SmartResumeService for the global
+    // home-screen "pick up where you left off" banner.
+    // Fire-and-forget — failures don't block playback.
+    if ((widget.titleId ?? '').isNotEmpty) {
+      // ignore: discarded_futures
+      RecentVideosService.instance.recordOpen(
+        RecentVideoEntry(
+          videoId: widget.titleId!,
+          title: widget.title ?? '',
+          thumbnail: widget.videoThumbnail,
+          topicId: widget.topicId,
+          topicName: widget.topic_name,
+          subcategoryId: widget.subcategoryId,
+          subcategoryName: widget.subcategory_name,
+          categoryId: widget.categoryId,
+          categoryName: widget.category_name,
+          isCompleted: widget.isCompleted ?? false,
+        ),
+      );
+      // ignore: discarded_futures
+      SmartResumeService.instance.recordVideo(
+        videoId: widget.titleId!,
+        title: widget.title ?? '',
+        positionSeconds: 0,
+        durationSeconds: 0,
+        topicName: widget.topic_name,
+        subjectName: widget.category_name,
+      );
+    }
+    // Eagerly preload the global decryption key so offline playback can
+    // skip the slow SecureStorage IPC call (~50-500ms saved).
+    _preloadedKeyFuture = SecureKeys.loadKey('global')..then((k) {
       try {
         print('[KEY] loaded_global_key len=' + (k?.length ?? 0).toString());
       } catch (_) {}
@@ -237,7 +281,9 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getDouble('video_playback_speed');
       if (saved != null && saved >= 0.5 && saved <= 3.0) {
-        setState(() { _playbackSpeed = saved; });
+        setState(() {
+          _playbackSpeed = saved;
+        });
       }
     } catch (_) {}
   }
@@ -292,9 +338,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
       final initial = await Connectivity().checkConnectivity();
       if (!mounted) return;
       _connectivityResult = initial;
-      _connectivitySub = Connectivity()
-          .onConnectivityChanged
-          .listen((result) {
+      _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
         if (!mounted) return;
         _connectivityResult = result;
         debugPrint('[PLAYER][NET] connectivity=$result');
@@ -320,9 +364,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
         client = http.Client();
         final req = http.Request('GET', Uri.parse(url));
         req.headers['Range'] = 'bytes=0-65535'; // first 64 KB
-        final resp = await client
-            .send(req)
-            .timeout(const Duration(seconds: 4));
+        final resp = await client.send(req).timeout(const Duration(seconds: 4));
         await resp.stream.drain();
         debugPrint('[PLAYER][WARM] pre-warmed CDN for '
             '${url.substring(0, math.min(60, url.length))}...');
@@ -335,10 +377,8 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   }
 
   Future<void> _initializeNotifications() async {
-    const DarwinInitializationSettings initializationSettingsDarwin =
-        DarwinInitializationSettings();
-    const InitializationSettings initializationSettings =
-        InitializationSettings(
+    const DarwinInitializationSettings initializationSettingsDarwin = DarwinInitializationSettings();
+    const InitializationSettings initializationSettings = InitializationSettings(
       iOS: initializationSettingsDarwin,
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
@@ -398,21 +438,21 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   /// fixed earlier. Android (ExoPlayer) benefits from the cache layer.
   BetterPlayerDataSource _buildDataSource(String path, {required bool isOffline}) {
     if (isOffline) {
-      // ── Local-file buffer config ─────────────────────────────────────────
-      // Local disk reads are ~100x faster than network. The earlier 15s/30s
-      // window was tuned for network and caused noticeable stutter on first
-      // frame + unnecessarily large memory footprint. For local files we only
-      // need enough buffer to survive a disk hiccup (a few hundred ms).
-      // Result: near-instant first-frame, snappy scrubbing, minimal RAM.
+      // ── Android: direct file playback (ExoPlayer handles file:// natively)
+      // ── iOS: localhost HTTP server (BetterPlayer file source = black screen)
+      // On Android we use BetterPlayerDataSourceType.file which lets ExoPlayer
+      // read the MP4 directly from disk — no HTTP overhead, instant start.
+      final bool isAndroidFile = !isDesktop && Platform.isAndroid && !path.startsWith('http');
+      debugPrint('[PLAY] offline ${isAndroidFile ? "file" : "http"} path=$path');
       return BetterPlayerDataSource(
-        BetterPlayerDataSourceType.file,
+        isAndroidFile ? BetterPlayerDataSourceType.file : BetterPlayerDataSourceType.network,
         path,
         videoExtension: 'mp4',
-        bufferingConfiguration: const BetterPlayerBufferingConfiguration(
-          minBufferMs: 500,
-          maxBufferMs: 2000,
-          bufferForPlaybackMs: 250,
-          bufferForPlaybackAfterRebufferMs: 500,
+        bufferingConfiguration: BetterPlayerBufferingConfiguration(
+          minBufferMs: isAndroidFile ? 250 : 500,
+          maxBufferMs: isAndroidFile ? 1000 : 2000,
+          bufferForPlaybackMs: isAndroidFile ? 100 : 250,
+          bufferForPlaybackAfterRebufferMs: isAndroidFile ? 250 : 500,
         ),
         notificationConfiguration: isDesktop
             ? null
@@ -494,8 +534,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     );
   }
 
-  Future<void> _initializePlayer(String path,
-      {Duration? startAt, bool isOffline = false}) async {
+  Future<void> _initializePlayer(String path, {Duration? startAt, bool isOffline = false}) async {
     if (!mounted) return;
     _playerErrorRetries = 0;
     _initialSeekDone = false;
@@ -567,6 +606,45 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     switch (event.betterPlayerEventType) {
       case BetterPlayerEventType.initialized:
         if (!mounted) return;
+        debugPrint(
+            '[PLAYER-DIAG] initialized event fired, _isPlayerInitialized=$_isPlayerInitialized, _playerControllerBuilt=$_playerControllerBuilt');
+        try {
+          final vpc = _betterPlayerController.videoPlayerController;
+          if (vpc != null) {
+            debugPrint(
+                '[PLAYER-DIAG] vpc.value: size=${vpc.value.size}, duration=${vpc.value.duration}, isPlaying=${vpc.value.isPlaying}, hasError=${vpc.value.hasError}, errorDescription=${vpc.value.errorDescription}');
+          } else {
+            debugPrint('[PLAYER-DIAG] vpc is NULL');
+          }
+        } catch (e) {
+          debugPrint('[PLAYER-DIAG] vpc probe error: $e');
+        }
+
+        // Ensure the player surface is visible immediately.
+        if (!_isPlayerInitialized) {
+          setState(() => _isPlayerInitialized = true);
+        }
+
+        // ── iOS file-source black-screen workaround ───────────────────
+        // AVPlayer on iOS sometimes attaches the pixel-buffer pipeline
+        // late for file:// sources, so the Flutter Texture receives zero
+        // video frames even though audio decodes fine → black screen.
+        // A seek-to-current + explicit play() forces AVPlayer to flush
+        // its rendering pipeline and push the first video frame.
+        if (isOfflineMode) {
+          Future.microtask(() async {
+            try {
+              final vpc = _betterPlayerController.videoPlayerController;
+              final pos = vpc?.value.position ?? Duration.zero;
+              await _betterPlayerController.seekTo(pos);
+              await _betterPlayerController.play();
+              debugPrint('[PLAYER-DIAG] offline seek+play workaround applied at $pos');
+            } catch (e) {
+              debugPrint('[PLAYER-DIAG] offline workaround error: $e');
+            }
+          });
+        }
+
         // Push initial duration from server if VideoPlayerController got zero.
         try {
           final store = Provider.of<VideoCategoryStore>(context, listen: false);
@@ -605,13 +683,24 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     }
   }
 
+  // ── Offline Chewie progress saver ────────────────────────────────────────
+  int _lastOfflineProgressMs = 0;
+  void _offlineProgressListener() {
+    final vpc = _offlineVpc;
+    if (vpc == null || !mounted) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    // Throttle to every 10 seconds.
+    if (now - _lastOfflineProgressMs < 10000) return;
+    _lastOfflineProgressMs = now;
+    _callApiWithLastWatchedTime(vpc.value.position);
+  }
+
   void _maybeAutoRetry() {
     if (_playerErrorRetries >= 3) return;
     _playerErrorRetries++;
     // Remember position before we bounce the source.
     try {
-      _lastKnownPosition =
-          _betterPlayerController.videoPlayerController?.value.position;
+      _lastKnownPosition = _betterPlayerController.videoPlayerController?.value.position;
     } catch (_) {}
     final backoffMs = 1500 * _playerErrorRetries;
     Future.delayed(Duration(milliseconds: backoffMs), () {
@@ -633,10 +722,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
             const SizedBox(height: 12),
             const Text(
               'Video failed to load',
-              style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600),
+              style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -657,10 +743,8 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white24,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -673,13 +757,10 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white70,
                       side: const BorderSide(color: Colors.white24),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: const Text('Try Lower Quality',
-                        style: TextStyle(fontSize: 12)),
+                    child: const Text('Try Lower Quality', style: TextStyle(fontSize: 12)),
                   ),
               ],
             ),
@@ -690,6 +771,10 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   }
 
   Future<void> _fetchVideoUrl() async {
+    if (widget.videoPlayUrl == null || widget.videoPlayUrl!.isEmpty) {
+      debugPrint('[Desktop] No videoPlayUrl provided');
+      return;
+    }
     final vimeoId = extractVimeoId(widget.videoPlayUrl!);
     if (vimeoId == null || vimeoId.isEmpty) {
       debugPrint('[Desktop] No Vimeo ID found in URL: ${widget.videoPlayUrl}');
@@ -735,8 +820,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
               controller.removeListener(() {});
               if ((widget.pauseTime?.isNotEmpty ?? false)) {
                 if (!isSeekDone) {
-                  int totalSeconds =
-                      convertTimeStringToSeconds(widget.pauseTime ?? "0");
+                  int totalSeconds = convertTimeStringToSeconds(widget.pauseTime ?? "0");
                   controller.seekTo(Duration(seconds: totalSeconds));
                 }
                 setState(() {
@@ -771,8 +855,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
         break;
 
       case BetterPlayerEventType.pause:
-        final pausedPosition =
-            _betterPlayerController.videoPlayerController?.value.position;
+        final pausedPosition = _betterPlayerController.videoPlayerController?.value.position;
         if (pausedPosition != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             setState(() {
@@ -790,48 +873,62 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
         break;
       case BetterPlayerEventType.finished:
         debugPrint("Video playback finished");
-        // Async cleanup so we never block the platform main thread (sync
-        // file ops on iOS cause "takes too long on the main thread" asserts).
-        final tmp = _tempDecryptedFile;
-        if (tmp != null) {
-          tmp.exists().then((exists) {
-            if (exists) {
-              tmp.delete().catchError((e) {
-                debugPrint('[DEC][CLEANUP] error deleting temp: $e');
-                return tmp; // satisfy Future<File> return type
-              });
-            }
-          });
-        }
+        // Keep the cached decrypted file for fast replay — don't delete.
         break;
       default:
         break;
     }
   }
 
-  Future<void> initializePlayerWithAPIResponse(
-      List<Map<String, dynamic>> apiFiles) async {
+  Future<void> initializePlayerWithAPIResponse(List<Map<String, dynamic>> apiFiles) async {
     _videoUrls.clear();
     _qualityAndSize.clear();
     for (var file in apiFiles) {
-      String rendition = file["rendition"];
-      String quality = file["quality"];
-      String size = file["size_short"];
-      String link = file["link"];
+      final rendition = (file["rendition"] ?? "").toString().trim();
+      final quality = (file["quality"] ?? "").toString().trim();
+      final size = (file["size_short"] ?? "").toString().trim();
+      final link = (file["link"] ?? "").toString().trim();
+      if (link.isEmpty || rendition.isEmpty) continue;
       _videoUrls[rendition] = link;
-      _qualityAndSize["${quality.toUpperCase()} $rendition"] = " $size";
+      final label = quality.isEmpty ? rendition : "${quality.toUpperCase()} $rendition";
+      _qualityAndSize[label] = size.isEmpty ? "" : " $size";
     }
   }
 
   Future<void> initializeDownload(List<Map<String, dynamic>> apiFiles) async {
     _qualityAndSize.clear();
+    _downloadUrls.clear();
+    _selectedIndex = 0;
+    downloadQuality = "";
+    downloadUrl = "";
+
+    // Track which renditions (e.g. "480p", "720p") we've already added so
+    // that near-duplicates like "SD 480p" and bare "480p" from the API
+    // don't both appear in the quality picker.
+    final Set<String> seenRenditions = {};
+
     for (var file in apiFiles) {
-      String rendition = file["rendition"];
-      String quality = file["quality"];
-      String size = file["size_short"];
-      String link = file["link"];
+      final rendition = (file["rendition"] ?? "").toString().trim();
+      final quality = (file["quality"] ?? "").toString().trim();
+      final size = (file["size_short"] ?? "").toString().trim();
+      final link = (file["link"] ?? "").toString().trim();
+      if (link.isEmpty || rendition.isEmpty) continue;
+
+      // Deduplicate by rendition so "SD 480p" and "480p" don't both show.
+      if (seenRenditions.contains(rendition)) continue;
+      seenRenditions.add(rendition);
+
+      final label = quality.isEmpty ? rendition : "${quality.toUpperCase()} $rendition";
+
+      _qualityAndSize[label] = size.isEmpty ? "" : " $size";
+      _downloadUrls[label] = link;
       downloadUrl = link;
-      _qualityAndSize["${quality.toUpperCase()} $rendition"] = " $size";
+    }
+
+    if (_qualityAndSize.isNotEmpty) {
+      final firstLabel = _qualityAndSize.keys.first;
+      downloadQuality = firstLabel;
+      downloadUrl = _downloadUrls[firstLabel] ?? "";
     }
   }
 
@@ -849,8 +946,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
       return;
     }
     try {
-      _lastKnownPosition =
-          _betterPlayerController.videoPlayerController?.value.position;
+      _lastKnownPosition = _betterPlayerController.videoPlayerController?.value.position;
       await _betterPlayerController.pause();
     } catch (_) {}
     setState(() => _selectedQuality = quality);
@@ -890,10 +986,8 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   Duration getCurrentPlayedDuration() {
     if (flickManager != null &&
         flickManager!.flickVideoManager != null &&
-        flickManager!
-            .flickVideoManager!.videoPlayerController!.value.isInitialized) {
-      return flickManager!
-          .flickVideoManager!.videoPlayerController!.value.position;
+        flickManager!.flickVideoManager!.videoPlayerController!.value.isInitialized) {
+      return flickManager!.flickVideoManager!.videoPlayerController!.value.position;
     }
     return Duration(seconds: 0); // Default if video is not initialized
   }
@@ -910,11 +1004,13 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     // mobile uses BetterPlayer; either may have never initialized.
     Duration? lastWatchedTime;
     try {
-      lastWatchedTime = isDesktop
-          ? getCurrentPlayedDuration()
-          : (_playerControllerBuilt
-              ? _betterPlayerController.videoPlayerController?.value.position
-              : null);
+      if (_useOfflineChewie && _offlineVpc != null) {
+        lastWatchedTime = _offlineVpc!.value.position;
+      } else {
+        lastWatchedTime = isDesktop
+            ? getCurrentPlayedDuration()
+            : (_playerControllerBuilt ? _betterPlayerController.videoPlayerController?.value.position : null);
+      }
     } catch (_) {
       lastWatchedTime = null;
     }
@@ -923,18 +1019,21 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
       _callApiWithLastWatchedTime(lastWatchedTime);
     }
 
-    // Async cleanup of decrypted temp file — never block the main thread.
-    final tmp = _tempDecryptedFile;
-    if (tmp != null) {
-      tmp.exists().then((exists) {
-        if (exists) {
-          tmp.delete().catchError((e) {
-            debugPrint('[DEC][CLEANUP] error deleting temp: $e');
-            return tmp;
-          });
-        }
-      });
-    }
+    // Shut down local file server (used for offline video playback on iOS).
+    _localFileServer?.close(force: true);
+    _localFileServer = null;
+    // Dispose offline Chewie + video controller.
+    _offlineChewieController?.dispose();
+    _offlineChewieController = null;
+    _offlineVpc?.dispose();
+    _offlineVpc = null;
+
+    // Keep the decrypted cache file on disk so subsequent plays skip
+    // decryption entirely (the biggest performance win — saves 15-25s).
+    // The cache is managed by OfflineEncryptor.evictCache() when the user
+    // deletes a download, and OfflineEncryptor.clearAllCache() for storage
+    // management. The OS also reclaims temp-dir space under storage pressure.
+    _tempDecryptedFile = null;
 
     // Cancel connectivity subscription — leaving it active would leak the
     // stream controller after the screen is gone.
@@ -1023,9 +1122,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     final store = Provider.of<VideoCategoryStore>(context, listen: false);
     store.onTopicDetailApiCall(widget.contentId ?? "").then((_) {
       if (!mounted) return;
-      final videoId = store.videotopicdetail.isNotEmpty
-          ? (store.videotopicdetail[0]?.videoUrl ?? "")
-          : "";
+      final videoId = store.videotopicdetail.isNotEmpty ? (store.videotopicdetail[0]?.videoUrl ?? "") : "";
       if (videoId.isNotEmpty) {
         _getVideoChaptersDetailList(videoId);
       }
@@ -1083,10 +1180,14 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
       debugPrint('[SEEK] invalid time string');
       return;
     }
-    if (!_playerControllerBuilt) return;
+    if (!_playerControllerBuilt && !_useOfflineChewie) return;
     try {
       final totalSeconds = convertTimeStringToSeconds(timeString);
-      _betterPlayerController.seekTo(Duration(seconds: totalSeconds));
+      if (_useOfflineChewie && _offlineVpc != null) {
+        _offlineVpc!.seekTo(Duration(seconds: totalSeconds));
+      } else {
+        _betterPlayerController.seekTo(Duration(seconds: totalSeconds));
+      }
     } catch (e) {
       debugPrint('[SEEK] failed: $e');
     }
@@ -1096,8 +1197,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     final formattedTime = remainTimeDuration(lastWatchedTime);
     // debugPrint("pauseTime$formattedTime");
     if (widget.isCompleted == false) {
-      await _videoStore.onVideoProgressApiCall(
-          widget.contentId ?? "", formattedTime, 0);
+      await _videoStore.onVideoProgressApiCall(widget.contentId ?? "", formattedTime, 0);
     }
   }
 
@@ -1107,8 +1207,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   void _togglePipMode() async {
     if (!_playerControllerBuilt) return;
     try {
-      final supported =
-          await _betterPlayerController.isPictureInPictureSupported();
+      final supported = await _betterPlayerController.isPictureInPictureSupported();
       if (supported != true) {
         debugPrint('[PIP] not supported on this device');
         return;
@@ -1129,10 +1228,8 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   void seekToChapterMac(int seconds) {
     if (flickManager != null &&
         flickManager!.flickVideoManager != null &&
-        flickManager!
-            .flickVideoManager!.videoPlayerController!.value.isInitialized) {
-      flickManager!.flickVideoManager!.videoPlayerController!
-          .seekTo(Duration(seconds: seconds));
+        flickManager!.flickVideoManager!.videoPlayerController!.value.isInitialized) {
+      flickManager!.flickVideoManager!.videoPlayerController!.seekTo(Duration(seconds: seconds));
     }
   }
 
@@ -1180,22 +1277,21 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
         if (!didPop) return;
         Duration? lastWatchedTime;
         try {
-          lastWatchedTime = isDesktop
-              ? getCurrentPlayedDuration()
-              : (_playerControllerBuilt
-                  ? _betterPlayerController.videoPlayerController?.value.position
-                  : null);
+          if (_useOfflineChewie && _offlineVpc != null) {
+            lastWatchedTime = _offlineVpc!.value.position;
+          } else {
+            lastWatchedTime = isDesktop
+                ? getCurrentPlayedDuration()
+                : (_playerControllerBuilt
+                    ? _betterPlayerController.videoPlayerController?.value.position
+                    : null);
+          }
         } catch (_) {}
         if (lastWatchedTime != null) {
           _callApiWithLastWatchedTime(lastWatchedTime);
         }
-        // Async cleanup of decrypted temp — never block the main thread.
-        final tmp = _tempDecryptedFile;
-        if (tmp != null) {
-          tmp.exists().then((exists) {
-            if (exists) tmp.delete().catchError((e) { return tmp; });
-          });
-        }
+        // Keep the cached decrypted file for fast replay — don't delete.
+        _tempDecryptedFile = null;
       },
       child: DefaultTabController(
         length: tabIndex,
@@ -1208,23 +1304,27 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
             // doesn't obscure the video. Only renders once the controller is
             // built to avoid NPEs when reading .value.position.
             floatingActionButton: (!isFullScreen &&
-                    _playerControllerBuilt &&
+                    (_playerControllerBuilt || _useOfflineChewie) &&
                     (widget.contentId ?? '').isNotEmpty)
                 ? _VideoBookmarkFabCluster(
                     contentId: widget.contentId!,
                     getPosition: () {
                       try {
-                        return _betterPlayerController
-                                .videoPlayerController?.value.position ??
-                            Duration.zero;
+                        if (_useOfflineChewie && _offlineVpc != null) {
+                          return _offlineVpc!.value.position;
+                        }
+                        return _betterPlayerController.videoPlayerController?.value.position ?? Duration.zero;
                       } catch (_) {
                         return Duration.zero;
                       }
                     },
                     onSeek: (seconds) {
                       try {
-                        _betterPlayerController
-                            .seekTo(Duration(seconds: seconds));
+                        if (_useOfflineChewie && _offlineVpc != null) {
+                          _offlineVpc!.seekTo(Duration(seconds: seconds));
+                          return;
+                        }
+                        _betterPlayerController.seekTo(Duration(seconds: seconds));
                       } catch (e) {
                         debugPrint('[Bookmark] seek failed: $e');
                       }
@@ -1232,19 +1332,15 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                   )
                 : null,
             backgroundColor:
-                isFullScreen ? ThemeManager.black : AppTokens.scaffold(context),
+                isFullScreen ? Colors.black : AppTokens.scaffold(context),
             body: OrientationBuilder(
               builder: (BuildContext context, Orientation orientation) {
                 return Observer(
                   builder: (BuildContext context) {
-                    final isDownloading =
-                        store.isDownloading(widget.titleId ?? "");
-                    final progress =
-                        store.getDownloadProgress(widget.titleId ?? "");
+                    final isDownloading = store.isDownloading(widget.titleId ?? "");
+                    final progress = store.getDownloadProgress(widget.titleId ?? "");
 
-                    isFeaturedVideoExist =
-                        (homeStore.featuredContent.value?.video?.isNotEmpty ??
-                            false);
+                    isFeaturedVideoExist = (homeStore.featuredContent.value?.video?.isNotEmpty ?? false);
                     bool isLandscape = orientation == Orientation.landscape;
 
                     // Adjust videoHeight calculation:
@@ -1262,34 +1358,23 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                   0.5 // Or adjust as needed for mobile landscape
                           : MediaQuery.of(context).size.height * 0.27;
                     }
-                    List<VideoTopicDetailModel?>? videoDetail =
-                        store.videotopicdetail;
-                    log(widget.videoPlayUrl!);
-                    String videoUrl = videoDetail.isEmpty
-                        ? ""
-                        : videoDetail[0]?.videoUrl ?? "";
+                    List<VideoTopicDetailModel?>? videoDetail = store.videotopicdetail;
+                    log(widget.videoPlayUrl ?? '');
+                    String videoUrl = videoDetail.isEmpty ? "" : videoDetail[0]?.videoUrl ?? "";
 
-                    videoUrl =
-                        store.videoQualityDetail.value?.files?[0].link ?? "";
+                    videoUrl = store.videoQualityDetail.value?.files?[0].link ?? "";
 
-                    topicName =
-                        videoDetail.isEmpty ? "" : videoDetail[0]?.title ?? "";
-                    duration =
-                        videoDetail.isEmpty ? 0 : videoDetail[0]?.duration ?? 0;
-                    topicDesc = videoDetail.isEmpty
-                        ? ""
-                        : videoDetail[0]?.description ?? "";
+                    topicName = videoDetail.isEmpty ? "" : videoDetail[0]?.title ?? "";
+                    duration = videoDetail.isEmpty ? 0 : videoDetail[0]?.duration ?? 0;
+                    topicDesc = videoDetail.isEmpty ? "" : videoDetail[0]?.description ?? "";
                     if (videoDetail.isNotEmpty && videoDetail[0] != null) {
                       // contentUrl = videoDetail[0]!.pdfcontents ?? "";
                     }
 
-                    List<VideoTopicDetailModel?>? filteredTopics =
-                        store.videotopicdetail;
+                    List<VideoTopicDetailModel?>? filteredTopics = store.videotopicdetail;
                     if (videoDetail.isNotEmpty && videoDetail[0] != null) {
-                      filteredTopics = videoDetail
-                          .where(
-                              (topic) => topic?.title != videoDetail[0]!.title)
-                          .toList();
+                      filteredTopics =
+                          videoDetail.where((topic) => topic?.title != videoDetail[0]!.title).toList();
                     }
                     if (isFullScreen) {
                       return SizedBox(
@@ -1297,70 +1382,89 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                         height: MediaQuery.of(context).size.height,
                         child: (Platform.isWindows || Platform.isMacOS)
                             ? isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : FlickVideoPlayer(flickManager: flickManager!)
-                            : _isPlayerInitialized
-                            ? Stack(
-                          children: [
-                            /// BetterPlayer: full screen
-                            Positioned.fill(
-                              child: BetterPlayer(
-                                controller: _betterPlayerController,
-                                key: _betterPlayerKey,
-                              ),
-                            ),
-
-                            /// Decrypt overlay — sits above the player while
-                            /// AES-GCM is streaming a .enc file to disk.
-                            /// Without this overlay a user tapping an offline
-                            /// video sees a black player rectangle for 3–15 s
-                            /// and assumes the app crashed.
-                            if (_isDecrypting)
-                              Positioned.fill(child: _buildDecryptOverlay()),
-
-                            /// Back Button (top-left)
-                            Positioned(
-                              top: 24,
-                              left: 16,
-                              child: GestureDetector(
-                                onTap: () async {
-                                  setState(() {
-                                    isFullScreen = false;
-                                  });
-                                  await SystemChrome.setPreferredOrientations([
-                                    DeviceOrientation.portraitUp,
-                                    DeviceOrientation.portraitDown,
-                                  ]);
-                                  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.5),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  child: const Text(
-                                    "Back",
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
+                                ? const Center(child: CircularProgressIndicator())
+                                : FlickVideoPlayer(flickManager: flickManager!)
                             : Stack(
                                 children: [
-                                  const Center(child: CircularProgressIndicator()),
-                                  if (_isDecrypting)
-                                    Positioned.fill(child: _buildDecryptOverlay()),
+                                  // Offline Chewie player in landscape
+                                  if (_useOfflineChewie && _offlineChewieController != null)
+                                    Positioned.fill(
+                                      child: Chewie(controller: _offlineChewieController!),
+                                    ),
+                                  // Online BetterPlayer in landscape
+                                  if (!_useOfflineChewie && _playerControllerBuilt)
+                                    Positioned.fill(
+                                      child: BetterPlayer(
+                                        controller: _betterPlayerController,
+                                        key: _betterPlayerKey,
+                                      ),
+                                    ),
+                                  if (!_useOfflineChewie && !_isPlayerInitialized && !_isPreparingOffline)
+                                    const Center(child: CircularProgressIndicator()),
+                                  if (_isDecrypting || _isPreparingOffline) Positioned.fill(child: _buildDecryptOverlay()),
+                                  // Back button – visible in landscape for both online & offline
+                                  Positioned(
+                                    top: 24,
+                                    left: 16,
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        setState(() {
+                                          isFullScreen = false;
+                                        });
+                                        await SystemChrome.setPreferredOrientations([
+                                          DeviceOrientation.portraitUp,
+                                          DeviceOrientation.portraitDown,
+                                        ]);
+                                        await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.5),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        child: const Text(
+                                          "Back",
+                                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Fullscreen exit button – upper right in landscape for offline
+                                  if (_useOfflineChewie)
+                                    Positioned(
+                                      top: 24,
+                                      right: 16,
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          setState(() {
+                                            isFullScreen = false;
+                                          });
+                                          await SystemChrome.setPreferredOrientations([
+                                            DeviceOrientation.portraitUp,
+                                            DeviceOrientation.portraitDown,
+                                            DeviceOrientation.landscapeRight,
+                                            DeviceOrientation.landscapeLeft,
+                                          ]);
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.5),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: const Icon(
+                                            Icons.fullscreen_exit,
+                                            color: Colors.white,
+                                            size: 26,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                 ],
                               ),
                       );
-                    }
-                    else {
+                    } else {
                       return (Platform.isWindows || Platform.isMacOS)
                           ? Row(
                               children: [
@@ -1374,27 +1478,16 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                           color: AppColors.black,
                                           child: Container(
                                               width: isDesktop
-                                                  ? MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      .5
-                                                  : MediaQuery.of(context)
-                                                      .size
-                                                      .width,
+                                                  ? MediaQuery.of(context).size.width * .5
+                                                  : MediaQuery.of(context).size.width,
                                               height: videoHeight,
                                               // Use the adjusted videoHeight here
-                                              color: isDesktop
-                                                  ? Colors.black
-                                                  : ThemeManager.black,
+                                              color: isDesktop ? Colors.black : ThemeManager.black,
                                               padding: EdgeInsets.zero,
                                               margin: EdgeInsets.zero,
                                               child: isLoading
-                                                  ? const Center(
-                                                      child:
-                                                          CircularProgressIndicator())
-                                                  : FlickVideoPlayer(
-                                                      flickManager:
-                                                          flickManager!)),
+                                                  ? const Center(child: CircularProgressIndicator())
+                                                  : FlickVideoPlayer(flickManager: flickManager!)),
                                         ),
                                         Positioned(
                                           top: 50,
@@ -1403,47 +1496,40 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                             visible: true,
                                             child: GestureDetector(
                                               onTap: () async {
-                                                final lastWatchedTime = isDesktop
-                                                    ? getCurrentPlayedDuration()
-                                                    : _betterPlayerController
-                                                        .videoPlayerController
-                                                        ?.value
-                                                        .position;
-                                                await _callApiWithLastWatchedTime(
-                                                    lastWatchedTime!);
-
-                                                if (!isDesktop) {
-                                                  _betterPlayerController
-                                                      .dispose();
+                                                Duration? lastWatchedTime;
+                                                if (_useOfflineChewie && _offlineVpc != null) {
+                                                  lastWatchedTime = _offlineVpc!.value.position;
+                                                } else if (isDesktop) {
+                                                  lastWatchedTime = getCurrentPlayedDuration();
+                                                } else if (_playerControllerBuilt) {
+                                                  lastWatchedTime = _betterPlayerController
+                                                      .videoPlayerController?.value.position;
+                                                }
+                                                if (lastWatchedTime != null) {
+                                                  await _callApiWithLastWatchedTime(lastWatchedTime);
                                                 }
 
-                                                final notesViewerState =
-                                                    _notesViewerKey
-                                                        .currentState;
-                                                await notesViewerState!
-                                                    .saveLastPageToBackend();
-                                                await notesViewerState
-                                                    .exportAndSaveAnnotations();
+                                                if (!isDesktop && _playerControllerBuilt) {
+                                                  _betterPlayerController.dispose();
+                                                }
+
+                                                final notesViewerState = _notesViewerKey.currentState;
+                                                await notesViewerState!.saveLastPageToBackend();
+                                                await notesViewerState.exportAndSaveAnnotations();
 
                                                 Navigator.pop(context);
                                               },
                                               child: Container(
                                                 padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 6),
+                                                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.black
-                                                      .withOpacity(0.5),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
+                                                  color: Colors.black.withOpacity(0.5),
+                                                  borderRadius: BorderRadius.circular(4),
                                                 ),
                                                 child: const Text(
                                                   "Back",
                                                   style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight:
-                                                          FontWeight.w600),
+                                                      color: Colors.white, fontWeight: FontWeight.w600),
                                                 ),
                                               ),
                                             ),
@@ -1453,463 +1539,309 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                     ),
                                     Expanded(
                                       // Wrap the remaining content in an Expanded widget
-                                      child:
-                                          store.isLoading &&
-                                                  store.isLoadingChapter
-                                              ? const Padding(
-                                                  padding:
-                                                      EdgeInsets.only(top: 10),
-                                                  child: Center(
-                                                      child:
-                                                          CircularProgressIndicator()),
-                                                )
-                                              : SizedBox(
-                                                  width: MediaQuery.of(context)
-                                                          .size
-                                                          .width *
-                                                      .5,
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
+                                      child: store.isLoading && store.isLoadingChapter
+                                          ? const Padding(
+                                              padding: EdgeInsets.only(top: 10),
+                                              child: Center(child: CircularProgressIndicator()),
+                                            )
+                                          : SizedBox(
+                                              width: MediaQuery.of(context).size.width * .5,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  // ... (Rest of your content below the video player for desktop)
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                     children: [
-                                                      // ... (Rest of your content below the video player for desktop)
-                                                      Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-                                                        children: [
-                                                          Container(
-                                                            padding: const EdgeInsets
-                                                                .only(
-                                                                top: Dimensions
-                                                                        .PADDING_SIZE_LARGE *
-                                                                    0.5,
-                                                                left: Dimensions
-                                                                        .PADDING_SIZE_LARGE *
-                                                                    1.2),
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                SizedBox(
-                                                                  width: Dimensions
-                                                                          .PADDING_SIZE_EXTRA_LARGE *
-                                                                      9,
-                                                                  child: Text(
-                                                                    topicName,
-                                                                    style: interRegular
-                                                                        .copyWith(
-                                                                      fontSize:
-                                                                          Dimensions
-                                                                              .fontSizeDefault,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                      color: ThemeManager
-                                                                          .black,
+                                                      Container(
+                                                        padding: const EdgeInsets.only(
+                                                            top: Dimensions.PADDING_SIZE_LARGE * 0.5,
+                                                            left: Dimensions.PADDING_SIZE_LARGE * 1.2),
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            SizedBox(
+                                                              width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 9,
+                                                              child: Text(
+                                                                topicName,
+                                                                style: interRegular.copyWith(
+                                                                  fontSize: Dimensions.fontSizeDefault,
+                                                                  fontWeight: FontWeight.w600,
+                                                                  color: ThemeManager.black,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              formatVideoTime(duration),
+                                                              style: interRegular.copyWith(
+                                                                fontSize: Dimensions.fontSizeSmall,
+                                                                fontWeight: FontWeight.w500,
+                                                                color: ThemeManager.grey,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      InkWell(
+                                                        onTap: () {
+                                                          if (!isDownloading) {
+                                                            _showQualityOptions();
+                                                          }
+                                                        },
+                                                        child: Row(
+                                                          children: [
+                                                            if (downloadProgress == 0 ||
+                                                                downloadProgress == 100)
+                                                              Padding(
+                                                                padding: const EdgeInsets.only(right: 5),
+                                                                child: Icon(
+                                                                  isOfflineMode || isDownloaded
+                                                                      ? Icons.check_circle
+                                                                      : Icons.download_for_offline_outlined,
+                                                                  color: isOfflineMode || isDownloaded
+                                                                      ? Colors.green
+                                                                      : ThemeManager.primaryColor,
+                                                                ),
+                                                              ),
+                                                            if (isDownloading)
+                                                              Padding(
+                                                                padding: const EdgeInsets.all(8.0),
+                                                                child: Stack(
+                                                                  alignment: Alignment.center,
+                                                                  children: [
+                                                                    CircularProgressIndicator(
+                                                                      color: ThemeManager.primaryColor,
+                                                                      value: progress / 100,
                                                                     ),
-                                                                  ),
+                                                                    Text(
+                                                                      "${progress.toInt()}%",
+                                                                      style: TextStyle(
+                                                                        fontSize: 12,
+                                                                        fontWeight: FontWeight.bold,
+                                                                        color: ThemeManager.primaryColor,
+                                                                      ),
+                                                                    ),
+                                                                  ],
                                                                 ),
+                                                              )
+                                                            else
+                                                              Text(
+                                                                isDownloaded || isOfflineMode
+                                                                    ? "Downloaded"
+                                                                    : "Download",
+                                                                style: interRegular.copyWith(
+                                                                  fontSize: Dimensions.fontSizeExtraSmall,
+                                                                  fontWeight: FontWeight.w500,
+                                                                  color: isOfflineMode
+                                                                      ? Colors.green
+                                                                      : ThemeManager.blackColor,
+                                                                ),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT),
+                                                    ],
+                                                  ),
+                                                  const Divider(),
+                                                  const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL),
+                                                  Row(
+                                                    children: [
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                                        children: [
+                                                          const SizedBox(
+                                                              width: Dimensions.PADDING_SIZE_DEFAULT),
+                                                          InkWell(
+                                                            onTap: () => setState(() => selectedIndex = 0),
+                                                            child: Column(
+                                                              children: [
+                                                                Icon(CupertinoIcons.book,
+                                                                    size: 24,
+                                                                    color: selectedIndex == 0
+                                                                        ? ThemeManager.primaryColor
+                                                                        : ThemeManager.blackColor),
                                                                 Text(
-                                                                  formatVideoTime(
-                                                                      duration),
-                                                                  style: interRegular
-                                                                      .copyWith(
-                                                                    fontSize:
-                                                                        Dimensions
-                                                                            .fontSizeSmall,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
-                                                                    color:
-                                                                        ThemeManager
-                                                                            .grey,
+                                                                  "Chapters",
+                                                                  style: interRegular.copyWith(
+                                                                    fontSize: Dimensions.fontSizeExtraSmall,
+                                                                    fontWeight: FontWeight.w500,
+                                                                    color: selectedIndex == 0
+                                                                        ? ThemeManager.primaryColor
+                                                                        : ThemeManager.blackColor,
                                                                   ),
-                                                                ),
+                                                                )
                                                               ],
                                                             ),
                                                           ),
-                                                          InkWell(
-                                                            onTap: () {
-                                                              if (!isDownloading) {
-                                                                _showQualityOptions();
-                                                              }
-                                                            },
-                                                            child: Row(
-                                                              children: [
-                                                                if (downloadProgress ==
-                                                                        0 ||
-                                                                    downloadProgress ==
-                                                                        100)
-                                                                  Padding(
-                                                                    padding: const EdgeInsets
-                                                                        .only(
-                                                                        right:
-                                                                            5),
-                                                                    child: Icon(
-                                                                      isOfflineMode ||
-                                                                              isDownloaded
-                                                                          ? Icons
-                                                                              .check_circle
-                                                                          : Icons
-                                                                              .download_for_offline_outlined,
-                                                                      color: isOfflineMode ||
-                                                                              isDownloaded
-                                                                          ? Colors
-                                                                              .green
-                                                                          : ThemeManager
-                                                                              .primaryColor,
-                                                                    ),
-                                                                  ),
-                                                                if (isDownloading)
-                                                                  Padding(
-                                                                    padding:
-                                                                        const EdgeInsets
-                                                                            .all(
-                                                                            8.0),
-                                                                    child:
-                                                                        Stack(
-                                                                      alignment:
-                                                                          Alignment
-                                                                              .center,
-                                                                      children: [
-                                                                        CircularProgressIndicator(
-                                                                          color:
-                                                                              ThemeManager.primaryColor,
-                                                                          value:
-                                                                              progress / 100,
-                                                                        ),
-                                                                        Text(
-                                                                          "${progress.toInt()}%",
-                                                                          style:
-                                                                              TextStyle(
-                                                                            fontSize:
-                                                                                12,
-                                                                            fontWeight:
-                                                                                FontWeight.bold,
-                                                                            color:
-                                                                                ThemeManager.primaryColor,
-                                                                          ),
-                                                                        ),
-                                                                      ],
+                                                          if (!isWindows()) ...[
+                                                            const SizedBox(
+                                                                width: Dimensions.PADDING_SIZE_DEFAULT),
+                                                            InkWell(
+                                                              onTap: () => setState(() => selectedIndex = 1),
+                                                              child: Column(
+                                                                children: [
+                                                                  Icon(CupertinoIcons.doc_text,
+                                                                      size: 25,
+                                                                      color: selectedIndex == 1
+                                                                          ? ThemeManager.primaryColor
+                                                                          : ThemeManager.blackColor),
+                                                                  Text(
+                                                                    "Notes",
+                                                                    style: interRegular.copyWith(
+                                                                      fontSize: Dimensions.fontSizeExtraSmall,
+                                                                      fontWeight: FontWeight.w500,
+                                                                      color: selectedIndex == 1
+                                                                          ? ThemeManager.primaryColor
+                                                                          : ThemeManager.blackColor,
                                                                     ),
                                                                   )
-                                                                else
-                                                                  Text(
-                                                                    isDownloaded ||
-                                                                            isOfflineMode
-                                                                        ? "Downloaded"
-                                                                        : "Download",
-                                                                    style: interRegular
-                                                                        .copyWith(
-                                                                      fontSize:
-                                                                          Dimensions
-                                                                              .fontSizeExtraSmall,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w500,
-                                                                      color: isOfflineMode
-                                                                          ? Colors
-                                                                              .green
-                                                                          : ThemeManager
-                                                                              .blackColor,
-                                                                    ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                          const SizedBox(
+                                                              width: Dimensions.PADDING_SIZE_DEFAULT),
+                                                          InkWell(
+                                                            onTap: () {
+                                                              setState(() {
+                                                                isMarkCompleted = !isMarkCompleted;
+                                                              });
+                                                              _createVideoHistory();
+                                                            },
+                                                            child: Column(
+                                                              children: [
+                                                                Icon(Icons.check_circle_outline,
+                                                                    color: isMarkCompleted == true
+                                                                        ? Colors.green
+                                                                        : ThemeManager.blackColor,
+                                                                    size: 24),
+                                                                Text(
+                                                                  textAlign: TextAlign.center,
+                                                                  isMarkCompleted == true
+                                                                      ? "Completed"
+                                                                      : "Complete",
+                                                                  style: interRegular.copyWith(
+                                                                    fontSize: Dimensions.fontSizeExtraSmall,
+                                                                    fontWeight: FontWeight.w500,
+                                                                    color: isMarkCompleted == true
+                                                                        ? Colors.green
+                                                                        : ThemeManager.blackColor,
                                                                   ),
+                                                                )
                                                               ],
                                                             ),
                                                           ),
                                                           const SizedBox(
-                                                              width: Dimensions
-                                                                  .PADDING_SIZE_DEFAULT),
-                                                        ],
-                                                      ),
-                                                      const Divider(),
-                                                      const SizedBox(
-                                                          height: Dimensions
-                                                              .PADDING_SIZE_EXTRA_SMALL),
-                                                      Row(
-                                                        children: [
-                                                          Row(
-                                                            mainAxisAlignment:
-                                                                MainAxisAlignment
-                                                                    .spaceAround,
-                                                            children: [
-                                                              const SizedBox(
-                                                                  width: Dimensions
-                                                                      .PADDING_SIZE_DEFAULT),
-                                                              InkWell(
-                                                                onTap: () =>
-                                                                    setState(() =>
-                                                                        selectedIndex =
-                                                                            0),
-                                                                child: Column(
-                                                                  children: [
-                                                                    Icon(
-                                                                        CupertinoIcons
-                                                                            .book,
-                                                                        size:
-                                                                            24,
-                                                                        color: selectedIndex ==
-                                                                                0
-                                                                            ? ThemeManager.primaryColor
-                                                                            : ThemeManager.blackColor),
-                                                                    Text(
-                                                                      "Chapters",
-                                                                      style: interRegular
-                                                                          .copyWith(
-                                                                        fontSize:
-                                                                            Dimensions.fontSizeExtraSmall,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color: selectedIndex ==
-                                                                                0
-                                                                            ? ThemeManager.primaryColor
-                                                                            : ThemeManager.blackColor,
-                                                                      ),
-                                                                    )
-                                                                  ],
+                                                              width: Dimensions.PADDING_SIZE_DEFAULT),
+                                                          InkWell(
+                                                            onTap: () {
+                                                              setState(() {
+                                                                isBookmarkedDone = !isBookmarkedDone;
+                                                              });
+                                                              _putBookMarkApiCall();
+                                                            },
+                                                            child: Column(
+                                                              children: [
+                                                                Icon(
+                                                                  isBookmarkedDone == true
+                                                                      ? Icons.bookmark
+                                                                      : Icons.bookmark_border,
+                                                                  color: isBookmarkedDone == true
+                                                                      ? ThemeManager.primaryColor
+                                                                      : ThemeManager.blackColor,
+                                                                  size: 24,
                                                                 ),
-                                                              ),
-                                                              if (!isWindows()) ...[
-                                                                const SizedBox(
-                                                                    width: Dimensions
-                                                                        .PADDING_SIZE_DEFAULT),
-                                                                InkWell(
-                                                                  onTap: () =>
-                                                                      setState(() =>
-                                                                          selectedIndex =
-                                                                              1),
-                                                                  child: Column(
-                                                                    children: [
-                                                                      Icon(
-                                                                          CupertinoIcons
-                                                                              .doc_text,
-                                                                          size:
-                                                                              25,
-                                                                          color: selectedIndex == 1
-                                                                              ? ThemeManager.primaryColor
-                                                                              : ThemeManager.blackColor),
-                                                                      Text(
-                                                                        "Notes",
-                                                                        style: interRegular
-                                                                            .copyWith(
-                                                                          fontSize:
-                                                                              Dimensions.fontSizeExtraSmall,
-                                                                          fontWeight:
-                                                                              FontWeight.w500,
-                                                                          color: selectedIndex == 1
-                                                                              ? ThemeManager.primaryColor
-                                                                              : ThemeManager.blackColor,
-                                                                        ),
-                                                                      )
-                                                                    ],
+                                                                Text(
+                                                                  textAlign: TextAlign.center,
+                                                                  isBookmarkedDone == true
+                                                                      ? "Bookmarked"
+                                                                      : "Bookmark",
+                                                                  style: interRegular.copyWith(
+                                                                    fontSize: Dimensions.fontSizeExtraSmall,
+                                                                    fontWeight: FontWeight.w500,
+                                                                    color: isBookmarkedDone == true
+                                                                        ? ThemeManager.primaryColor
+                                                                        : ThemeManager.blackColor,
                                                                   ),
-                                                                ),
+                                                                )
                                                               ],
-                                                              const SizedBox(
-                                                                  width: Dimensions
-                                                                      .PADDING_SIZE_DEFAULT),
-                                                              InkWell(
-                                                                onTap: () {
-                                                                  setState(() {
-                                                                    isMarkCompleted =
-                                                                        !isMarkCompleted;
-                                                                  });
-                                                                  _createVideoHistory();
-                                                                },
-                                                                child: Column(
-                                                                  children: [
-                                                                    Icon(
-                                                                        Icons
-                                                                            .check_circle_outline,
-                                                                        color: isMarkCompleted ==
-                                                                                true
-                                                                            ? Colors
-                                                                                .green
-                                                                            : ThemeManager
-                                                                                .blackColor,
-                                                                        size:
-                                                                            24),
-                                                                    Text(
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      isMarkCompleted ==
-                                                                              true
-                                                                          ? "Completed"
-                                                                          : "Complete",
-                                                                      style: interRegular
-                                                                          .copyWith(
-                                                                        fontSize:
-                                                                            Dimensions.fontSizeExtraSmall,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color: isMarkCompleted ==
-                                                                                true
-                                                                            ? Colors.green
-                                                                            : ThemeManager.blackColor,
-                                                                      ),
-                                                                    )
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                              const SizedBox(
-                                                                  width: Dimensions
-                                                                      .PADDING_SIZE_DEFAULT),
-                                                              InkWell(
-                                                                onTap: () {
-                                                                  setState(() {
-                                                                    isBookmarkedDone =
-                                                                        !isBookmarkedDone;
-                                                                  });
-                                                                  _putBookMarkApiCall();
-                                                                },
-                                                                child: Column(
-                                                                  children: [
-                                                                    Icon(
-                                                                      isBookmarkedDone ==
-                                                                              true
-                                                                          ? Icons
-                                                                              .bookmark
-                                                                          : Icons
-                                                                              .bookmark_border,
-                                                                      color: isBookmarkedDone ==
-                                                                              true
-                                                                          ? ThemeManager
-                                                                              .primaryColor
-                                                                          : ThemeManager
-                                                                              .blackColor,
-                                                                      size: 24,
-                                                                    ),
-                                                                    Text(
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      isBookmarkedDone ==
-                                                                              true
-                                                                          ? "Bookmarked"
-                                                                          : "Bookmark",
-                                                                      style: interRegular
-                                                                          .copyWith(
-                                                                        fontSize:
-                                                                            Dimensions.fontSizeExtraSmall,
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        color: isBookmarkedDone ==
-                                                                                true
-                                                                            ? ThemeManager.primaryColor
-                                                                            : ThemeManager.blackColor,
-                                                                      ),
-                                                                    )
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            ],
+                                                            ),
                                                           ),
                                                         ],
-                                                      ),
-                                                      const SizedBox(
-                                                          height: Dimensions
-                                                              .PADDING_SIZE_DEFAULT),
-                                                      SizedBox(
-                                                        width: MediaQuery.of(
-                                                                context)
-                                                            .size
-                                                            .width,
-                                                        height: 1,
-                                                        child: Container(
-                                                          color:
-                                                              AppColors.divider,
-                                                        ),
-                                                      ),
-                                                      Expanded(
-                                                        child: Container(
-                                                          color: ThemeManager
-                                                                      .currentTheme ==
-                                                                  AppTheme.Light
-                                                              ? ThemeManager
-                                                                  .backgroundGrey
-                                                              : ThemeManager
-                                                                  .white,
-                                                          child: IndexedStack(
-                                                            index:
-                                                                selectedIndex,
-                                                            children: [
-                                                              Column(
-                                                                children: [
-                                                                  Expanded(
-                                                                    child: ListView
-                                                                        .builder(
-                                                                      itemCount: store
-                                                                          .videoChapterizationList
-                                                                          .length,
-                                                                      shrinkWrap:
-                                                                          true,
-                                                                      padding:
-                                                                          EdgeInsets
-                                                                              .zero,
-                                                                      physics:
-                                                                          const AlwaysScrollableScrollPhysics(),
-                                                                      itemBuilder:
-                                                                          (BuildContext context,
-                                                                              int index) {
-                                                                        return _buildItem1(
-                                                                            context,
-                                                                            index);
-                                                                      },
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              Stack(
-                                                                children: [
-                                                                  Center(
-                                                                    child:
-                                                                        Container(
-                                                                      constraints:
-                                                                          const BoxConstraints(
-                                                                              maxWidth: 900),
-                                                                      child:
-                                                                          NotesViewer(
-                                                                        key:
-                                                                            _notesViewerKeySecondary,
-                                                                        pdfUrl: pdfBaseUrl +
-                                                                            pdfUrl,
-                                                                        titleId: widget
-                                                                            .pdfId!
-                                                                            .toString(),
-                                                                        initialAnnotationJson:
-                                                                            jsonEncode(widget.annotationData),
-                                                                        initialPage:
-                                                                            0,
-                                                                        isFromNormal:
-                                                                            false,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
                                                       ),
                                                     ],
                                                   ),
-                                                ),
+                                                  const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+                                                  SizedBox(
+                                                    width: MediaQuery.of(context).size.width,
+                                                    height: 1,
+                                                    child: Container(
+                                                      color: AppColors.divider,
+                                                    ),
+                                                  ),
+                                                  Expanded(
+                                                    child: Container(
+                                                      color: ThemeManager.currentTheme == AppTheme.Light
+                                                          ? ThemeManager.backgroundGrey
+                                                          : ThemeManager.white,
+                                                      child: IndexedStack(
+                                                        index: selectedIndex,
+                                                        children: [
+                                                          Column(
+                                                            children: [
+                                                              Expanded(
+                                                                child: ListView.builder(
+                                                                  itemCount:
+                                                                      store.videoChapterizationList.length,
+                                                                  shrinkWrap: true,
+                                                                  padding: EdgeInsets.zero,
+                                                                  physics:
+                                                                      const AlwaysScrollableScrollPhysics(),
+                                                                  itemBuilder:
+                                                                      (BuildContext context, int index) {
+                                                                    return _buildItem1(context, index);
+                                                                  },
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          Stack(
+                                                            children: [
+                                                              Center(
+                                                                child: Container(
+                                                                  constraints:
+                                                                      const BoxConstraints(maxWidth: 900),
+                                                                  child: NotesViewer(
+                                                                    key: _notesViewerKeySecondary,
+                                                                    pdfUrl: pdfBaseUrl + pdfUrl,
+                                                                    titleId: (widget.pdfId ?? '').toString(),
+                                                                    initialAnnotationJson:
+                                                                        jsonEncode(widget.annotationData),
+                                                                    initialPage: 0,
+                                                                    isFromNormal: false,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                     ),
                                   ],
                                 ),
                                 SizedBox(
-                                  width:
-                                      MediaQuery.of(context).size.width * 0.5,
+                                  width: MediaQuery.of(context).size.width * 0.5,
                                   child: NotesViewer(
                                     key: _notesViewerKey,
                                     pdfUrl: pdfBaseUrl + pdfUrl,
-                                    titleId: widget.pdfId!.toString(),
-                                    initialAnnotationJson:
-                                        jsonEncode(widget.annotationData),
+                                    titleId: (widget.pdfId ?? '').toString(),
+                                    initialAnnotationJson: jsonEncode(widget.annotationData),
                                     initialPage: 0,
                                     isFromNormal: false,
                                   ),
@@ -1929,72 +1861,102 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                       width: !isDesktop
                                           ? MediaQuery.of(context).size.width
                                           : isDesktop
-                                              ? MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  .4
+                                              ? MediaQuery.of(context).size.width * .4
                                               : null,
                                       height: videoHeight,
                                       // Use the adjusted videoHeight here
-                                      child: _isPlayerInitialized
-                                          ? AspectRatio(
-                                              aspectRatio: 16 / 9,
-                                              child: BetterPlayer(
-                                                controller:
-                                                    _betterPlayerController,
-                                                key: _betterPlayerKey,
-                                              ),
-                                            )
-                                          : const Center(
-                                              child:
-                                                  CircularProgressIndicator()),
+                                      child: _useOfflineChewie && _offlineChewieController != null
+                                          ? Chewie(controller: _offlineChewieController!)
+                                          : _isPlayerInitialized
+                                              ? AspectRatio(
+                                                  aspectRatio: 16 / 9,
+                                                  child: BetterPlayer(
+                                                    controller: _betterPlayerController,
+                                                    key: _betterPlayerKey,
+                                                  ),
+                                                )
+                                              : const Center(child: CircularProgressIndicator()),
                                     ),
-                                    // Decrypt-in-progress overlay. Sits inside
-                                    // the same Stack as the player so it
-                                    // overlays the BetterPlayer widget while
-                                    // AES-GCM streams the .enc file to disk.
-                                    if (_isDecrypting)
+                                    // Offline-loading / decrypt-in-progress overlay.
+                                    // Sits inside the same Stack as the player so
+                                    // it covers the full player area while the
+                                    // downloaded video is being prepared.
+                                    if (_isDecrypting || _isPreparingOffline)
                                       Positioned.fill(
-                                        child: AspectRatio(
-                                          aspectRatio: 16 / 9,
-                                          child: _buildDecryptOverlay(),
+                                        child: _buildDecryptOverlay(),
+                                      ),
+                                    // PiP button – hidden during offline Chewie playback
+                                    if (!_useOfflineChewie)
+                                      Positioned(
+                                        top: Platform.isIOS ? null : 10,
+                                        right: 22,
+                                        bottom:
+                                            Platform.isIOS ? MediaQuery.of(context).size.height / 3 : null,
+                                        child: IconButton(
+                                          onPressed: _togglePipMode,
+                                          icon: const Icon(Icons.picture_in_picture,
+                                              color: AppColors.white, size: 25),
                                         ),
                                       ),
-                                    Positioned(
-                                      top: Platform.isIOS ? null : 10,
-                                      right: 22,
-                                      bottom: Platform.isIOS
-                                          ? MediaQuery.of(context).size.height /
-                                              3
-                                          : null,
-                                      child: IconButton(
-                                        onPressed: _togglePipMode,
-                                        icon: const Icon(
-                                            Icons.picture_in_picture,
-                                            color: AppColors.white,
-                                            size: 25),
+                                    // Landscape / fullscreen button for offline Chewie player
+                                    if (_useOfflineChewie && _offlineChewieController != null)
+                                      Positioned(
+                                        top: 10,
+                                        right: 12,
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            setState(() {
+                                              isFullScreen = !isFullScreen;
+                                            });
+                                            if (isFullScreen) {
+                                              await SystemChrome.setPreferredOrientations([
+                                                DeviceOrientation.landscapeRight,
+                                                DeviceOrientation.landscapeLeft,
+                                              ]);
+                                            } else {
+                                              await SystemChrome.setPreferredOrientations([
+                                                DeviceOrientation.portraitUp,
+                                                DeviceOrientation.portraitDown,
+                                                DeviceOrientation.landscapeRight,
+                                                DeviceOrientation.landscapeLeft,
+                                              ]);
+                                            }
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black45,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Icon(
+                                              isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                                              color: AppColors.white,
+                                              size: 26,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
                                     Positioned(
                                       left: 20,
                                       top: 13,
                                       child: GestureDetector(
                                         onTap: () async {
-                                          final lastWatchedTime = isDesktop
-                                              ? getCurrentPlayedDuration()
-                                              : _betterPlayerController
-                                                  .videoPlayerController
-                                                  ?.value
-                                                  .position;
-                                          await _callApiWithLastWatchedTime(
-                                              lastWatchedTime!);
+                                          Duration? lastWatchedTime;
+                                          if (_useOfflineChewie && _offlineVpc != null) {
+                                            lastWatchedTime = _offlineVpc!.value.position;
+                                          } else if (isDesktop) {
+                                            lastWatchedTime = getCurrentPlayedDuration();
+                                          } else if (_playerControllerBuilt) {
+                                            lastWatchedTime =
+                                                _betterPlayerController.videoPlayerController?.value.position;
+                                          }
+                                          if (lastWatchedTime != null) {
+                                            await _callApiWithLastWatchedTime(lastWatchedTime);
+                                          }
 
-                                          final notesViewerState =
-                                              _notesViewerKey.currentState;
-                                          await notesViewerState!
-                                              .saveLastPageToBackend();
-                                          await notesViewerState!
-                                              .exportAndSaveAnnotations();
+                                          final notesViewerState = _notesViewerKey.currentState;
+                                          await notesViewerState?.saveLastPageToBackend();
+                                          await notesViewerState?.exportAndSaveAnnotations();
                                           // BetterPlayer's autoDispose handles teardown on
                                           // mobile; on desktop we use FlickManager so there's
                                           // no BetterPlayer controller to release here. The
@@ -2004,126 +1966,94 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                         },
                                         child: Container(
                                           decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                              color: Colors.white
-                                                  .withOpacity(0.1)),
+                                              borderRadius: BorderRadius.circular(4),
+                                              color: Colors.white.withOpacity(0.1)),
                                           child: const Padding(
-                                            padding: EdgeInsets.symmetric(
-                                                horizontal: 8, vertical: 4),
+                                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             child: Text(
                                               "Back",
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w600),
+                                              style:
+                                                  TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                    Positioned(
-                                      right: 60,
-                                      top: 19,
-                                      child: GestureDetector(
-                                        onTap: () async {
-                                          setState(() {
-                                            isFullScreen = !isFullScreen;
-                                          });
+                                    // Default landscape button – hidden during offline Chewie playback
+                                    if (!_useOfflineChewie)
+                                      Positioned(
+                                        right: 60,
+                                        top: 19,
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            setState(() {
+                                              isFullScreen = !isFullScreen;
+                                            });
 
-                                          if (isFullScreen) {
-                                            await SystemChrome
-                                                .setPreferredOrientations([
-                                              DeviceOrientation.landscapeRight,
-                                              DeviceOrientation.landscapeLeft,
-                                            ]);
-                                          } else {
-                                            await SystemChrome
-                                                .setPreferredOrientations([
-                                              DeviceOrientation.portraitUp,
-                                              DeviceOrientation.portraitDown,
-                                              DeviceOrientation.landscapeRight,
-                                              DeviceOrientation.landscapeLeft,
-                                            ]);
-                                          }
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 4),
-                                          child: isFullScreen
-                                              ? const Icon(
-                                                  Icons.fullscreen_exit,
-                                                  color: AppColors.white,
-                                                  size: 25)
-                                              : const Icon(Icons.fullscreen,
-                                                  color: AppColors.white,
-                                                  size: 25),
+                                            if (isFullScreen) {
+                                              await SystemChrome.setPreferredOrientations([
+                                                DeviceOrientation.landscapeRight,
+                                                DeviceOrientation.landscapeLeft,
+                                              ]);
+                                            } else {
+                                              await SystemChrome.setPreferredOrientations([
+                                                DeviceOrientation.portraitUp,
+                                                DeviceOrientation.portraitDown,
+                                                DeviceOrientation.landscapeRight,
+                                                DeviceOrientation.landscapeLeft,
+                                              ]);
+                                            }
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            child: isFullScreen
+                                                ? const Icon(Icons.fullscreen_exit,
+                                                    color: AppColors.white, size: 25)
+                                                : const Icon(Icons.fullscreen,
+                                                    color: AppColors.white, size: 25),
+                                          ),
                                         ),
                                       ),
-                                    ),
                                   ],
                                 ),
                                 Expanded(
                                   // Wrap the remaining content in an Expanded widget
-                                  child: store.isLoading &&
-                                          store.isLoadingChapter
+                                  child: store.isLoading && store.isLoadingChapter
                                       ? const Padding(
                                           padding: EdgeInsets.only(top: 10),
-                                          child: Center(
-                                              child:
-                                                  CircularProgressIndicator()),
+                                          child: Center(child: CircularProgressIndicator()),
                                         )
                                       : Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             // ... (Rest of your content below the video player for mobile)
                                             Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                               children: [
                                                 Container(
-                                                  padding: const EdgeInsets
-                                                      .only(
-                                                      top: Dimensions
-                                                              .PADDING_SIZE_LARGE *
-                                                          0.5,
-                                                      left: Dimensions
-                                                              .PADDING_SIZE_LARGE *
-                                                          1.2),
+                                                  padding: const EdgeInsets.only(
+                                                      top: Dimensions.PADDING_SIZE_LARGE * 0.5,
+                                                      left: Dimensions.PADDING_SIZE_LARGE * 1.2),
                                                   child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
                                                     children: [
                                                       SizedBox(
-                                                        width: Dimensions
-                                                                .PADDING_SIZE_EXTRA_LARGE *
-                                                            9,
+                                                        width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 9,
                                                         child: Text(
                                                           topicName,
-                                                          style: interRegular
-                                                              .copyWith(
-                                                            fontSize: Dimensions
-                                                                .fontSizeDefault,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: ThemeManager
-                                                                .black,
+                                                          style: interRegular.copyWith(
+                                                            fontSize: Dimensions.fontSizeDefault,
+                                                            fontWeight: FontWeight.w600,
+                                                            color: ThemeManager.black,
                                                           ),
                                                         ),
                                                       ),
                                                       Text(
-                                                        formatVideoTime(
-                                                            duration),
-                                                        style: interRegular
-                                                            .copyWith(
-                                                          fontSize: Dimensions
-                                                              .fontSizeSmall,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          color:
-                                                              ThemeManager.grey,
+                                                        formatVideoTime(duration),
+                                                        style: interRegular.copyWith(
+                                                          fontSize: Dimensions.fontSizeSmall,
+                                                          fontWeight: FontWeight.w500,
+                                                          color: ThemeManager.grey,
                                                         ),
                                                       ),
                                                     ],
@@ -2137,55 +2067,34 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                                   },
                                                   child: Row(
                                                     children: [
-                                                      if (downloadProgress ==
-                                                              0 ||
-                                                          downloadProgress ==
-                                                              100)
+                                                      if (downloadProgress == 0 || downloadProgress == 100)
                                                         Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .only(
-                                                                  right: 5),
+                                                          padding: const EdgeInsets.only(right: 5),
                                                           child: Icon(
-                                                            isOfflineMode ||
-                                                                    isDownloaded
-                                                                ? Icons
-                                                                    .check_circle
-                                                                : Icons
-                                                                    .download_for_offline_outlined,
-                                                            color: isOfflineMode ||
-                                                                    isDownloaded
+                                                            isOfflineMode || isDownloaded
+                                                                ? Icons.check_circle
+                                                                : Icons.download_for_offline_outlined,
+                                                            color: isOfflineMode || isDownloaded
                                                                 ? Colors.green
-                                                                : ThemeManager
-                                                                    .primaryColor,
+                                                                : ThemeManager.primaryColor,
                                                           ),
                                                         ),
                                                       if (isDownloading)
                                                         Padding(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(8.0),
+                                                          padding: const EdgeInsets.all(8.0),
                                                           child: Stack(
-                                                            alignment: Alignment
-                                                                .center,
+                                                            alignment: Alignment.center,
                                                             children: [
                                                               CircularProgressIndicator(
-                                                                color: ThemeManager
-                                                                    .primaryColor,
-                                                                value:
-                                                                    progress /
-                                                                        100,
+                                                                color: ThemeManager.primaryColor,
+                                                                value: progress / 100,
                                                               ),
                                                               Text(
                                                                 "${progress.toInt()}%",
-                                                                style:
-                                                                    TextStyle(
+                                                                style: TextStyle(
                                                                   fontSize: 12,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  color: ThemeManager
-                                                                      .primaryColor,
+                                                                  fontWeight: FontWeight.bold,
+                                                                  color: ThemeManager.primaryColor,
                                                                 ),
                                                               ),
                                                             ],
@@ -2193,212 +2102,137 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                                         )
                                                       else
                                                         Text(
-                                                          isDownloaded ||
-                                                                  isOfflineMode
+                                                          isDownloaded || isOfflineMode
                                                               ? "Downloaded"
                                                               : "Download",
-                                                          style: interRegular
-                                                              .copyWith(
-                                                            fontSize: Dimensions
-                                                                .fontSizeExtraSmall,
-                                                            fontWeight:
-                                                                FontWeight.w500,
+                                                          style: interRegular.copyWith(
+                                                            fontSize: Dimensions.fontSizeExtraSmall,
+                                                            fontWeight: FontWeight.w500,
                                                             color: isOfflineMode
                                                                 ? Colors.green
-                                                                : ThemeManager
-                                                                    .blackColor,
+                                                                : ThemeManager.blackColor,
                                                           ),
                                                         ),
                                                     ],
                                                   ),
                                                 ),
-                                                const SizedBox(
-                                                    width: Dimensions
-                                                        .PADDING_SIZE_DEFAULT),
+                                                const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT),
                                               ],
                                             ),
                                             const Divider(),
-                                            const SizedBox(
-                                                height: Dimensions
-                                                    .PADDING_SIZE_EXTRA_SMALL),
+                                            const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL),
                                             Row(
                                               children: [
                                                 Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceAround,
+                                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                                                   children: [
-                                                    const SizedBox(
-                                                        width: Dimensions
-                                                            .PADDING_SIZE_DEFAULT),
+                                                    const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT),
                                                     InkWell(
-                                                      onTap: () => setState(
-                                                          () => selectedIndex =
-                                                              0),
+                                                      onTap: () => setState(() => selectedIndex = 0),
                                                       child: Column(
                                                         children: [
-                                                          Icon(
-                                                              CupertinoIcons
-                                                                  .book,
+                                                          Icon(CupertinoIcons.book,
                                                               size: 24,
-                                                              color: selectedIndex ==
-                                                                      0
-                                                                  ? ThemeManager
-                                                                      .primaryColor
-                                                                  : ThemeManager
-                                                                      .blackColor),
+                                                              color: selectedIndex == 0
+                                                                  ? ThemeManager.primaryColor
+                                                                  : ThemeManager.blackColor),
                                                           Text(
                                                             "Chapters",
-                                                            style: interRegular
-                                                                .copyWith(
-                                                              fontSize: Dimensions
-                                                                  .fontSizeExtraSmall,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                              color: selectedIndex ==
-                                                                      0
-                                                                  ? ThemeManager
-                                                                      .primaryColor
-                                                                  : ThemeManager
-                                                                      .blackColor,
+                                                            style: interRegular.copyWith(
+                                                              fontSize: Dimensions.fontSizeExtraSmall,
+                                                              fontWeight: FontWeight.w500,
+                                                              color: selectedIndex == 0
+                                                                  ? ThemeManager.primaryColor
+                                                                  : ThemeManager.blackColor,
                                                             ),
                                                           )
                                                         ],
                                                       ),
                                                     ),
-                                                    const SizedBox(
-                                                        width: Dimensions
-                                                            .PADDING_SIZE_DEFAULT),
+                                                    const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT),
                                                     InkWell(
-                                                      onTap: () => setState(
-                                                          () => selectedIndex =
-                                                              1),
+                                                      onTap: () => setState(() => selectedIndex = 1),
                                                       child: Column(
                                                         children: [
-                                                          Icon(
-                                                              CupertinoIcons
-                                                                  .doc_text,
+                                                          Icon(CupertinoIcons.doc_text,
                                                               size: 25,
-                                                              color: selectedIndex ==
-                                                                      1
-                                                                  ? ThemeManager
-                                                                      .primaryColor
-                                                                  : ThemeManager
-                                                                      .blackColor),
+                                                              color: selectedIndex == 1
+                                                                  ? ThemeManager.primaryColor
+                                                                  : ThemeManager.blackColor),
                                                           Text(
                                                             "Notes",
-                                                            style: interRegular
-                                                                .copyWith(
-                                                              fontSize: Dimensions
-                                                                  .fontSizeExtraSmall,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                              color: selectedIndex ==
-                                                                      1
-                                                                  ? ThemeManager
-                                                                      .primaryColor
-                                                                  : ThemeManager
-                                                                      .blackColor,
+                                                            style: interRegular.copyWith(
+                                                              fontSize: Dimensions.fontSizeExtraSmall,
+                                                              fontWeight: FontWeight.w500,
+                                                              color: selectedIndex == 1
+                                                                  ? ThemeManager.primaryColor
+                                                                  : ThemeManager.blackColor,
                                                             ),
                                                           )
                                                         ],
                                                       ),
                                                     ),
-                                                    const SizedBox(
-                                                        width: Dimensions
-                                                            .PADDING_SIZE_DEFAULT),
+                                                    const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT),
                                                     InkWell(
                                                       onTap: () {
                                                         setState(() {
-                                                          isMarkCompleted =
-                                                              !isMarkCompleted;
+                                                          isMarkCompleted = !isMarkCompleted;
                                                         });
                                                         _createVideoHistory();
                                                       },
                                                       child: Column(
                                                         children: [
-                                                          Icon(
-                                                              Icons
-                                                                  .check_circle_outline,
-                                                              color: isMarkCompleted ==
-                                                                      true
+                                                          Icon(Icons.check_circle_outline,
+                                                              color: isMarkCompleted == true
                                                                   ? Colors.green
-                                                                  : ThemeManager
-                                                                      .blackColor,
+                                                                  : ThemeManager.blackColor,
                                                               size: 24),
                                                           Text(
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                            isMarkCompleted ==
-                                                                    true
+                                                            textAlign: TextAlign.center,
+                                                            isMarkCompleted == true
                                                                 ? "Completed"
                                                                 : "Complete",
-                                                            style: interRegular
-                                                                .copyWith(
-                                                              fontSize: Dimensions
-                                                                  .fontSizeExtraSmall,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                              color: isMarkCompleted ==
-                                                                      true
+                                                            style: interRegular.copyWith(
+                                                              fontSize: Dimensions.fontSizeExtraSmall,
+                                                              fontWeight: FontWeight.w500,
+                                                              color: isMarkCompleted == true
                                                                   ? Colors.green
-                                                                  : ThemeManager
-                                                                      .blackColor,
+                                                                  : ThemeManager.blackColor,
                                                             ),
                                                           )
                                                         ],
                                                       ),
                                                     ),
-                                                    const SizedBox(
-                                                        width: Dimensions
-                                                            .PADDING_SIZE_DEFAULT),
+                                                    const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT),
                                                     InkWell(
                                                       onTap: () {
                                                         setState(() {
-                                                          isBookmarkedDone =
-                                                              !isBookmarkedDone;
+                                                          isBookmarkedDone = !isBookmarkedDone;
                                                         });
                                                         _putBookMarkApiCall();
                                                       },
                                                       child: Column(
                                                         children: [
                                                           Icon(
-                                                            isBookmarkedDone ==
-                                                                    true
+                                                            isBookmarkedDone == true
                                                                 ? Icons.bookmark
-                                                                : Icons
-                                                                    .bookmark_border,
-                                                            color: isBookmarkedDone ==
-                                                                    true
-                                                                ? ThemeManager
-                                                                    .primaryColor
-                                                                : ThemeManager
-                                                                    .blackColor,
+                                                                : Icons.bookmark_border,
+                                                            color: isBookmarkedDone == true
+                                                                ? ThemeManager.primaryColor
+                                                                : ThemeManager.blackColor,
                                                             size: 24,
                                                           ),
                                                           Text(
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                            isBookmarkedDone ==
-                                                                    true
+                                                            textAlign: TextAlign.center,
+                                                            isBookmarkedDone == true
                                                                 ? "Bookmarked"
                                                                 : "Bookmark",
-                                                            style: interRegular
-                                                                .copyWith(
-                                                              fontSize: Dimensions
-                                                                  .fontSizeExtraSmall,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                              color: isBookmarkedDone ==
-                                                                      true
-                                                                  ? ThemeManager
-                                                                      .primaryColor
-                                                                  : ThemeManager
-                                                                      .blackColor,
+                                                            style: interRegular.copyWith(
+                                                              fontSize: Dimensions.fontSizeExtraSmall,
+                                                              fontWeight: FontWeight.w500,
+                                                              color: isBookmarkedDone == true
+                                                                  ? ThemeManager.primaryColor
+                                                                  : ThemeManager.blackColor,
                                                             ),
                                                           )
                                                         ],
@@ -2408,13 +2242,9 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                                 ),
                                               ],
                                             ),
-                                            const SizedBox(
-                                                height: Dimensions
-                                                    .PADDING_SIZE_DEFAULT),
+                                            const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
                                             SizedBox(
-                                              width: MediaQuery.of(context)
-                                                  .size
-                                                  .width,
+                                              width: MediaQuery.of(context).size.width,
                                               height: 1,
                                               child: Container(
                                                 color: AppColors.divider,
@@ -2422,35 +2252,22 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                             ),
                                             Expanded(
                                               child: Container(
-                                                color:
-                                                    ThemeManager.currentTheme ==
-                                                            AppTheme.Light
-                                                        ? ThemeManager
-                                                            .backgroundGrey
-                                                        : ThemeManager.white,
+                                                color: ThemeManager.currentTheme == AppTheme.Light
+                                                    ? ThemeManager.backgroundGrey
+                                                    : ThemeManager.white,
                                                 child: IndexedStack(
                                                   index: selectedIndex,
                                                   children: [
                                                     Column(
                                                       children: [
                                                         Expanded(
-                                                          child:
-                                                              ListView.builder(
-                                                            itemCount: store
-                                                                .videoChapterizationList
-                                                                .length,
+                                                          child: ListView.builder(
+                                                            itemCount: store.videoChapterizationList.length,
                                                             shrinkWrap: true,
-                                                            padding:
-                                                                EdgeInsets.zero,
-                                                            physics:
-                                                                const AlwaysScrollableScrollPhysics(),
-                                                            itemBuilder:
-                                                                (BuildContext
-                                                                        context,
-                                                                    int index) {
-                                                              return _buildItem1(
-                                                                  context,
-                                                                  index);
+                                                            padding: EdgeInsets.zero,
+                                                            physics: const AlwaysScrollableScrollPhysics(),
+                                                            itemBuilder: (BuildContext context, int index) {
+                                                              return _buildItem1(context, index);
                                                             },
                                                           ),
                                                         ),
@@ -2460,25 +2277,15 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                                       children: [
                                                         Center(
                                                           child: Container(
-                                                            constraints:
-                                                                const BoxConstraints(
-                                                                    maxWidth:
-                                                                        900),
+                                                            constraints: const BoxConstraints(maxWidth: 900),
                                                             child: NotesViewer(
-                                                              key:
-                                                                  _notesViewerKey,
-                                                              pdfUrl:
-                                                                  pdfBaseUrl +
-                                                                      pdfUrl,
-                                                              titleId: widget
-                                                                  .pdfId!
-                                                                  .toString(),
+                                                              key: _notesViewerKey,
+                                                              pdfUrl: pdfBaseUrl + pdfUrl,
+                                                              titleId: (widget.pdfId ?? '').toString(),
                                                               initialAnnotationJson:
-                                                                  jsonEncode(widget
-                                                                      .annotationData),
+                                                                  jsonEncode(widget.annotationData),
                                                               initialPage: 0,
-                                                              isFromNormal:
-                                                                  false,
+                                                              isFromNormal: false,
                                                             ),
                                                           ),
                                                         ),
@@ -2504,8 +2311,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     );
   }
 
-  List<AnnotationData>? convertAnnotationListToAnnotationData(
-      List<AnnotationList>? list) {
+  List<AnnotationData>? convertAnnotationListToAnnotationData(List<AnnotationList>? list) {
     if (list == null) return null;
 
     return list.map((annotation) {
@@ -2546,8 +2352,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                 ),
                 const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
                 material.Padding(
-                  padding: const EdgeInsets.only(
-                      left: 15, right: 15, top: 10, bottom: 10),
+                  padding: const EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 10),
                   child: Wrap(
                     spacing: Dimensions.PADDING_SIZE_DEFAULT * 1.1,
                     children: List.generate(
@@ -2577,13 +2382,12 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                 setState(() {
                                   _selectedIndex = index;
                                   downloadQuality = quality;
+                                  downloadUrl = _downloadUrls[quality] ?? downloadUrl;
                                 });
                               },
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? ThemeManager.blueFinal
-                                      : material.Colors.transparent,
+                                  color: isSelected ? ThemeManager.blueFinal : material.Colors.transparent,
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
                                     color: isSelected
@@ -2594,8 +2398,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: Dimensions.PADDING_SIZE_DEFAULT,
-                                    vertical:
-                                        Dimensions.PADDING_SIZE_EXTRA_SMALL,
+                                    vertical: Dimensions.PADDING_SIZE_EXTRA_SMALL,
                                   ),
                                   child: Text(
                                     quality,
@@ -2603,12 +2406,8 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                       fontSize: isSelected
                                           ? Dimensions.fontSizeLarge
                                           : Dimensions.fontSizeDefaultLarge,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                      color: isSelected
-                                          ? ThemeManager.white
-                                          : ThemeManager.black,
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                      color: isSelected ? ThemeManager.white : ThemeManager.black,
                                     ),
                                   ),
                                 ),
@@ -2679,18 +2478,17 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                             ),
                             ElevatedButton(
                               onPressed: () async {
-                                await dbHelper.deleteVideoByTitleId(
-                                    widget.titleId.toString());
+                                await dbHelper.deleteVideoByTitleId(widget.titleId.toString());
+                                // Evict cached decrypted file too.
+                                await OfflineEncryptor.evictCache(widget.titleId.toString());
                                 Navigator.pop(context);
                                 Navigator.pop(context);
                                 Navigator.pop(context);
                                 setState(() {});
                                 BottomToast.showBottomToastOverlay(
                                   context: context,
-                                  errorMessage:
-                                      "Offline downloaded video has been deleted successfully!",
-                                  backgroundColor:
-                                      Theme.of(context).primaryColor,
+                                  errorMessage: "Offline downloaded video has been deleted successfully!",
+                                  backgroundColor: Theme.of(context).primaryColor,
                                 );
                               },
                               style: ElevatedButton.styleFrom(
@@ -2731,13 +2529,12 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
         isScrollControlled: true,
         clipBehavior: Clip.antiAliasWithSaveLayer,
         context: context,
-        backgroundColor: AppTokens.surface(context),
+        backgroundColor: ThemeManager.white,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppTokens.r16)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
         builder: (BuildContext context) {
-          return StatefulBuilder(
-              builder: (BuildContext context, StateSetter setState) {
+          return StatefulBuilder(builder: (BuildContext context, StateSetter setState) {
             return FractionallySizedBox(
               child: FittedBox(
                 fit: BoxFit.fitWidth,
@@ -2771,15 +2568,13 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                       ),
                       const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
                       material.Padding(
-                        padding: const EdgeInsets.only(
-                            left: 15, right: 15, top: 10, bottom: 10),
+                        padding: const EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 10),
                         child: Wrap(
                           spacing: Dimensions.PADDING_SIZE_DEFAULT * 1.1,
                           children: List.generate(
                             _qualityAndSize.length,
                             (index) {
-                              final entry =
-                                  _qualityAndSize.entries.elementAt(index);
+                              final entry = _qualityAndSize.entries.elementAt(index);
                               final quality = entry.key;
                               final size = entry.value;
                               bool isSelected = index == _selectedIndex;
@@ -2803,41 +2598,33 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                       setState(() {
                                         _selectedIndex = index;
                                         downloadQuality = quality;
+                                        downloadUrl = _downloadUrls[quality] ?? downloadUrl;
                                       });
                                     },
                                     child: Container(
                                       decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? ThemeManager.blueFinal
-                                            : material.Colors.transparent,
+                                        color:
+                                            isSelected ? ThemeManager.blueFinal : material.Colors.transparent,
                                         borderRadius: BorderRadius.circular(4),
                                         border: Border.all(
                                           color: isSelected
                                               ? material.Colors.transparent
-                                              : ThemeManager.black
-                                                  .withOpacity(0.28),
+                                              : ThemeManager.black.withOpacity(0.28),
                                         ),
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal:
-                                              Dimensions.PADDING_SIZE_DEFAULT,
-                                          vertical: Dimensions
-                                              .PADDING_SIZE_EXTRA_SMALL,
+                                          horizontal: Dimensions.PADDING_SIZE_DEFAULT,
+                                          vertical: Dimensions.PADDING_SIZE_EXTRA_SMALL,
                                         ),
                                         child: Text(
                                           quality,
                                           style: interRegular.copyWith(
                                             fontSize: isSelected
                                                 ? Dimensions.fontSizeLarge
-                                                : Dimensions
-                                                    .fontSizeDefaultLarge,
-                                            fontWeight: isSelected
-                                                ? FontWeight.w700
-                                                : FontWeight.w500,
-                                            color: isSelected
-                                                ? ThemeManager.white
-                                                : ThemeManager.black,
+                                                : Dimensions.fontSizeDefaultLarge,
+                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                            color: isSelected ? ThemeManager.white : ThemeManager.black,
                                           ),
                                         ),
                                       ),
@@ -2850,8 +2637,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.only(
-                            left: 15, right: 15, top: 10, bottom: 30),
+                        padding: const EdgeInsets.only(left: 15, right: 15, top: 10, bottom: 30),
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
@@ -2872,8 +2658,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                       ),
                       if (isOfflineMode)
                         Padding(
-                          padding: const EdgeInsets.only(
-                              left: 15, right: 15, bottom: 15),
+                          padding: const EdgeInsets.only(left: 15, right: 15, bottom: 15),
                           child: SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -2906,8 +2691,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                           child: Text(
                                             "Cancel",
                                             style: interRegular.copyWith(
-                                              fontSize:
-                                                  Dimensions.fontSizeDefault,
+                                              fontSize: Dimensions.fontSizeDefault,
                                               fontWeight: FontWeight.w600,
                                               color: ThemeManager.blackColor,
                                             ),
@@ -2915,14 +2699,14 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                         ),
                                         ElevatedButton(
                                           onPressed: () async {
-                                            await dbHelper.deleteVideoByTitleId(
-                                                widget.titleId.toString());
+                                            await dbHelper.deleteVideoByTitleId(widget.titleId.toString());
+                                            // Evict cached decrypted file too.
+                                            await OfflineEncryptor.evictCache(widget.titleId.toString());
                                             BottomToast.showBottomToastOverlay(
                                               context: context,
                                               errorMessage:
                                                   "Offline downloaded video has been deleted successfully!",
-                                              backgroundColor: Theme.of(context)
-                                                  .primaryColor,
+                                              backgroundColor: Theme.of(context).primaryColor,
                                             );
                                             Navigator.pop(context);
                                             Navigator.pop(context);
@@ -2935,8 +2719,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                                           child: Text(
                                             "Delete",
                                             style: interRegular.copyWith(
-                                              fontSize:
-                                                  Dimensions.fontSizeDefault,
+                                              fontSize: Dimensions.fontSizeDefault,
                                               fontWeight: FontWeight.w600,
                                               color: ThemeManager.white,
                                             ),
@@ -2949,8 +2732,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.redText,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
@@ -3024,8 +2806,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
         case DownloadStatus.queued:
           _videoStore.setDownloadProgressThrottled(titleId, task.progressPercent);
           if (!isDesktop && task.status == DownloadStatus.downloading) {
-            _updateDownloadProgressNotification(
-                task.progressPercent, notificationId);
+            _updateDownloadProgressNotification(task.progressPercent, notificationId);
           }
           break;
         case DownloadStatus.completed:
@@ -3035,9 +2816,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
           if (mounted) setState(() => isDownloaded = true);
           if (!isDesktop) {
             _showDownloadNotification(
-                quality,
-                "${widget.title} is available to watch offline.",
-                notificationId);
+                quality, "${widget.title} is available to watch offline.", notificationId);
           }
           _taskSub?.cancel();
           _taskSub = null;
@@ -3047,8 +2826,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
           if (!isDesktop) {
             _showDownloadNotification(
               'Download failed',
-              task.errorMessage ??
-                  'Could not download this video. Please try again.',
+              task.errorMessage ?? 'Could not download this video. Please try again.',
               notificationId,
             );
           }
@@ -3075,8 +2853,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     );
   }
 
-  void _showDownloadProgressNotification(
-      int progress, int notificationId) async {
+  void _showDownloadProgressNotification(int progress, int notificationId) async {
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
@@ -3105,8 +2882,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     );
   }
 
-  void _updateDownloadProgressNotification(
-      int progress, int notificationId) async {
+  void _updateDownloadProgressNotification(int progress, int notificationId) async {
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
@@ -3136,16 +2912,14 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     );
   }
 
-  void _showDownloadNotification(
-      String title, String message, int notificationId) async {
+  void _showDownloadNotification(String title, String message, int notificationId) async {
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
     );
 
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'download_channel',
       'Downloads',
       channelDescription: 'Notifications for completed downloads',
@@ -3188,18 +2962,16 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     // Defensive: refuse obvious junk IDs so we can't accidentally match a
     // DB row that was written with an empty/null titleId in a past build
     // (the same state-leak that caused "all videos show downloaded" before).
-    final isValidId = titleId.isNotEmpty &&
-        titleId != 'null' &&
-        titleId != 'undefined';
-    final downloadedVideo = isValidId
-        ? await dbHelper.getVideoByTitleId(titleId)
-        : null;
+    final isValidId = titleId.isNotEmpty && titleId != 'null' && titleId != 'undefined';
+    final downloadedVideo = isValidId ? await dbHelper.getVideoByTitleId(titleId) : null;
     if (downloadedVideo != null) {
       final videoPath = downloadedVideo.videoPath;
       if (videoPath != null && videoPath.isNotEmpty) {
         final file = File(videoPath);
         if (await file.exists()) {
           isOfflineMode = true;
+          // Show loading overlay immediately so the user never sees a stuck screen.
+          if (mounted) setState(() => _isPreparingOffline = true);
           if (videoPath.toLowerCase().endsWith('.enc')) {
             final ok = await _playOfflineEncrypted(videoPath);
             if (ok) return;
@@ -3207,6 +2979,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
           } else {
             debugPrint('[PLAY] offline legacy mp4: $videoPath');
             await _initializePlayer(videoPath, isOffline: true);
+            if (mounted) setState(() => _isPreparingOffline = false);
             return;
           }
         } else {
@@ -3217,6 +2990,13 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
     }
 
     isOfflineMode = false;
+    // Clear offline loading overlay when falling through to online sources.
+    if (mounted && _isPreparingOffline) {
+      setState(() {
+        _isPreparingOffline = false;
+        _offlineLoadingStatus = '';
+      });
+    }
 
     // ── 3: HLS (Bunny CDN adaptive streaming — fastest start on mobile) ─
     if (widget.hlsLink != null && widget.hlsLink!.isNotEmpty) {
@@ -3297,6 +3077,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
       if (mounted) {
         setState(() {
           _isDecrypting = false;
+          _offlineLoadingStatus = '';
         });
       }
     }
@@ -3308,52 +3089,244 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   /// the overlay + serialization guarantees.
   Future<bool> _doDecryptAndPlay(String videoPath) async {
     try {
-      final sz = await File(videoPath).length();
-      debugPrint('[PLAY] enc=$videoPath size=$sz');
+      debugPrint('[PLAY] enc=$videoPath');
+      final titleId = widget.titleId?.toString();
+      final hasTitleId = titleId != null && titleId.isNotEmpty;
 
-      // Load global key — never generate a new one here; must match the
-      // key used at encryption time.
-      List<int>? key = await SecureKeys.loadKey('global');
-      if (key == null || key.length != 32) {
-        try {
-          await SecureKeys.deleteKey('global');
-        } catch (_) {}
-        try {
-          if (!mounted) return false;
-          final homeStore = Provider.of<HomeStore>(context, listen: false);
-          await homeStore.onGetUserDetailsCall(context);
-          key = await SecureKeys.loadKey('global');
-        } catch (_) {}
+      // ── Parallel fast path: fire cache check + key load concurrently ──
+      // On cache hit the key is unused but costs nothing (already preloaded
+      // in initState). On cache miss the key is ready immediately — saves
+      // ~50-500ms of SecureStorage IPC that used to happen sequentially.
+      final cacheCheckFuture = hasTitleId
+          ? OfflineEncryptor.getCachedDecryptedFile(titleId, File(videoPath))
+          : Future<File?>.value(null);
+      final keyFuture = _preloadedKeyFuture ?? SecureKeys.loadKey('global');
+
+      final cached = await cacheCheckFuture;
+      if (cached != null) {
+        debugPrint('[PLAY] cache HIT — skipping key load + decrypt');
+        _tempDecryptedFile = cached;
+        // Jump straight to player initialization below.
       }
-      if (key == null || key.length != 32) {
-        debugPrint('[DEC] missing global key');
+
+      // ── Slow path: need to decrypt (cache miss) ──────────────────────
+      if (_tempDecryptedFile == null) {
+        // Await the key that was already loading in parallel.
+        List<int>? key = await keyFuture;
+        if (key == null || key.length != 32) {
+          try {
+            await SecureKeys.deleteKey('global');
+          } catch (_) {}
+          try {
+            if (!mounted) return false;
+            final homeStore = Provider.of<HomeStore>(context, listen: false);
+            await homeStore.onGetUserDetailsCall(context);
+            key = await SecureKeys.loadKey('global');
+          } catch (_) {}
+        }
+        if (key == null || key.length != 32) {
+          debugPrint('[DEC] missing global key');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Decryption key missing. Please refresh your profile and try again.')),
+            );
+          }
+          return false;
+        }
+
+        // Pass titleId so the decryptor can use a stable cache path — on
+        // subsequent plays the cached file is returned instantly (no decrypt).
+        if (mounted) setState(() => _offlineLoadingStatus = 'Decrypting video…');
+        try {
+          _tempDecryptedFile = await OfflineEncryptor.decryptFileToTemp(
+            File(videoPath),
+            key,
+            titleId: titleId,
+          ).timeout(const Duration(seconds: 120));
+        } on TimeoutException {
+          debugPrint('[DEC] decryptFileToTemp timed out after 120s');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Decryption timed out. Trying online playback…')),
+            );
+          }
+          return false;
+        }
+      }
+      debugPrint('[PLAY] temp=${_tempDecryptedFile!.path}');
+      if (!mounted) {
+        // Widget disposed while we were decrypting — don't delete the
+        // cached file (it's useful for the next play attempt).
+        _tempDecryptedFile = null;
+        return false;
+      }
+      // ── Start localhost HTTP server for the decrypted file ──────────
+      // BetterPlayer's file data-source on iOS doesn't render video frames
+      // (black screen with audio). Serving over HTTP forces AVPlayer
+      // through the same rendering pipeline as CDN streams.
+      // ── Android: direct file playback via BetterPlayer (ExoPlayer) ──
+      // ExoPlayer handles file:// URIs natively with zero overhead. The
+      // localhost HTTP server is only needed on iOS where BetterPlayer's
+      // file data-source causes a black screen. Skipping the server on
+      // Android saves ~1-2s of startup time.
+      final bool useDirectFile = !isDesktop && Platform.isAndroid;
+
+      if (useDirectFile) {
+        // ── Android fast path: BetterPlayer from file directly ────────
+        debugPrint('[PLAY] Android direct file: ${_tempDecryptedFile!.path}');
+        if (mounted) setState(() => _offlineLoadingStatus = 'Initializing player…');
+        await _initializePlayer(_tempDecryptedFile!.path, isOffline: true);
+        if (mounted) {
+          setState(() {
+            _isPreparingOffline = false;
+            _offlineLoadingStatus = '';
+          });
+        }
+        return true;
+      }
+
+      // ── iOS: localhost HTTP server (BetterPlayer black-screen workaround) ─
+      if (mounted) setState(() => _offlineLoadingStatus = 'Starting local server…');
+      _localFileServer?.close(force: true);
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      _localFileServer = server;
+      final localUrl = 'http://127.0.0.1:${server.port}/video.mp4';
+      debugPrint('[PLAY] local server at $localUrl');
+      server.listen((HttpRequest request) async {
+        try {
+          final file = _tempDecryptedFile;
+          if (file == null || !await file.exists()) {
+            request.response.statusCode = HttpStatus.notFound;
+            await request.response.close();
+            return;
+          }
+          final fileLen = await file.length();
+          // Support Range requests for seeking.
+          final rangeHeader = request.headers.value(HttpHeaders.rangeHeader);
+          if (rangeHeader != null && rangeHeader.startsWith('bytes=')) {
+            final parts = rangeHeader.substring(6).split('-');
+            final start = int.tryParse(parts[0]) ?? 0;
+            final end = parts.length > 1 && parts[1].isNotEmpty
+                ? int.tryParse(parts[1]) ?? (fileLen - 1)
+                : fileLen - 1;
+            request.response.statusCode = HttpStatus.partialContent;
+            request.response.headers.contentType = ContentType('video', 'mp4');
+            request.response.headers.set(HttpHeaders.acceptRangesHeader, 'bytes');
+            request.response.headers.set(HttpHeaders.contentRangeHeader, 'bytes $start-$end/$fileLen');
+            request.response.contentLength = end - start + 1;
+            await file.openRead(start, end + 1).pipe(request.response);
+          } else {
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType('video', 'mp4');
+            request.response.headers.set(HttpHeaders.acceptRangesHeader, 'bytes');
+            request.response.contentLength = fileLen;
+            await file.openRead().pipe(request.response);
+          }
+        } catch (e) {
+          debugPrint('[LOCAL-SRV] error: $e');
+          try {
+            await request.response.close();
+          } catch (_) {}
+        }
+      });
+
+      // ── Chewie + video_player for offline rendering ─────────────────
+      // BetterPlayer's PlatformView on iOS doesn't render video frames
+      // for any local/localhost source (black screen). Chewie wraps
+      // Flutter's stock video_player (FlutterTexture / CVPixelBuffer)
+      // which renders correctly. Styled to match BetterPlayer's look.
+      _offlineChewieController?.dispose();
+      _offlineVpc?.dispose();
+      if (mounted) setState(() => _offlineLoadingStatus = 'Initializing player…');
+      final vpc = VideoPlayerController.networkUrl(Uri.parse(localUrl));
+      _offlineVpc = vpc;
+      // Timeout prevents hanging forever if localhost server or codec has issues.
+      try {
+        await vpc.initialize().timeout(const Duration(seconds: 30));
+      } on TimeoutException {
+        debugPrint('[PLAY-CHEWIE] initialize() timed out after 30s');
+        vpc.dispose();
+        _offlineVpc = null;
+        server.close(force: true);
+        _localFileServer = null;
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text(
-                'Decryption key missing. Please refresh your profile and try again.')),
+            const SnackBar(content: Text('Video loading timed out. Please try again.')),
           );
         }
         return false;
       }
-
-      // Streaming decrypt keeps RAM footprint bounded for multi-hundred-MB
-      // files (iOS would OOM with the previous load-everything path).
-      _tempDecryptedFile = await OfflineEncryptor.decryptFileToTemp(
-        File(videoPath),
-        key,
-      );
-      debugPrint('[PLAY] temp=${_tempDecryptedFile!.path}');
-      if (!mounted) {
-        // Widget disposed while we were decrypting. Clean up the temp file
-        // so we don't leak disk on back-navigation.
-        try {
-          if (_tempDecryptedFile != null && await _tempDecryptedFile!.exists()) {
-            await _tempDecryptedFile!.delete();
-          }
-        } catch (_) {}
+      if (vpc.value.hasError) {
+        debugPrint('[PLAY-CHEWIE] initialize error: ${vpc.value.errorDescription}');
+        vpc.dispose();
+        _offlineVpc = null;
+        server.close(force: true);
+        _localFileServer = null;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to load video: ${vpc.value.errorDescription ?? "Unknown error"}')),
+          );
+        }
         return false;
       }
-      await _initializePlayer(_tempDecryptedFile!.path, isOffline: true);
+      debugPrint('[PLAY-CHEWIE] initialized: size=${vpc.value.size}, '
+          'duration=${vpc.value.duration}, hasError=${vpc.value.hasError}');
+      if (!mounted) return false;
+
+      // Resume from saved position.
+      Duration? startAt;
+      final pauseTime = widget.pauseTime;
+      if (pauseTime != null && pauseTime.isNotEmpty) {
+        try {
+          final parts = pauseTime.split(':');
+          if (parts.length == 3) {
+            startAt = Duration(
+              hours: int.parse(parts[0]),
+              minutes: int.parse(parts[1]),
+              seconds: int.parse(parts[2].split('.').first),
+            );
+          }
+        } catch (_) {}
+      }
+      if (startAt != null) {
+        await vpc.seekTo(startAt);
+      }
+
+      _offlineChewieController = ChewieController(
+        videoPlayerController: vpc,
+        autoPlay: true,
+        looping: false,
+        allowFullScreen: false,
+        allowPlaybackSpeedChanging: true,
+        playbackSpeeds: const [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0],
+        showControls: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: Colors.red,
+          handleColor: Colors.red,
+          bufferedColor: Colors.grey,
+          backgroundColor: Colors.white24,
+        ),
+        showControlsOnInitialize: false,
+        deviceOrientationsAfterFullScreen: [
+          DeviceOrientation.portraitUp,
+          DeviceOrientation.portraitDown,
+        ],
+        deviceOrientationsOnEnterFullScreen: [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ],
+      );
+
+      // Save progress periodically.
+      vpc.addListener(_offlineProgressListener);
+
+      setState(() {
+        _useOfflineChewie = true;
+        _isPlayerInitialized = true;
+        _isPreparingOffline = false;
+        _offlineLoadingStatus = '';
+      });
       return true;
     } catch (e) {
       debugPrint('[DEC] failed: $e');
@@ -3366,6 +3339,10 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
           debugPrint('[DEC] deleted bad .enc: $videoPath');
         }
       } catch (_) {}
+      // Also evict the decrypted cache for this title.
+      try {
+        await OfflineEncryptor.evictCache(widget.titleId.toString());
+      } catch (_) {}
       // Also drop the stale DB row so the download button re-appears.
       try {
         await dbHelper.deleteVideoByTitleId(widget.titleId.toString());
@@ -3373,25 +3350,28 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
       } catch (_) {}
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(
-              'Offline file invalid. Please re-download this video.')),
+          const SnackBar(content: Text('Offline file invalid. Please re-download this video.')),
         );
       }
       return false;
     }
   }
 
-  /// Lightweight overlay shown while [_isDecrypting] is true. Uses the same
-  /// black backdrop as the player so the transition to BetterPlayer's first
-  /// frame is invisible — no flash from spinner→black→video.
+  /// Lightweight overlay shown while [_isDecrypting] or [_isPreparingOffline]
+  /// is true. Uses the same black backdrop as the player so the transition to
+  /// the first video frame is invisible — no flash from spinner→black→video.
   Widget _buildDecryptOverlay() {
+    final String title = 'Loading downloaded video…';
+    final String subtitle = _offlineLoadingStatus.isNotEmpty
+        ? _offlineLoadingStatus
+        : 'Please wait';
     return Container(
       color: Colors.black,
       alignment: Alignment.center,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: const [
-          SizedBox(
+        children: [
+          const SizedBox(
             width: 48,
             height: 48,
             child: CircularProgressIndicator(
@@ -3399,15 +3379,15 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text(
-            'Preparing offline video…',
-            style: TextStyle(color: Colors.white, fontSize: 14),
+            title,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
-            'Decrypting securely on device',
-            style: TextStyle(color: Colors.white70, fontSize: 11),
+            subtitle,
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
           ),
         ],
       ),
@@ -3415,9 +3395,13 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   }
 
   void _seekToChapter(int timecodeInSeconds) {
-    if (!_playerControllerBuilt) return;
+    if (!_playerControllerBuilt && !_useOfflineChewie) return;
     try {
-      _betterPlayerController.seekTo(Duration(seconds: timecodeInSeconds));
+      if (_useOfflineChewie && _offlineVpc != null) {
+        _offlineVpc!.seekTo(Duration(seconds: timecodeInSeconds));
+      } else {
+        _betterPlayerController.seekTo(Duration(seconds: timecodeInSeconds));
+      }
     } catch (e) {
       debugPrint('[SEEK] chapter seek failed: $e');
     }
@@ -3467,8 +3451,7 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
 
   Widget _buildItem1(BuildContext context, int index) {
     final store = Provider.of<VideoCategoryStore>(context, listen: false);
-    VideoChapterizationListModel? videoChapters =
-        store.videoChapterizationList[index];
+    VideoChapterizationListModel? videoChapters = store.videoChapterizationList[index];
     return Stack(
       children: [
         InkWell(
@@ -3605,12 +3588,26 @@ class _VideoPlayerDetailState extends State<VideoPlayerDetail> {
   }
 
   Future<void> _loadVideoSizes() async {
-    for (var quality in _videoUrls.keys) {
-      final url = _videoUrls[quality]!;
+    // NOTE: _qualityAndSize is used by the download quality picker and is
+    // populated by initializeDownload(). We must NOT add bare-rendition keys
+    // (e.g. "480p") here — that created duplicate entries next to the prefixed
+    // labels already in the map (e.g. "SD 480p").  Instead we update existing
+    // entries whose label ends with the rendition, so the download sheet shows
+    // accurate file sizes without duplicates.
+    for (var rendition in _videoUrls.keys) {
+      final url = _videoUrls[rendition]!;
       final size = await getFileSize(url);
       if (size != null) {
         setState(() {
-          _qualityAndSize[quality] = formatFileSize(size);
+          // Find the existing label in _qualityAndSize that matches this
+          // rendition (e.g. "SD 480p" ends with "480p") and update its size.
+          final matchingKey = _qualityAndSize.keys.cast<String?>().firstWhere(
+            (k) => k != null && k.endsWith(rendition),
+            orElse: () => null,
+          );
+          if (matchingKey != null) {
+            _qualityAndSize[matchingKey] = formatFileSize(size);
+          }
         });
       }
     }
@@ -3837,4 +3834,3 @@ class _VideoBookmarkFabCluster extends StatelessWidget {
     );
   }
 }
-

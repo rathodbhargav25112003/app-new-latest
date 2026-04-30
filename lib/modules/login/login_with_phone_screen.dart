@@ -1,25 +1,27 @@
 import 'dart:io';
-import 'login_screen.dart';
-import '../../app/routes.dart';
-import '../../helpers/colors.dart';
-import '../../helpers/styles.dart';
-import '../../helpers/app_tokens.dart';
+
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:flutter_svg/svg.dart';
-import '../widgets/bottom_toast.dart';
-import 'package:flutter/material.dart';
-import '../../helpers/dimensions.dart';
-import '../widgets/custom_button.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:socket_io_client/socket_io_client.dart';
-import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:shusruta_lms/modules/login/verify_otp_mail.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:http/http.dart' as http;
+import 'package:keyboard_actions/keyboard_actions.dart';
+import 'package:provider/provider.dart';
 import 'package:shusruta_lms/modules/login/store/login_store.dart';
+import 'package:shusruta_lms/modules/login/verify_otp_mail.dart';
 import 'package:shusruta_lms/modules/signup/store/signup_store.dart';
+import 'package:socket_io_client/socket_io_client.dart';
+
+import '../../app/routes.dart';
+import '../../helpers/app_tokens.dart';
+import '../../helpers/colors.dart';
+import '../../helpers/dimensions.dart';
+import '../../helpers/styles.dart';
+import '../widgets/bottom_toast.dart';
+import '../widgets/custom_button.dart';
+import 'login_screen.dart';
 // Custom keyboard import - commented out as we're using system default keyboard
 // Uncomment this if you want to re-enable the custom keyboard
 // import 'keyboard.dart';
@@ -37,8 +39,7 @@ class LoginWithPhoneScreen extends StatefulWidget {
   }
 }
 
-class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
-    with WidgetsBindingObserver {
+class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen> with WidgetsBindingObserver {
   final TextEditingController phoneController = TextEditingController();
   final _phoneKey = GlobalKey<FormFieldState<String>>();
   final _phoneRegex = RegExp(r'^(\+[0-9])?[-\s\./0-9]*$');
@@ -57,11 +58,8 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
     testApi();
     settingsData();
     WidgetsBinding.instance.addObserver(this);
-    _firebaseMessaging
-        .requestPermission(alert: true, sound: true, badge: true)
-        .then((settings) {
-      print(
-          'Firebase Messaging Authorization Status: ${settings.authorizationStatus}');
+    _firebaseMessaging.requestPermission(alert: true, sound: true, badge: true).then((settings) {
+      print('Firebase Messaging Authorization Status: ${settings.authorizationStatus}');
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
           print('Firebase Messaging onMessage: ${message.notification?.body}');
@@ -74,8 +72,7 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
           // });
           _handleMessage(message);
         });
-        FirebaseMessaging.onBackgroundMessage(
-            _firebaseMessagingBackgroundHandler);
+        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
       }
     });
   }
@@ -102,9 +99,7 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
             top: Dimensions.PADDING_SIZE_DEFAULT * 2,
             bottom: Dimensions.PADDING_SIZE_DEFAULT * 2,
           ),
-          shape: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide.none),
+          shape: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
           content: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -122,8 +117,7 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
               ),
               if (imageUrl != null && imageUrl.isNotEmpty)
                 Padding(
-                  padding:
-                      const EdgeInsets.only(top: Dimensions.PADDING_SIZE_LARGE),
+                  padding: const EdgeInsets.only(top: Dimensions.PADDING_SIZE_LARGE),
                   child: SizedBox(
                       height: 143,
                       width: double.infinity,
@@ -156,8 +150,7 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
                   decoration: BoxDecoration(
                       color: ThemeManager.blueFinal,
                       borderRadius: BorderRadius.circular(7),
-                      border: Border.all(
-                          color: ThemeManager.buttonBorder, width: 0.89),
+                      border: Border.all(color: ThemeManager.buttonBorder, width: 0.89),
                       boxShadow: [
                         BoxShadow(
                             offset: const Offset(0, 1.7733),
@@ -187,8 +180,7 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
     }
   }
 
-  Future<void> _firebaseMessagingBackgroundHandler(
-      RemoteMessage message) async {
+  Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     print('Firebase Messaging onBackgroundMessage: $message');
   }
 
@@ -621,535 +613,488 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
           ],
         ),
         child: Center(
-        child: Container(
-          constraints: BoxConstraints(
-              maxWidth: 600, maxHeight: MediaQuery.of(context).size.height * 1),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.only(
-                left: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                top: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.4,
-                right: Dimensions.PADDING_SIZE_LARGE * 1.2,
-                bottom: isKeyboardOpen
-                    ? MediaQuery.of(context).viewInsets.bottom * 0.2
-                    : Dimensions.PADDING_SIZE_LARGE * 2,
-              ),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height,
-                width: MediaQuery.of(context).size.width,
-                child: Column(
-                  children: [
-                    Image.asset("assets/image/app_logo2.png"),
-                    const SizedBox(
-                      height: Dimensions.PADDING_SIZE_LARGE * 2.4,
-                    ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Welcome back",
-                            style: AppTokens.displayMd(context).copyWith(
-                              color: AppTokens.ink(context),
-                              height: 1.15,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "Sign in to continue your prep.",
-                            style: AppTokens.body(context).copyWith(
-                              color: AppTokens.muted(context),
-                            ),
-                          ),
-                        ],
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 600, maxHeight: MediaQuery.of(context).size.height * 1),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: Dimensions.PADDING_SIZE_LARGE * 1.2,
+                  top: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.4,
+                  right: Dimensions.PADDING_SIZE_LARGE * 1.2,
+                  bottom: isKeyboardOpen
+                      ? MediaQuery.of(context).viewInsets.bottom * 0.2
+                      : Dimensions.PADDING_SIZE_LARGE * 2,
+                ),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height,
+                  width: MediaQuery.of(context).size.width,
+                  child: Column(
+                    children: [
+                      Image.asset("assets/image/app_logo2.png"),
+                      const SizedBox(
+                        height: Dimensions.PADDING_SIZE_LARGE * 2.4,
                       ),
-                    ),
-                    const SizedBox(
-                      height: Dimensions.PADDING_SIZE_LARGE,
-                    ),
-                    // Apple-style segmented control — soft surface
-                    // background, single rounded inner pill that slides
-                    // between Phone / Email. Primary affordance reads
-                    // as a tab control, not a pair of buttons.
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: AppTokens.surface2(context),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(2, (index) {
-                          final isCurrentPage = currentPage == index;
-                          return Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  currentPage = index;
-                                  pageController.animateToPage(index,
-                                      duration: const Duration(milliseconds: 280),
-                                      curve: Curves.easeOutCubic);
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 220),
-                                curve: Curves.easeOut,
-                                alignment: Alignment.center,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: isCurrentPage
-                                      ? AppTokens.surface(context)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                  boxShadow: isCurrentPage
-                                      ? AppTokens.shadow1(context)
-                                      : null,
-                                ),
-                                child: Text(
-                                  pageLabels[index],
-                                  style: AppTokens.titleSm(context).copyWith(
-                                    color: isCurrentPage
-                                        ? AppTokens.ink(context)
-                                        : AppTokens.muted(context),
-                                  ),
-                                ),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Welcome back",
+                              style: AppTokens.displayMd(context).copyWith(
+                                color: AppTokens.ink(context),
+                                height: 1.15,
                               ),
                             ),
-                          );
-                        }),
+                            const SizedBox(height: 6),
+                            Text(
+                              "Sign in to continue your prep.",
+                              style: AppTokens.body(context).copyWith(
+                                color: AppTokens.muted(context),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(
-                      height: Dimensions.PADDING_SIZE_LARGE,
-                    ),
-                    Flexible(
-                      child: PageView(
-                        physics: const NeverScrollableScrollPhysics(),
-                        controller: pageController,
-                        onPageChanged: (index) {
-                          setState(() {
-                            currentPage = index;
-                          });
-                        },
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Phone number",
-                                style: AppTokens.titleSm(context),
-                              ),
-                              const SizedBox(height: AppTokens.s8),
-                              Container(
-                                decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(12),
-                                        topRight: Radius.circular(12)),
-                                    border: Border(
-                                      top: BorderSide(
-                                          color: ThemeManager.grey1,
-                                          width: 0.85),
-                                      left: BorderSide(
-                                          color: ThemeManager.grey1,
-                                          width: 0.85),
-                                      right: BorderSide(
-                                          color: ThemeManager.grey1,
-                                          width: 0.85),
-                                    )),
-                                child: Column(
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal:
-                                              Dimensions.PADDING_SIZE_SMALL *
-                                                  1.2,
-                                          vertical:
-                                              Dimensions.PADDING_SIZE_SMALL *
-                                                  1.4),
-                                      child: Row(
-                                        children: [
-                                          SvgPicture.asset(
-                                              "assets/image/india.svg"),
-                                          const SizedBox(
-                                            width:
-                                                Dimensions.PADDING_SIZE_SMALL *
-                                                    1.1,
-                                          ),
-                                          Text(
-                                            "India",
-                                            style: interMedium.copyWith(
-                                                fontSize:
-                                                    Dimensions.fontSizeSmall,
-                                                color: ThemeManager.textColor4),
-                                          ),
-                                          const Spacer(),
-                                          SvgPicture.asset(
-                                              "assets/image/arrow_icon.svg"),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                constraints: const BoxConstraints(
-                                  minHeight:
-                                      Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
-                                ),
-                                child: TextFormField(
-                                  key: _phoneKey,
-                                  controller: phoneController,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please enter a mobile number.';
-                                    } else if (!_phoneRegex.hasMatch(value)) {
-                                      return 'Please enter a valid mobile number';
-                                    }
-                                    return null;
-                                  },
-                                  // Custom keyboard code - commented out to use system default keyboard
-                                  // To re-enable custom keyboard, also uncomment the import 'keyboard.dart' above
-                                  // readOnly: true,
-                                  // enableInteractiveSelection: false,
-                                  // onTap: () {
-                                  //   FocusScope.of(context).unfocus();
-                                  //   showCustomKeyboardSheet(context, KeyboardType.number, phoneController);
-                                  // },
-                                  keyboardType: TextInputType.phone,
-                                  cursorColor: Theme.of(context).disabledColor,
-                                  style: interRegular.copyWith(
-                                    fontSize: Dimensions.fontSizeDefault,
-                                  ),
-                                  decoration: InputDecoration(
-                                    contentPadding: EdgeInsets.zero,
-                                    prefixIcon: IntrinsicHeight(
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                left: Dimensions
-                                                    .PADDING_SIZE_SMALL),
-                                            child: Text(
-                                              "+91",
-                                              style: interMedium.copyWith(
-                                                  fontSize: Dimensions
-                                                      .fontSizeDefault,
-                                                  color: ThemeManager.black),
-                                            ),
-                                          ),
-                                          VerticalDivider(
-                                            color: ThemeManager.grey1,
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    fillColor: Theme.of(context).disabledColor,
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: const BorderRadius.only(
-                                        bottomLeft: Radius.circular(12),
-                                        bottomRight: Radius.circular(12),
-                                      ),
-                                      borderSide:
-                                          BorderSide(color: ThemeManager.grey1),
-                                    ),
-                                    hintText: 'Enter Mobile no.',
-                                    hintStyle: interRegular.copyWith(
-                                      fontSize: Dimensions.fontSizeSmall,
-                                      color: ThemeManager.black,
-                                    ),
-                                    counterText: '',
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: const BorderRadius.only(
-                                        bottomLeft: Radius.circular(12),
-                                        bottomRight: Radius.circular(12),
-                                      ),
-                                      borderSide:
-                                          BorderSide(color: ThemeManager.grey1),
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: const BorderRadius.only(
-                                        bottomLeft: Radius.circular(12),
-                                        bottomRight: Radius.circular(12),
-                                      ),
-                                      borderSide:
-                                          BorderSide(color: ThemeManager.grey1),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(
-                                height: Dimensions.PADDING_SIZE_SMALL,
-                              ),
-                              Text(
-                                "We shall be sending you a Code by SMS for verification",
-                                style: interRegular.copyWith(
-                                    fontSize: Dimensions.fontSizeSmall,
-                                    color: ThemeManager.black),
-                              ),
-                              const SizedBox(
-                                height: Dimensions.PADDING_SIZE_DEFAULT * 2.4,
-                              ),
-
-                              // SizedBox(
-                              //   height: MediaQuery.of(context).size.height*0.49,
-                              //   width:  MediaQuery.of(context).size.width,
-                              //   child: Center(child: SvgPicture.asset("assets/image/loginPerson.svg",fit: BoxFit.cover,)),
-                              // ),
-                              // const SizedBox(
-                              //   height: Dimensions.PADDING_SIZE_LARGE,
-                              // ),
-
-                              CustomButton(
-                                onPressed: () {
-                                  FocusScope.of(context).unfocus();
-                                  bool? validate =
-                                      _phoneKey.currentState?.validate();
-                                  if (validate!) {
-                                    _login(store, phoneController.text);
-                                  }
+                      const SizedBox(
+                        height: Dimensions.PADDING_SIZE_LARGE,
+                      ),
+                      // Apple-style segmented control — soft surface
+                      // background, single rounded inner pill that slides
+                      // between Phone / Email. Primary affordance reads
+                      // as a tab control, not a pair of buttons.
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppTokens.surface2(context),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(2, (index) {
+                            final isCurrentPage = currentPage == index;
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    currentPage = index;
+                                    pageController.animateToPage(index,
+                                        duration: const Duration(milliseconds: 280),
+                                        curve: Curves.easeOutCubic);
+                                  });
                                 },
-                                buttonText: "Continue",
-                                height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
-                                bgColor: ThemeManager.primaryColor,
-                                radius: Dimensions.RADIUS_DEFAULT,
-                                transparent: true,
-                                fontSize: Dimensions.fontSizeDefault,
-                                child: store.isLoading
-                                    ? const CircularProgressIndicator(
-                                        color: Colors.white,
-                                      )
-                                    : null,
-                              ),
-                              // Observer(
-                              //   builder: (_) {
-                              //     return LoginCustomButton(
-                              //       onPressed: () {
-                              //         FocusScope.of(context).unfocus();
-                              //         bool? validate = _phoneKey.currentState?.validate();
-                              //         if(validate!) {
-                              //           _login(store, phoneController.text);
-                              //         }
-                              //         },
-                              //       buttonText: "Send OTP",
-                              //       height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
-                              //
-                              //       bgColor: AppColors.primaryColor,
-                              //       radius: Dimensions.PADDING_SIZE_LARGE,
-                              //       transparent: true,
-                              //       fontSize: Dimensions.fontSizeDefault,
-                              //       child: store.isLoading ? const CircularProgressIndicator(color: Colors.white,) : null,
-                              //     );
-                              //   },
-                              // ),
-                              /// Divider
-                              // Row(
-                              //   children: <Widget>[
-                              //     Expanded(
-                              //       child: Container(
-                              //         margin: const EdgeInsets.only(right: 20.0),
-                              //         child: Divider(
-                              //           color: Theme.of(context).disabledColor,
-                              //           height: 25,
-                              //           thickness: 1,
-                              //         ),
-                              //       ),
-                              //     ),
-                              //     const Text("OR"),
-                              //     Expanded(
-                              //       child: Container(
-                              //         margin: const EdgeInsets.only(left: 20.0),
-                              //         child: Divider(
-                              //           color: Theme.of(context).disabledColor,
-                              //           height: 25,
-                              //           thickness: 1,
-                              //         ),
-                              //       ),
-                              //     ),
-                              //   ],
-                              // ),
-                              const SizedBox(
-                                height: Dimensions.PADDING_SIZE_DEFAULT * 2,
-                              ),
-                              // SizedBox(
-                              //   width: MediaQuery.of(context).size.height,
-                              //   height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
-                              //   child: ElevatedButton(
-                              //     onPressed: () {
-                              //       // _loginWithGoogle(context,store);
-                              //       FocusScope.of(context).unfocus();
-                              //       Navigator.of(context).pushNamed(Routes.loginWithPass);
-                              //     },
-                              //     style: ElevatedButton.styleFrom(
-                              //       backgroundColor: Theme.of(context).cardColor,
-                              //       elevation: 0,
-                              //       side: BorderSide(
-                              //         color: Theme.of(context).disabledColor,
-                              //       ),
-                              //     ),
-                              //     child: Row(
-                              //       mainAxisAlignment: MainAxisAlignment.center,
-                              //       children: [
-                              //         Icon(Icons.password,color: Theme.of(context).primaryColor),
-                              //         const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
-                              //         Text(
-                              //           "Login with Email",
-                              //           style: interBold.copyWith(
-                              //             color: Colors.black,
-                              //           ),
-                              //         ),
-                              //       ],
-                              //     ),
-                              //   ),
-                              // ),
-                              // const SizedBox(
-                              //   height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
-                              // ),
-                              // Show register option only on mobile devices (Android and iOS)
-                              if (Platform.isAndroid || Platform.isIOS) ...[
-                              Align(
-                                alignment: Alignment.center,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      "Don't have an account?",
-                                      style: interRegular.copyWith(
-                                          fontSize: Dimensions.fontSizeSmall,
-                                          color: ThemeManager.black),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 220),
+                                  curve: Curves.easeOut,
+                                  alignment: Alignment.center,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: isCurrentPage ? AppTokens.surface(context) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: isCurrentPage ? AppTokens.shadow1(context) : null,
+                                  ),
+                                  child: Text(
+                                    pageLabels[index],
+                                    style: AppTokens.titleSm(context).copyWith(
+                                      color:
+                                          isCurrentPage ? AppTokens.ink(context) : AppTokens.muted(context),
                                     ),
-                                    InkWell(
-                                      onTap: () {
-                                        Navigator.of(context)
-                                            .pushNamed(Routes.register);
-                                      },
-                                      child: Text(
-                                        "Register",
-                                        style: interBold.copyWith(
-                                          fontSize:
-                                              Dimensions.fontSizeSmallLarge,
-                                          fontWeight: FontWeight.w600,
-                                          color: ThemeManager.textColor2,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                      const SizedBox(
+                        height: Dimensions.PADDING_SIZE_LARGE,
+                      ),
+                      Flexible(
+                        child: PageView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          controller: pageController,
+                          onPageChanged: (index) {
+                            setState(() {
+                              currentPage = index;
+                            });
+                          },
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Phone number",
+                                  style: AppTokens.titleSm(context),
+                                ),
+                                const SizedBox(height: AppTokens.s8),
+                                Container(
+                                  decoration: BoxDecoration(
+                                      borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+                                      border: Border(
+                                        top: BorderSide(color: ThemeManager.grey1, width: 0.85),
+                                        left: BorderSide(color: ThemeManager.grey1, width: 0.85),
+                                        right: BorderSide(color: ThemeManager.grey1, width: 0.85),
+                                      )),
+                                  child: Column(
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: Dimensions.PADDING_SIZE_SMALL * 1.2,
+                                            vertical: Dimensions.PADDING_SIZE_SMALL * 1.4),
+                                        child: Row(
+                                          children: [
+                                            SvgPicture.asset("assets/image/india.svg"),
+                                            const SizedBox(
+                                              width: Dimensions.PADDING_SIZE_SMALL * 1.1,
+                                            ),
+                                            Text(
+                                              "India",
+                                              style: interMedium.copyWith(
+                                                  fontSize: Dimensions.fontSizeSmall,
+                                                  color: ThemeManager.textColor4),
+                                            ),
+                                            const Spacer(),
+                                            SvgPicture.asset("assets/image/arrow_icon.svg"),
+                                          ],
                                         ),
                                       ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  constraints: const BoxConstraints(
+                                    minHeight: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                                  ),
+                                  child: TextFormField(
+                                    key: _phoneKey,
+                                    controller: phoneController,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter a mobile number.';
+                                      } else if (!_phoneRegex.hasMatch(value)) {
+                                        return 'Please enter a valid mobile number';
+                                      }
+                                      return null;
+                                    },
+                                    // Custom keyboard code - commented out to use system default keyboard
+                                    // To re-enable custom keyboard, also uncomment the import 'keyboard.dart' above
+                                    // readOnly: true,
+                                    // enableInteractiveSelection: false,
+                                    // onTap: () {
+                                    //   FocusScope.of(context).unfocus();
+                                    //   showCustomKeyboardSheet(context, KeyboardType.number, phoneController);
+                                    // },
+                                    keyboardType: TextInputType.phone,
+                                    cursorColor: Theme.of(context).disabledColor,
+                                    style: interRegular.copyWith(
+                                      fontSize: Dimensions.fontSizeDefault,
                                     ),
-                                  ],
+                                    decoration: InputDecoration(
+                                      contentPadding: EdgeInsets.zero,
+                                      prefixIcon: IntrinsicHeight(
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.only(left: Dimensions.PADDING_SIZE_SMALL),
+                                              child: Text(
+                                                "+91",
+                                                style: interMedium.copyWith(
+                                                    fontSize: Dimensions.fontSizeDefault,
+                                                    color: ThemeManager.black),
+                                              ),
+                                            ),
+                                            VerticalDivider(
+                                              color: ThemeManager.grey1,
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                      fillColor: Theme.of(context).disabledColor,
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: const BorderRadius.only(
+                                          bottomLeft: Radius.circular(12),
+                                          bottomRight: Radius.circular(12),
+                                        ),
+                                        borderSide: BorderSide(color: ThemeManager.grey1),
+                                      ),
+                                      hintText: 'Enter Mobile no.',
+                                      hintStyle: interRegular.copyWith(
+                                        fontSize: Dimensions.fontSizeSmall,
+                                        color: ThemeManager.black,
+                                      ),
+                                      counterText: '',
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: const BorderRadius.only(
+                                          bottomLeft: Radius.circular(12),
+                                          bottomRight: Radius.circular(12),
+                                        ),
+                                        borderSide: BorderSide(color: ThemeManager.grey1),
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: const BorderRadius.only(
+                                          bottomLeft: Radius.circular(12),
+                                          bottomRight: Radius.circular(12),
+                                        ),
+                                        borderSide: BorderSide(color: ThemeManager.grey1),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              ],
-                              // Row(
-                              //   mainAxisAlignment: MainAxisAlignment.center,
-                              //   children: [
-                              //     Text(
-                              //       "Login to get OTP via ",
-                              //       style: interRegular.copyWith(
-                              //           fontSize: Dimensions.fontSizeSmall,
-                              //           color: Theme.of(context).hintColor
-                              //       ),
-                              //     ),
-                              //     InkWell(
-                              //       onTap: () {
-                              //         Navigator.of(context).pushNamed(Routes.loginWithPass);
-                              //       },
-                              //       child: Text(
-                              //         "Email",
-                              //         style: interRegular.copyWith(
-                              //           fontSize: Dimensions.fontSizeSmall,
-                              //           color: Theme.of(context).primaryColor,
-                              //           decoration: TextDecoration.underline,
-                              //         ),
-                              //       ),
-                              //     ),
-                              //   ],
-                              // ),
-                              // const SizedBox(
-                              //   height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
-                              // ),
-                              // if (!Platform.isWindows && !Platform.isMacOS) ...[
-                              //   const Spacer(),
-                              // ],
-                              if (Platform.isWindows || Platform.isMacOS) ...[
                                 const SizedBox(
-                                  height: 15,
+                                  height: Dimensions.PADDING_SIZE_SMALL,
                                 ),
-                              ],
-                              if (Platform.isAndroid || Platform.isIOS) ...[
-                                SizedBox(
-                                  height:
-                                      MediaQuery.of(context).size.height * 0.09,
+                                Text(
+                                  "We shall be sending you a Code by SMS for verification",
+                                  style: interRegular.copyWith(
+                                      fontSize: Dimensions.fontSizeSmall, color: ThemeManager.black),
                                 ),
-                              ],
-                              store.isLoadingSettings
-                                  ? const Center(child: SizedBox())
-                                  : Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                const SizedBox(
+                                  height: Dimensions.PADDING_SIZE_DEFAULT * 2.4,
+                                ),
+
+                                // SizedBox(
+                                //   height: MediaQuery.of(context).size.height*0.49,
+                                //   width:  MediaQuery.of(context).size.width,
+                                //   child: Center(child: SvgPicture.asset("assets/image/loginPerson.svg",fit: BoxFit.cover,)),
+                                // ),
+                                // const SizedBox(
+                                //   height: Dimensions.PADDING_SIZE_LARGE,
+                                // ),
+
+                                CustomButton(
+                                  onPressed: () {
+                                    FocusScope.of(context).unfocus();
+                                    bool? validate = _phoneKey.currentState?.validate();
+                                    if (validate!) {
+                                      _login(store, phoneController.text);
+                                    }
+                                  },
+                                  buttonText: "Continue",
+                                  textColor: Colors.white,
+                                  height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                                  bgColor: ThemeManager.primaryColor,
+                                  radius: Dimensions.RADIUS_DEFAULT,
+                                  transparent: true,
+                                  fontSize: Dimensions.fontSizeDefault,
+                                  child: store.isLoading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                      : null,
+                                ),
+                                // Observer(
+                                //   builder: (_) {
+                                //     return LoginCustomButton(
+                                //       onPressed: () {
+                                //         FocusScope.of(context).unfocus();
+                                //         bool? validate = _phoneKey.currentState?.validate();
+                                //         if(validate!) {
+                                //           _login(store, phoneController.text);
+                                //         }
+                                //         },
+                                //       buttonText: "Send OTP",
+                                //       height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                                //
+                                //       bgColor: AppColors.primaryColor,
+                                //       radius: Dimensions.PADDING_SIZE_LARGE,
+                                //       transparent: true,
+                                //       fontSize: Dimensions.fontSizeDefault,
+                                //       child: store.isLoading ? const CircularProgressIndicator(color: Colors.white,) : null,
+                                //     );
+                                //   },
+                                // ),
+                                /// Divider
+                                // Row(
+                                //   children: <Widget>[
+                                //     Expanded(
+                                //       child: Container(
+                                //         margin: const EdgeInsets.only(right: 20.0),
+                                //         child: Divider(
+                                //           color: Theme.of(context).disabledColor,
+                                //           height: 25,
+                                //           thickness: 1,
+                                //         ),
+                                //       ),
+                                //     ),
+                                //     const Text("OR"),
+                                //     Expanded(
+                                //       child: Container(
+                                //         margin: const EdgeInsets.only(left: 20.0),
+                                //         child: Divider(
+                                //           color: Theme.of(context).disabledColor,
+                                //           height: 25,
+                                //           thickness: 1,
+                                //         ),
+                                //       ),
+                                //     ),
+                                //   ],
+                                // ),
+                                const SizedBox(
+                                  height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                                ),
+                                // SizedBox(
+                                //   width: MediaQuery.of(context).size.height,
+                                //   height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                                //   child: ElevatedButton(
+                                //     onPressed: () {
+                                //       // _loginWithGoogle(context,store);
+                                //       FocusScope.of(context).unfocus();
+                                //       Navigator.of(context).pushNamed(Routes.loginWithPass);
+                                //     },
+                                //     style: ElevatedButton.styleFrom(
+                                //       backgroundColor: Theme.of(context).cardColor,
+                                //       elevation: 0,
+                                //       side: BorderSide(
+                                //         color: Theme.of(context).disabledColor,
+                                //       ),
+                                //     ),
+                                //     child: Row(
+                                //       mainAxisAlignment: MainAxisAlignment.center,
+                                //       children: [
+                                //         Icon(Icons.password,color: Theme.of(context).primaryColor),
+                                //         const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
+                                //         Text(
+                                //           "Login with Email",
+                                //           style: interBold.copyWith(
+                                //             color: Colors.black,
+                                //           ),
+                                //         ),
+                                //       ],
+                                //     ),
+                                //   ),
+                                // ),
+                                // const SizedBox(
+                                //   height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+                                // ),
+                                // Show register option only on mobile devices (Android and iOS)
+                                if (Platform.isAndroid || Platform.isIOS) ...[
+                                  Align(
+                                    alignment: Alignment.center,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Observer(builder: (context) {
-                                          return Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              Text(
-                                                "Contact Us / Support",
-                                                style: interBold.copyWith(
-                                                  fontSize: Dimensions
-                                                      .fontSizeDefault,
-                                                  color:
-                                                      ThemeManager.textColor2,
-                                                  decoration:
-                                                      TextDecoration.underline,
-                                                  decorationColor:
-                                                      ThemeManager.textColor2,
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                  height: Dimensions
-                                                      .PADDING_SIZE_DEFAULT),
-                                              Text(
-                                                "${store.settingsData.value?.email} ",
-                                                style: interRegular.copyWith(
-                                                  fontSize:
-                                                      Dimensions.fontSizeSmall,
-                                                  color: ThemeManager.black,
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                  height: Dimensions
-                                                      .PADDING_SIZE_EXTRA_SMALL),
-                                              Text(
-                                                "+91${store.settingsData.value?.phone} ",
-                                                style: interRegular.copyWith(
-                                                  fontSize:
-                                                      Dimensions.fontSizeSmall,
-                                                  color: ThemeManager.black,
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        }),
+                                        Text(
+                                          "Don't have an account?",
+                                          style: interRegular.copyWith(
+                                              fontSize: Dimensions.fontSizeSmall, color: ThemeManager.black),
+                                        ),
+                                        InkWell(
+                                          onTap: () {
+                                            Navigator.of(context).pushNamed(Routes.register);
+                                          },
+                                          child: Text(
+                                            "Register",
+                                            style: interBold.copyWith(
+                                              fontSize: Dimensions.fontSizeSmallLarge,
+                                              fontWeight: FontWeight.w600,
+                                              color: ThemeManager.textColor2,
+                                            ),
+                                          ),
+                                        ),
                                       ],
-                                    )
-                            ],
-                          ),
-                          const LoginScreen(),
-                        ],
+                                    ),
+                                  ),
+                                ],
+                                // Row(
+                                //   mainAxisAlignment: MainAxisAlignment.center,
+                                //   children: [
+                                //     Text(
+                                //       "Login to get OTP via ",
+                                //       style: interRegular.copyWith(
+                                //           fontSize: Dimensions.fontSizeSmall,
+                                //           color: Theme.of(context).hintColor
+                                //       ),
+                                //     ),
+                                //     InkWell(
+                                //       onTap: () {
+                                //         Navigator.of(context).pushNamed(Routes.loginWithPass);
+                                //       },
+                                //       child: Text(
+                                //         "Email",
+                                //         style: interRegular.copyWith(
+                                //           fontSize: Dimensions.fontSizeSmall,
+                                //           color: Theme.of(context).primaryColor,
+                                //           decoration: TextDecoration.underline,
+                                //         ),
+                                //       ),
+                                //     ),
+                                //   ],
+                                // ),
+                                // const SizedBox(
+                                //   height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+                                // ),
+                                // if (!Platform.isWindows && !Platform.isMacOS) ...[
+                                //   const Spacer(),
+                                // ],
+                                if (Platform.isWindows || Platform.isMacOS) ...[
+                                  const SizedBox(
+                                    height: 15,
+                                  ),
+                                ],
+                                if (Platform.isAndroid || Platform.isIOS) ...[
+                                  SizedBox(
+                                    height: MediaQuery.of(context).size.height * 0.09,
+                                  ),
+                                ],
+                                store.isLoadingSettings
+                                    ? const Center(child: SizedBox())
+                                    : Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Observer(builder: (context) {
+                                            return Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              crossAxisAlignment: CrossAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  "Contact Us / Support",
+                                                  style: interBold.copyWith(
+                                                    fontSize: Dimensions.fontSizeDefault,
+                                                    color: ThemeManager.textColor2,
+                                                    decoration: TextDecoration.underline,
+                                                    decorationColor: ThemeManager.textColor2,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+                                                Text(
+                                                  "${store.settingsData.value?.email} ",
+                                                  style: interRegular.copyWith(
+                                                    fontSize: Dimensions.fontSizeSmall,
+                                                    color: ThemeManager.black,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL),
+                                                Text(
+                                                  "+91${store.settingsData.value?.phone} ",
+                                                  style: interRegular.copyWith(
+                                                    fontSize: Dimensions.fontSizeSmall,
+                                                    color: ThemeManager.black,
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          }),
+                                        ],
+                                      )
+                              ],
+                            ),
+                            const LoginScreen(),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-        ),
       ),
     );
   }
-
 
   Future<void> _login(LoginStore store, String phone) async {
     try {
@@ -1162,33 +1107,29 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
               context: context,
               errorMessage: store.loginWithPhone.value?.message ?? "",
               backgroundColor: AppColors.primaryColor);
-          Navigator.of(context)
-              .pushNamed(Routes.verifyOtpPhone, arguments: {'email': phone});
+          Navigator.of(context).pushNamed(Routes.verifyOtpPhone, arguments: {'email': phone});
         } else {
           // Surface API error to the user + tag it for Crashlytics
           // so we can see operator-specific OTP delivery failures
           // in the Firebase dashboard.
-          final apiErr = store.loginWithPhone.value?.error
-              ?? "Something went wrong!";
+          final apiErr = store.loginWithPhone.value?.error ?? "Something went wrong!";
           BottomToast.showBottomToastOverlay(
-              context: context,
-              errorMessage: apiErr,
-              backgroundColor: AppColors.redAlert);
+              context: context, errorMessage: apiErr, backgroundColor: AppColors.redAlert);
           // Wave-3.2 #14: tag with the failing step so Crashlytics
           // surfaces a histogram of WHERE login fails (per operator,
           // per phone-prefix, etc.) rather than just lumping
           // everything under the same exception type.
           try {
             FirebaseCrashlytics.instance.setCustomKey('login_step', 'send_otp');
-            FirebaseCrashlytics.instance.setCustomKey('login_phone_prefix',
-                phone.length >= 4 ? phone.substring(0, 4) : phone);
+            FirebaseCrashlytics.instance
+                .setCustomKey('login_phone_prefix', phone.length >= 4 ? phone.substring(0, 4) : phone);
             await FirebaseCrashlytics.instance.recordError(
               apiErr,
               StackTrace.current,
               reason: 'Login OTP send failed (non-throw error path)',
               fatal: false,
             );
-          } catch (_) { /* never let telemetry break the UX */ }
+          } catch (_) {/* never let telemetry break the UX */}
         }
       });
     } catch (e, st) {
@@ -1196,7 +1137,8 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
       try {
         FirebaseCrashlytics.instance.setCustomKey('login_step', 'send_otp_throw');
         await FirebaseCrashlytics.instance.recordError(
-          e, st,
+          e,
+          st,
           reason: 'Login OTP send threw',
           fatal: false,
         );
@@ -1265,14 +1207,14 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
   Future<void> _handleRestoreUser(String phone) async {
     try {
       final signupStore = SignupStore();
-      
+
       // Try to get email from the error response params - but for login flow we may not have it
       // The API requires email parameter, so we'll pass empty string for now
       String email = '';
-      
+
       if (mounted) {
         final result = await signupStore.onRestoreUser(email, phone);
-        
+
         if (result != null && result['success'] == true && result['message'] != null) {
           // Show success message
           BottomToast.showBottomToastOverlay(
@@ -1280,7 +1222,7 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
             errorMessage: result['message'] ?? "User restored successfully",
             backgroundColor: AppColors.primaryColor,
           );
-          
+
           // Navigate to login screen after a short delay
           Future.delayed(const Duration(seconds: 2), () {
             if (mounted) {
@@ -1291,7 +1233,9 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
           // Show error message
           BottomToast.showBottomToastOverlay(
             context: context,
-            errorMessage: signupStore.errorMessage.isNotEmpty ? signupStore.errorMessage : "Failed to restore user account",
+            errorMessage: signupStore.errorMessage.isNotEmpty
+                ? signupStore.errorMessage
+                : "Failed to restore user account",
             backgroundColor: AppColors.redAlert,
           );
         }
@@ -1311,8 +1255,7 @@ class _LoginWithPhoneScreenState extends State<LoginWithPhoneScreen>
 
 Future<void> testApi() async {
   try {
-    final response = await http
-        .get(Uri.parse('https://jsonplaceholder.typicode.com/todos/1'));
+    final response = await http.get(Uri.parse('https://jsonplaceholder.typicode.com/todos/1'));
 
     if (response.statusCode == 200) {
       print('Response data: ${response.body}');

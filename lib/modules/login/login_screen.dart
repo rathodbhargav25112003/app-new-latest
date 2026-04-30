@@ -98,48 +98,42 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: AppTokens.scaffold(context),
       resizeToAvoidBottomInset: false,
-      body: SafeArea(
-        child: KeyboardActions(
-          config: KeyboardActionsConfig(
-            keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
-            actions: [
-              KeyboardActionsItem(
-                focusNode: FocusNode(),
-                displayArrows: false,
-                displayDoneButton: true,
-                onTapAction: () => FocusScope.of(context).unfocus(),
-              ),
-            ],
-          ),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 600),
-            padding: const EdgeInsets.symmetric(horizontal: AppTokens.s24),
-            child: Observer(
-              builder: (_) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppTokens.s32),
-                    Text(
-                      "Welcome back",
-                      style: AppTokens.displayMd(context),
+      body: KeyboardActions(
+        config: KeyboardActionsConfig(
+          keyboardActionsPlatform: KeyboardActionsPlatform.ALL,
+          actions: [
+            KeyboardActionsItem(
+              focusNode: FocusNode(),
+              displayArrows: false,
+              displayDoneButton: true,
+              onTapAction: () {
+                FocusScope.of(context).unfocus();
+              },
+            ),
+          ],
+        ),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Observer(
+            builder: (_) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Email",
+                    style: interBold.copyWith(
+                        fontSize: Dimensions.fontSizeLarge, color: ThemeManager.textColor4),
+                  ),
+                  const SizedBox(
+                    height: Dimensions.PADDING_SIZE_SMALL,
+                  ),
+                  Container(
+                    constraints: const BoxConstraints(
+                      minHeight: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
                     ),
-                    const SizedBox(height: AppTokens.s8),
-                    Text(
-                      "Sign in with your email — we'll send a verification code.",
-                      style: AppTokens.bodyLg(context).copyWith(
-                        color: AppTokens.muted(context),
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: AppTokens.s32),
-                    TextFormField(
+                    child: TextFormField(
                       key: _emailKey,
                       controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.done,
-                      cursorColor: AppTokens.accent(context),
-                      style: AppTokens.bodyLg(context),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter an email address.';
@@ -148,79 +142,166 @@ class _LoginScreenState extends State<LoginScreen> with WidgetsBindingObserver {
                         }
                         return null;
                       },
-                      onFieldSubmitted: (_) {
-                        final ok = _emailKey.currentState?.validate() ?? false;
-                        if (ok) _login(store, emailController.text);
-                      },
-                      decoration: AppTokens.inputDecoration(
-                        context,
-                        hint: 'name@example.com',
-                        label: 'Email address',
-                        prefix: Padding(
-                          padding: const EdgeInsets.only(left: 12, right: 6),
-                          child:
-                              Icon(Icons.alternate_email_rounded, size: 18, color: AppTokens.muted(context)),
+                      cursorColor: Theme.of(context).disabledColor,
+                      style: interRegular.copyWith(
+                          fontSize: Dimensions.fontSizeSmall, color: ThemeManager.black),
+                      // Custom keyboard code - commented out to use system default keyboard
+                      // To re-enable custom keyboard, also uncomment the import 'keyboard.dart' above
+                      // readOnly: true,
+                      // enableInteractiveSelection: false,
+                      // onTap: () {
+                      //   FocusScope.of(context).unfocus();
+                      //   showCustomKeyboardSheet(context, KeyboardType.email, emailController);
+                      // },
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.only(left: Dimensions.PADDING_SIZE_SMALL),
+                        fillColor: Theme.of(context).disabledColor,
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(3.4),
+                              bottomRight: Radius.circular(3.4),
+                            ),
+                            borderSide: BorderSide(color: ThemeManager.grey1)),
+                        hintText: 'Enter your email',
+                        hintStyle: interRegular.copyWith(
+                          fontSize: Dimensions.fontSizeSmall,
+                          color: ThemeManager.black,
                         ),
+                        counterText: '',
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(3.4),
+                              bottomRight: Radius.circular(3.4),
+                            ),
+                            borderSide: BorderSide(color: ThemeManager.grey1)),
+                        border: OutlineInputBorder(
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(3.4),
+                              bottomRight: Radius.circular(3.4),
+                            ),
+                            borderSide: BorderSide(color: ThemeManager.grey1)),
                       ),
                     ),
-                    const SizedBox(height: AppTokens.s24),
-                    CustomButton(
-                      onPressed: () {
-                        FocusScope.of(context).unfocus();
-                        final ok = _emailKey.currentState?.validate() ?? false;
-                        if (ok) _login(store, emailController.text);
-                      },
-                      buttonText: "Continue",
-                      height: 54,
-                      bgColor: AppTokens.accent(context),
-                      radius: AppTokens.r16,
-                      transparent: true,
-                      fontSize: 16,
-                      child: store.isLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                  ),
+                  const SizedBox(
+                    height: Dimensions.PADDING_SIZE_SMALL,
+                  ),
+                  Text(
+                    "We shall be sending you a Code by email for verification",
+                    style:
+                        interRegular.copyWith(fontSize: Dimensions.fontSizeSmall, color: ThemeManager.black),
+                  ),
+                  const SizedBox(
+                    height: Dimensions.PADDING_SIZE_DEFAULT * 2.4,
+                  ),
+                  CustomButton(
+                    onPressed: () {
+                      FocusScope.of(context).unfocus();
+                      bool? validate = _emailKey.currentState?.validate();
+                      // bool? validatePass = _passKey.currentState?.validate();
+                      if (validate!) {
+                        _login(store, emailController.text);
+                        // Navigator.of(context).pushNamed(Routes.verifyOtpMail,
+                        //     arguments: {'email': emailController.text});
+                      }
+                    },
+                    buttonText: "Continue",
+                    textColor: Colors.white,
+                    height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                    bgColor: ThemeManager.primaryColor,
+                    radius: Dimensions.RADIUS_DEFAULT,
+                    transparent: true,
+                    fontSize: Dimensions.fontSizeDefault,
+                    child: store.isLoading
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(
+                    height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                  ),
+                  // Show register option only on mobile devices (Android and iOS)
+                  if (Platform.isAndroid || Platform.isIOS) ...[
+                    Align(
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Don't have an account?",
+                            style: interRegular.copyWith(
+                                fontSize: Dimensions.fontSizeSmall, color: ThemeManager.black),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              Navigator.of(context).pushNamed(Routes.register);
+                            },
+                            child: Text(
+                              "Register",
+                              style: interBold.copyWith(
+                                fontSize: Dimensions.fontSizeSmallLarge,
+                                fontWeight: FontWeight.w600,
+                                color: ThemeManager.textColor2,
                               ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: AppTokens.s24),
-                    if (Platform.isAndroid || Platform.isIOS)
-                      Center(
-                        child: Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 6,
-                          children: [
-                            Text(
-                              "New here?",
-                              style: AppTokens.body(context),
                             ),
-                            InkWell(
-                              onTap: () => Navigator.of(context).pushNamed(Routes.register),
-                              child: Text(
-                                "Create an account",
-                                style: AppTokens.body(context).copyWith(
-                                  color: AppTokens.accent(context),
-                                  fontWeight: FontWeight.w700,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (Platform.isWindows || Platform.isMacOS) ...[
+                    const SizedBox(
+                      height: 15,
+                    ),
+                  ],
+                  if (Platform.isAndroid || Platform.isIOS) ...[
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.1,
+                    ),
+                  ],
+                  store.isLoadingSettings
+                      ? const Center(child: SizedBox())
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Contact Us / Support",
+                                  style: interBold.copyWith(
+                                    fontSize: Dimensions.fontSizeDefault,
+                                    color: ThemeManager.textColor2,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: ThemeManager.textColor2,
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+                                Text(
+                                  "${store.settingsData.value?.email} ",
+                                  style: interRegular.copyWith(
+                                    fontSize: Dimensions.fontSizeSmall,
+                                    color: ThemeManager.black,
+                                  ),
+                                ),
+                                const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL),
+                                Text(
+                                  "+91${store.settingsData.value?.phone} ",
+                                  style: interRegular.copyWith(
+                                    fontSize: Dimensions.fontSizeSmall,
+                                    color: ThemeManager.black,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
-                        ),
-                      ),
-                    const Spacer(),
-                    if (!store.isLoadingSettings)
-                      _SupportFooter(
-                        email: store.settingsData.value?.email ?? '',
-                        phone: store.settingsData.value?.phone ?? '',
-                      ),
-                  ],
-                );
-              },
-            ),
+                        )
+                ],
+              );
+            },
           ),
         ),
       ),

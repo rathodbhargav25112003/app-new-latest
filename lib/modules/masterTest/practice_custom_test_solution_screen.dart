@@ -1,18 +1,17 @@
-// ignore_for_file: deprecated_member_use, unused_import, unused_field, unused_element, unused_local_variable, avoid_print, use_build_context_synchronously, library_private_types_in_public_api, non_constant_identifier_names, dead_null_aware_expression, dead_code
-
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
+import 'package:shusruta_lms/services/daily_review_recorder.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
-import 'package:shusruta_lms/modules/test/question_pallet.dart';
+import 'package:shusruta_lms/helpers/comman_widget.dart';
+import 'package:shusruta_lms/modules/reports/explanation_common_widget.dart';
 import 'package:shusruta_lms/modules/test/store/test_category_store.dart';
 import 'package:shusruta_lms/modules/widgets/bottom_raise_query_window.dart'
     show CustomBottomRaiseQueryWindow;
@@ -21,10 +20,6 @@ import 'package:super_tooltip/super_tooltip.dart';
 import 'package:typewritertext/typewritertext.dart';
 
 import '../../app/routes.dart';
-import '../../helpers/app_tokens.dart';
-// Wave-2 post-attempt analytics drop-in (heatmap + time-pressure +
-// calibration + cohort %ile + Claude pattern summary + remediation).
-import 'package:shusruta_lms/modules/new_exam_component/widgets/post_attempt_analytics_panel.dart';
 import '../../helpers/colors.dart';
 import '../../helpers/dimensions.dart';
 import '../../helpers/styles.dart';
@@ -32,73 +27,12 @@ import '../../models/get_all_my_custom_test_model.dart';
 import '../../models/get_explanation_model.dart';
 import '../../models/get_notes_solution_model.dart';
 import '../customtests/custom_question_pallet.dart';
-import '../customtests/custom_test_bottom_raise_query.dart';
 import '../reports/store/report_by_category_store.dart';
 import '../widgets/bottom_raise_query.dart';
 import '../widgets/bottom_stick_notes.dart';
 import '../widgets/bottom_toast.dart';
 import '../widgets/custom_button.dart';
-import '../widgets/custom_test_cancel_dialogbox.dart';
 
-/// Custom-test solution runner (review mode) — redesigned with AppTokens.
-/// Preserves every public API surface the rest of the app depends on:
-///   • Constructor `PracticeCustomTestSolutionExamScreen({super.key,
-///     fromPallete, testExamPaper, userExamId, isPracticeExam, queNo,
-///     remainingTime, id, type, isCorrect})`
-///   • Static `route(RouteSettings)` factory (CupertinoPageRoute) with args:
-///     testData / userexamId / queNo / isPracticeExam / remainingTime / id /
-///     type / fromPallete / isCorrect
-///   • State fields: _scaffoldKey, _selectedIndex (=-1),
-///     _currentQuestionIndex (=0), isLastQues / firstQue, isAttempted /
-///     isMarkedForReview / isGuess / isAttemptedAndMarkedForReview /
-///     isSkipped, answerImgBytes / quesImgBytes / explanationImgBytes,
-///     filterTest, isTapped, explanationWidget / questionWidget, _controller
-///     (SuperTooltipController), isbutton / isprocess, _textSize
-///     (=Dimensions.fontSizeDefault), showfontSize (=100), _scrollController
-///   • Lifecycle: initState → getCountReportPractice(context); isTapped=false;
-///     filterTest set from testExamPaper.test filtered by isCorrect when
-///     supplied; resolve matchingIndex by questionNumber == queNo and if found
-///     call _getSelectedAnswer + move _currentQuestionIndex + firstQue=false;
-///     finally _getNotesData on the first question
-///   • All helper methods with the exact same names & signatures:
-///     _getExplanationData(prompt), _putBookMarkApiCall(examId, questionId),
-///     _getSelectedAnswer(queId), _getCount(userExamId),
-///     openBottomSheet(store), _showNextQuestion(), _showPreviousQuestion(),
-///     _onBackPressed(), getExplanationText(context),
-///     getQuestionText(context), _scrollToIndex(index),
-///     getCountReportPractice(context), _questionChange(index),
-///     _showNotesDialog(context, questionId, notes),
-///     addNotes(questionId, notes), _getNotesData(queId),
-///     _showDialog(context, questionId), _showBottomSheet(context)
-///   • TestCategoryStore APIs retained: questionAnswerByIdCustomTest,
-///     getCustomTestQuestionPalleteCount, onGetCustomReportPracticeCountApiCall,
-///     getCustomReportPracticeCountData.value
-///   • ReportsCategoryStore APIs retained: onGetExplanationCall,
-///     onBookMarkQuestion, onGetNotesData, onCreateNotes,
-///     onCreateQuerySolutionReport, notesData.value,
-///     getExplanationText.value
-///   • Back arrow pushNamed Routes.testCategory (intentionally pushes, not
-///     pops — matches legacy)
-///   • Save & Exit dialog button pushNamed Routes.testCategory
-///   • Drawer hosts `CustomTestQuestionPallet(testExamPaper, userExamId,
-///     null, isPracticeExam, null)` (5-positional API preserved)
-///   • Raise Query → desktop `CustomBottomRaiseQueryWindow` (AlertDialog) /
-///     mobile `CustomBottomRaiseQuery` (bottom sheet) with preserved
-///     questionId / questionText / allOptions payload (a-d joined)
-///   • Stick Notes → desktop `CustomBottomStickNotesWindow` dialog /
-///     mobile `CustomBottomStickNotes` dialog with questionId + notes
-///   • Ask Cortex.AI prompt: "Explain why {correct} is the answer to the
-///     Question {questionText} and why the remaining {others} are not
-///     correct answer"
-///   • Cortex.AI explains panel rendered with TypeWriterText (10ms cadence)
-///     when isbutton==true; shown inside Observer watching
-///     getExplanationText.value
-///   • Explanation/question text mapping: split on splittedImage and
-///     `NetworkImage(base64String)` → PhotoView on tap; bullet rewrites:
-///     `\t\t\t--` → 17-space bullet, `\t\t--` → 11-space bullet, `\t--` →
-///     5-space bullet, `--` → `•`
-///   • Scroll strip coloured by correctOption==selectedOption: greenBorder
-///     match / redText mismatch (ThemeManager values preserved)
 class PracticeCustomTestSolutionExamScreen extends StatefulWidget {
   final Data? testExamPaper;
   final String? userExamId;
@@ -109,24 +43,20 @@ class PracticeCustomTestSolutionExamScreen extends StatefulWidget {
   final String? type;
   final bool? isCorrect;
   final bool? fromPallete;
-
-  const PracticeCustomTestSolutionExamScreen({
-    super.key,
-    this.fromPallete,
-    this.testExamPaper,
-    this.userExamId,
-    this.isPracticeExam,
-    this.queNo,
-    this.remainingTime,
-    this.id,
-    this.type,
-    this.isCorrect,
-  });
+  const PracticeCustomTestSolutionExamScreen(
+      {super.key,
+      this.fromPallete,
+      this.testExamPaper,
+      this.userExamId,
+      this.isPracticeExam,
+      this.queNo,
+      this.remainingTime,
+      this.id,
+      this.type,
+      this.isCorrect});
 
   @override
-  State<PracticeCustomTestSolutionExamScreen> createState() =>
-      _PracticeCustomTestSolutionExamScreenState();
-
+  State<PracticeCustomTestSolutionExamScreen> createState() => _PracticeCustomTestSolutionExamScreenState();
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map<String, dynamic>;
     return CupertinoPageRoute(
@@ -145,10 +75,11 @@ class PracticeCustomTestSolutionExamScreen extends StatefulWidget {
   }
 }
 
-class _PracticeCustomTestSolutionExamScreenState
-    extends State<PracticeCustomTestSolutionExamScreen> {
+class _PracticeCustomTestSolutionExamScreenState extends State<PracticeCustomTestSolutionExamScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
+  // Timer? timer;
+  // late ValueNotifier<Duration> remainingTimeNotifier;
+  // Duration? remainingTime;
   int _selectedIndex = -1;
   int _currentQuestionIndex = 0;
   bool isLastQues = false, firstQue = true;
@@ -157,32 +88,25 @@ class _PracticeCustomTestSolutionExamScreenState
   bool isGuess = false;
   bool isAttemptedAndMarkedForReview = false;
   bool isSkipped = false;
-
   Uint8List? answerImgBytes;
   Uint8List? quesImgBytes;
   Uint8List? explanationImgBytes;
-
   List<TestData>? filterTest;
   bool isTapped = false;
-
+  // Duration? duration;
+  // String? usedExamTime;
   Widget? explanationWidget;
   Widget? questionWidget;
-
   final _controller = SuperTooltipController();
   bool isbutton = false, isprocess = false;
-
   double _textSize = Dimensions.fontSizeDefault;
   double showfontSize = 100;
-
-  final ScrollController _scrollController = ScrollController();
-
-  // ==========================================================================
-  // Lifecycle
-  // ==========================================================================
+  late QuillController _quillController = QuillController.basic();
 
   @override
   void initState() {
     super.initState();
+    // updateTimer();
     getCountReportPractice(context);
     isTapped = false;
     filterTest = widget.testExamPaper?.test;
@@ -198,9 +122,7 @@ class _PracticeCustomTestSolutionExamScreenState
     } else {
       filterTest = widget.testExamPaper?.test;
     }
-
-    int matchingIndex =
-        filterTest?.indexWhere((e) => e.questionNumber == widget.queNo) ?? -1;
+    int matchingIndex = filterTest?.indexWhere((e) => e.questionNumber == widget.queNo) ?? -1;
     if (matchingIndex != -1) {
       String? matchingQueId = filterTest?[matchingIndex].sId;
       _getSelectedAnswer(matchingQueId!);
@@ -213,15 +135,6 @@ class _PracticeCustomTestSolutionExamScreenState
     _getNotesData(filterTest?[_currentQuestionIndex].sId ?? "");
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  // ==========================================================================
-  // Store glue (preserved signatures)
-  // ==========================================================================
-
   Future<void> _getExplanationData(String prompt) async {
     final store = Provider.of<ReportsCategoryStore>(context, listen: false);
     await store.onGetExplanationCall(prompt);
@@ -231,30 +144,80 @@ class _PracticeCustomTestSolutionExamScreenState
     });
   }
 
+  // void updateTimer() {
+  //   if(widget.testExamPaper?.timeDuration != null && widget.fromPallete!=true) {
+  //     List<String>? timeParts = widget.testExamPaper?.timeDuration?.split(":");
+  //     duration = Duration(
+  //       hours: int.parse(timeParts![0]),
+  //       minutes: int.parse(timeParts[1]),
+  //       seconds: int.parse(timeParts[2]),
+  //     );
+  //     remainingTime = duration;
+  //     remainingTimeNotifier = ValueNotifier<Duration>(remainingTime!);
+  //   }
+  //   else{
+  //     List<String>? timeParts = widget.testExamPaper?.timeDuration?.split(":");
+  //     duration = Duration(
+  //       hours: int.parse(timeParts![0]),
+  //       minutes: int.parse(timeParts[1]),
+  //       seconds: int.parse(timeParts[2]),
+  //     );
+  //     remainingTime = widget.remainingTime?.value;
+  //     remainingTimeNotifier = ValueNotifier<Duration>(remainingTime!);
+  //   }
+  //
+  //   timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //     if (remainingTimeNotifier.value.inSeconds > 0) {
+  //       remainingTimeNotifier.value = remainingTimeNotifier.value - const Duration(seconds: 1);
+  //     } else {
+  //       timer.cancel();
+  //       remainingTimeNotifier.dispose();
+  //       BottomToast.showBottomToastOverlay(
+  //         context: context,
+  //         errorMessage: "Your Exam Time is Up!",
+  //         backgroundColor: Theme.of(context).primaryColor,
+  //       );
+  //       Navigator.of(context).pushNamed(Routes.testCategory);
+  //     }
+  //   });
+  // }
+
+  @override
+  void dispose() {
+    // timer?.cancel();
+    // remainingTimeNotifier.dispose();
+    super.dispose();
+  }
+
   Future<void> _putBookMarkApiCall(String examId, String? questionId) async {
     setState(() {
       widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks =
-          !(widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ??
-              false);
+          !(widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ?? false);
     });
     final store = Provider.of<ReportsCategoryStore>(context, listen: false);
-    store.onBookMarkQuestion(
-      context,
-      widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ?? false,
-      examId,
-      questionId ?? "",
-      "",
-    );
+    final isBookmarkedNow =
+        widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ?? false;
+    store.onBookMarkQuestion(context, isBookmarkedNow, examId, questionId ?? "", "");
+    final q = widget.testExamPaper?.test?[_currentQuestionIndex];
+    if (q != null) {
+      // ignore: discarded_futures
+      DailyReviewRecorder.bookmarkToggleCustomTest(q, examId, isBookmarkedNow);
+    }
     BottomToast.showBottomToastOverlay(
       context: context,
-      errorMessage:
-          widget.testExamPaper?.test?[_currentQuestionIndex].bookmarks ?? false
-              ? "Question Bookmarked Successfully!"
-              : "Bookmark Removed!",
+      errorMessage: isBookmarkedNow
+          ? "Question Bookmarked Successfully!"
+          : "Bookmark Removed!",
       backgroundColor: Theme.of(context).primaryColor,
     );
   }
 
+  // Future<void> _postSelectedAnswerApiCall(String? userExamId, String? selectedOption, String? questionId,
+  //     bool isAttempted, bool isAttemptedAndMarkedForReview, bool isSkipped, bool isMarkedForReview,String guess, String time)async{
+  //   final store = Provider.of<TestCategoryStore>(context, listen: false);
+  //   await store.userAnswerTest(context, userExamId??"", questionId??"", selectedOption??"",isAttempted,isAttemptedAndMarkedForReview,isSkipped,isMarkedForReview,guess,time);
+  // }
+  //
   Future<void> _getSelectedAnswer(String queId) async {
     final store = Provider.of<TestCategoryStore>(context, listen: false);
     await store.questionAnswerByIdCustomTest(widget.userExamId ?? "", queId);
@@ -277,118 +240,209 @@ class _PracticeCustomTestSolutionExamScreenState
     });
   }
 
-  Future<void> getCountReportPractice(context) async {
-    final store = Provider.of<TestCategoryStore>(context, listen: false);
-    await store.onGetCustomReportPracticeCountApiCall(widget.userExamId ?? "");
-  }
-
-  Future<void> addNotes(String? questionId, String? notes) async {
-    final store = Provider.of<ReportsCategoryStore>(context, listen: false);
-    await store.onCreateNotes(context, questionId ?? "", notes ?? "");
-    _getNotesData(filterTest?[_currentQuestionIndex].sId ?? "");
-    BottomToast.showBottomToastOverlay(
-      context: context,
-      errorMessage: "Notes Added Successfully!",
-      backgroundColor: Theme.of(context).primaryColor,
-    );
-  }
-
-  Future<void> _getNotesData(String queId) async {
-    final store = Provider.of<ReportsCategoryStore>(context, listen: false);
-    await store.onGetNotesData(queId);
-    debugPrint('queIdbookmark$queId');
-  }
-
-  // ==========================================================================
-  // Summary sheet (Save & Exit)
-  // ==========================================================================
-
   void openBottomSheet(TestCategoryStore store) {
     getCountReportPractice(context);
-    _showSummaryDialog(store);
-  }
-
-  void _showSummaryDialog(TestCategoryStore store) {
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: AppTokens.surface(ctx),
-        surfaceTintColor: AppTokens.surface(ctx),
-        shape: RoundedRectangleBorder(borderRadius: AppTokens.radius20),
-        child: Padding(
-          padding: const EdgeInsets.all(AppTokens.s20),
+      builder: (context) => AlertDialog(
+        backgroundColor: ThemeManager.white,
+        surfaceTintColor: ThemeManager.white,
+        contentPadding: const EdgeInsets.only(
+            top: Dimensions.PADDING_SIZE_LARGE * 1.1,
+            left: Dimensions.PADDING_SIZE_DEFAULT * 2,
+            right: Dimensions.PADDING_SIZE_DEFAULT * 2,
+            bottom: Dimensions.PADDING_SIZE_SMALL * 2.3),
+        alignment: Alignment.center,
+        actionsPadding: const EdgeInsets.only(
+            left: Dimensions.PADDING_SIZE_LARGE,
+            right: Dimensions.PADDING_SIZE_LARGE,
+            bottom: Dimensions.PADDING_SIZE_EXTRA_LARGE),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: FittedBox(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'Practice Test Summary',
+                style: interRegular.copyWith(
+                  fontSize: Dimensions.fontSizeExtraLarge,
+                  fontWeight: FontWeight.w500,
+                  color: ThemeManager.black,
+                ),
+              ),
+              const SizedBox(
+                height: Dimensions.PADDING_SIZE_SMALL * 3.2,
+              ),
               Row(
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    height: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                    width: Dimensions.PADDING_SIZE_LARGE * 1.1,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppTokens.accentSoft(ctx),
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: const BoxDecoration(color: Color(0xFF329B62), shape: BoxShape.circle),
                     child: Icon(
-                      Icons.summarize_rounded,
-                      color: AppTokens.accent(ctx),
-                      size: 18,
+                      Icons.check,
+                      color: ThemeManager.white,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(width: AppTokens.s12),
-                  Expanded(
-                    child: Text(
-                      "Practice Test Summary",
-                      style: AppTokens.titleMd(ctx),
+                  const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                  Text(
+                    'Correct - ',
+                    style: interRegular.copyWith(
+                      fontSize: Dimensions.fontSizeDefaultLarge,
+                      fontWeight: FontWeight.w400,
+                      color: ThemeManager.black,
+                    ),
+                  ),
+                  Text(
+                    '${store.getCustomReportPracticeCountData.value?.correctAnswers}',
+                    style: interRegular.copyWith(
+                      fontSize: Dimensions.fontSizeDefaultLarge,
+                      fontWeight: FontWeight.w700,
+                      color: ThemeManager.black,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppTokens.s16),
-              _SummaryStat(
-                icon: Icons.check_rounded,
-                tone: _StatTone.success,
-                label: "Correct",
-                value:
-                    "${store.getCustomReportPracticeCountData.value?.correctAnswers ?? 0}",
+              const SizedBox(
+                height: Dimensions.PADDING_SIZE_SMALL * 1.6,
               ),
-              const SizedBox(height: AppTokens.s8),
-              _SummaryStat(
-                icon: Icons.close_rounded,
-                tone: _StatTone.danger,
-                label: "Incorrect",
-                value:
-                    "${store.getCustomReportPracticeCountData.value?.incorrectAnswers ?? 0}",
+              Row(
+                children: [
+                  Container(
+                    height: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                    width: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(color: Color(0xFFFF0000), shape: BoxShape.circle),
+                    child: Icon(
+                      Icons.close,
+                      color: ThemeManager.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                  Text(
+                    'Incorrect - ',
+                    style: interRegular.copyWith(
+                      fontSize: Dimensions.fontSizeDefaultLarge,
+                      fontWeight: FontWeight.w400,
+                      color: ThemeManager.black,
+                    ),
+                  ),
+                  Text(
+                    '${store.getCustomReportPracticeCountData.value?.incorrectAnswers}',
+                    style: interRegular.copyWith(
+                      fontSize: Dimensions.fontSizeDefaultLarge,
+                      fontWeight: FontWeight.w700,
+                      color: ThemeManager.black,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppTokens.s8),
-              _SummaryStat(
-                icon: Icons.priority_high_rounded,
-                tone: _StatTone.warning,
-                label: "Unanswered",
-                value:
-                    "${store.getCustomReportPracticeCountData.value?.notVisited ?? 0}",
+              const SizedBox(
+                height: Dimensions.PADDING_SIZE_SMALL * 1.6,
               ),
-              const SizedBox(height: AppTokens.s20),
-              SizedBox(
-                width: double.infinity,
-                child: _PrimaryBtn(
-                  label: "Save & Exit",
-                  onTap: () =>
-                      Navigator.of(ctx).pushNamed(Routes.testCategory),
-                ),
+              Row(
+                children: [
+                  Container(
+                    height: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                    width: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(color: Color(0xFFFFD53F), shape: BoxShape.circle),
+                    child: Icon(
+                      CupertinoIcons.exclamationmark,
+                      color: ThemeManager.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                  Text(
+                    'Unanswered - ',
+                    style: interRegular.copyWith(
+                      fontSize: Dimensions.fontSizeDefaultLarge,
+                      fontWeight: FontWeight.w400,
+                      color: ThemeManager.black,
+                    ),
+                  ),
+                  Text(
+                    '${store.getCustomReportPracticeCountData.value?.notVisited}',
+                    style: interRegular.copyWith(
+                      fontSize: Dimensions.fontSizeDefaultLarge,
+                      fontWeight: FontWeight.w700,
+                      color: ThemeManager.black,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
+        actions: [
+          InkWell(
+            onTap: () => Navigator.of(context).pushNamed(Routes.testCategory),
+            child: Container(
+              height: Dimensions.PADDING_SIZE_DEFAULT * 3,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: ThemeManager.primaryColor,
+                borderRadius: BorderRadius.circular(4),
+                boxShadow: [
+                  ///first
+                  BoxShadow(
+                      offset: const Offset(0, 0),
+                      color: ThemeManager.black.withOpacity(0.04),
+                      blurRadius: 0,
+                      spreadRadius: 0),
+
+                  ///second
+                  BoxShadow(
+                      offset: const Offset(0, 4.62),
+                      color: ThemeManager.black.withOpacity(0.04),
+                      blurRadius: 10.165,
+                      spreadRadius: 0),
+
+                  ///third
+                  BoxShadow(
+                      offset: const Offset(0, 19.40),
+                      color: ThemeManager.black.withOpacity(0.03),
+                      blurRadius: 19.40,
+                      spreadRadius: 0),
+
+                  ///four
+                  BoxShadow(
+                      offset: const Offset(0, 43.436),
+                      color: ThemeManager.black.withOpacity(0.02),
+                      blurRadius: 25.876,
+                      spreadRadius: 0),
+
+                  ///five
+                  BoxShadow(
+                      offset: const Offset(0, 76.706),
+                      color: ThemeManager.black.withOpacity(0.01),
+                      blurRadius: 30.497,
+                      spreadRadius: 0),
+
+                  ///six
+                  BoxShadow(
+                      offset: const Offset(0, 120.142),
+                      color: ThemeManager.black.withOpacity(0),
+                      blurRadius: 33.270,
+                      spreadRadius: 0),
+                ],
+              ),
+              child: Text('Save & Exit',
+                  style: interRegular.copyWith(
+                    fontSize: Dimensions.fontSizeDefault,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.white,
+                  )),
+            ),
+          ),
+        ],
       ),
     );
   }
-
-  // ==========================================================================
-  // Navigation (prev / next / back)
-  // ==========================================================================
 
   Future<void> _showNextQuestion() async {
     isbutton = false;
@@ -396,11 +450,8 @@ class _PracticeCustomTestSolutionExamScreenState
     isTapped = false;
     String? questionId = filterTest?[_currentQuestionIndex].sId;
 
-    String? selectedOption = _selectedIndex == -1
-        ? ""
-        : filterTest?[_currentQuestionIndex]
-            .optionsData?[_selectedIndex]
-            .value;
+    String? selectedOption =
+        _selectedIndex == -1 ? "" : filterTest?[_currentQuestionIndex].optionsData?[_selectedIndex].value;
     if (selectedOption == "" && !isMarkedForReview) {
       isSkipped = true;
       isAttempted = false;
@@ -433,6 +484,14 @@ class _PracticeCustomTestSolutionExamScreenState
       isGuess = false;
     }
 
+    // if (duration != null && remainingTimeNotifier.value != null) {
+    //   Duration timeDifference = duration! - remainingTimeNotifier.value;
+    //   usedExamTime = "${timeDifference.inHours.toString().padLeft(2, '0')}:${timeDifference.inMinutes.remainder(60).toString().padLeft(2, '0')}:${timeDifference.inSeconds.remainder(60).toString().padLeft(2, '0')}";
+    //   debugPrint('usedtime $usedExamTime');
+    // } else {
+    //   debugPrint('Duration values are null.');
+    // }
+    // await _postSelectedAnswerApiCall(widget.userExamId, selectedOption, questionId,isAttempted,isAttemptedAndMarkedForReview,isSkipped,isMarkedForReview,selectedOption!,"");
     isAttempted = false;
     isSkipped = false;
     isAttemptedAndMarkedForReview = false;
@@ -492,124 +551,205 @@ class _PracticeCustomTestSolutionExamScreenState
       _showPreviousQuestion();
       return false;
     } else {
+      // bool confirmExit = await showDialog(
+      //   context: context,
+      //   builder: (context) => CustomTestCancelDialogBox(timer,remainingTimeNotifier),
+      // );
+      // return confirmExit;
       return true;
     }
   }
 
-  void _questionChange(int index) {
-    setState(() {
-      _currentQuestionIndex = index;
-    });
-  }
-
-  void _scrollToIndex(int index) {
-    final tile = 40.0 + AppTokens.s8; // matches chip width + spacing below
-    double totalWidth = (filterTest?.length ?? 0) * tile;
-    double viewportWidth = MediaQuery.of(context).size.width;
-    double maxScrollExtent =
-        (totalWidth - viewportWidth).clamp(0.0, double.infinity);
-    double targetScrollPosition = (index * tile).clamp(0.0, maxScrollExtent);
-
-    _scrollController.animateTo(
-      targetScrollPosition,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
-    );
-  }
-
-  // ==========================================================================
-  // Preserved rich-text builders
-  // ==========================================================================
+  // Widget getExplanationText(BuildContext context) {
+  //   String explanation = filterTest?[_currentQuestionIndex].explanation ?? "";
+  //   explanation = explanation.replaceAllMapped(
+  //       RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
+  //   List<String> splittedText = explanation.split("splittedImage");
+  //   List<Widget> columns = [];
+  //   int index = 0;
+  //
+  //   for (String text in splittedText) {
+  //     List<Widget> explanationImageWidget = [];
+  //     if (filterTest?[_currentQuestionIndex].explanationImg?.isNotEmpty ??
+  //         false) {
+  //       for (String base64String in widget
+  //           .testExamPaper!.test![_currentQuestionIndex].explanationImg!) {
+  //         try {
+  //           // Uint8List explanationImgBytes = base64Decode(base64String);
+  //           explanationImageWidget.add(
+  //             GestureDetector(
+  //               onTap: () {
+  //                 showDialog(
+  //                   context: context,
+  //                   builder: (context) {
+  //                     return Dialog(
+  //                       child: PhotoView(
+  //                         // imageProvider: MemoryImage(explanationImgBytes),
+  //                         imageProvider: NetworkImage(base64String),
+  //                         minScale: PhotoViewComputedScale.contained,
+  //                         maxScale: PhotoViewComputedScale.covered * 2,
+  //                       ),
+  //                     );
+  //                   },
+  //                 );
+  //               },
+  //               child: Row(
+  //                 children: [
+  //                   Expanded(
+  //                     child: InteractiveViewer(
+  //                       // minScale: 1.0,
+  //                       // maxScale: 3.0,
+  //                       scaleEnabled: false,
+  //                       child: Center(
+  //                         child: Container(
+  //                           padding: const EdgeInsets.only(bottom: 8.0),
+  //                           // width: MediaQuery.of(context).size.width,
+  //                           // height: MediaQuery.of(context).size.height * 0.3,
+  //                           child: Stack(
+  //                             children: [
+  //                               // Image.memory(explanationImgBytes),
+  //                               Image.network(base64String, fit: BoxFit.cover),
+  //                               Container(color: Colors.transparent),
+  //                             ],
+  //                           ),
+  //                         ),
+  //                       ),
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ),
+  //           );
+  //         } catch (e) {
+  //           debugPrint("Error decoding base64 string: $e");
+  //         }
+  //       }
+  //     }
+  //     columns.add(
+  //       Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           // Html(
+  //           //   data:  text.replaceAll("			--", "                 •").replaceAll("		--", "           •").replaceAll("	--", "     •").replaceAll("--", "•"),
+  //           // ),
+  //           Text(
+  //             text
+  //                 .trim()
+  //                 .replaceAll("			--", "                 •")
+  //                 .replaceAll("		--", "           •")
+  //                 .replaceAll("	--", "     •")
+  //                 .replaceAll("--", "•"),
+  //             textAlign: TextAlign.justify,
+  //             style: interBlack.copyWith(
+  //               fontSize: _textSize,
+  //               fontWeight: FontWeight.w400,
+  //               color: ThemeManager.black,
+  //             ),
+  //           ),
+  //           const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+  //           Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: explanationImageWidget,
+  //           ),
+  //           const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+  //           explanationImageWidget.isNotEmpty
+  //             ? Text(
+  //                 "Tap the image to zoom In/Out",
+  //                 style: interBlack.copyWith(
+  //                   fontSize: Dimensions.fontSizeSmall,
+  //                   fontWeight: FontWeight.w400,
+  //                   color: ThemeManager.black,
+  //                 ),
+  //               )
+  //             : const SizedBox(),
+  //         ],
+  //       ),
+  //     );
+  //     index++;
+  //
+  //     if (index >=
+  //         (filterTest?[_currentQuestionIndex].explanationImg?.length ?? 0) -
+  //             1) {
+  //       break;
+  //     }
+  //   }
+  //
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: columns,
+  //   );
+  // }
 
   Widget getExplanationText(BuildContext context) {
-    String explanation = filterTest?[_currentQuestionIndex].explanation ?? "";
-    explanation = explanation.replaceAllMapped(
-        RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
-    List<String> splittedText = explanation.split("splittedImage");
-    List<Widget> columns = [];
-    int index = 0;
+    if (filterTest == null || _currentQuestionIndex < 0 || _currentQuestionIndex >= filterTest!.length) {
+      return const Center(
+        child: Text("No data available"),
+      );
+    }
 
-    for (String text in splittedText) {
-      List<Widget> explanationImageWidget = [];
-      if (filterTest?[_currentQuestionIndex].explanationImg?.isNotEmpty ??
-          false) {
-        for (String base64String in widget
-            .testExamPaper!.test![_currentQuestionIndex].explanationImg!) {
-          try {
-            explanationImageWidget.add(
-              GestureDetector(
+    final currentData = filterTest![_currentQuestionIndex];
+
+    List<Widget> columns = [];
+
+    /// TEXT
+    String explanation = currentData.explanation ?? "";
+    final documentContent = preprocessDocument(explanation);
+
+    Document document;
+
+    /// ✅ ⭐ MOST IMPORTANT PART
+    final parsed = documentContent.trim().isEmpty ? null : parseCustomSyntax(documentContent);
+
+    document = (parsed == null || parsed.isEmpty)
+        ? (Document()..insert(0, "No explanation available\n"))
+        : Document.fromJson(parsed);
+
+    debugPrint("⚪ Loaded ORIGINAL content");
+
+    /// ✅ IMPORTANT: recreate controller with document
+
+    _quillController = QuillController(
+      document: document,
+      selection: const TextSelection.collapsed(offset: 0),
+    );
+
+    columns.add(
+      CommonExplanationWidget(
+        textPercentage: showfontSize.toInt(),
+        controller: _quillController,
+      ),
+    );
+
+    /// IMAGES
+    if (currentData.explanationImg != null && currentData.explanationImg!.isNotEmpty) {
+      columns.add(const SizedBox(height: 12));
+
+      columns.add(
+        Column(
+          children: currentData.explanationImg!.map<Widget>((imageUrl) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GestureDetector(
                 onTap: () {
                   showDialog(
                     context: context,
-                    builder: (context) {
-                      return Dialog(
-                        child: PhotoView(
-                          imageProvider: NetworkImage(base64String),
-                          minScale: PhotoViewComputedScale.contained,
-                          maxScale: PhotoViewComputedScale.covered * 2,
-                        ),
-                      );
-                    },
+                    builder: (_) => Dialog(
+                      child: PhotoView(
+                        imageProvider: NetworkImage(imageUrl),
+                      ),
+                    ),
                   );
                 },
-                child: InteractiveViewer(
-                  scaleEnabled: false,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: ClipRRect(
-                      borderRadius: AppTokens.radius12,
-                      child: Image.network(base64String, fit: BoxFit.cover),
-                    ),
-                  ),
-                ),
+                child: Image.network(imageUrl),
               ),
             );
-          } catch (e) {
-            debugPrint("Error decoding base64 string: $e");
-          }
-        }
-      }
-      columns.add(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              text
-                  .trim()
-                  .replaceAll("\t\t\t--", "                 •")
-                  .replaceAll("\t\t--", "           •")
-                  .replaceAll("\t--", "     •")
-                  .replaceAll("--", "•"),
-              textAlign: TextAlign.justify,
-              style: AppTokens.body(context).copyWith(fontSize: _textSize),
-            ),
-            const SizedBox(height: AppTokens.s12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: explanationImageWidget,
-            ),
-            const SizedBox(height: AppTokens.s8),
-            if (explanationImageWidget.isNotEmpty)
-              Text(
-                "Tap the image to zoom In/Out",
-                style: AppTokens.caption(context)
-                    .copyWith(color: AppTokens.ink2(context)),
-              ),
-          ],
+          }).toList(),
         ),
       );
-      index++;
-
-      if (index >=
-          (filterTest?[_currentQuestionIndex].explanationImg?.length ?? 0) -
-              1) {
-        break;
-      }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: columns,
+    return SingleChildScrollView(
+      child: Column(children: columns),
     );
   }
 
@@ -620,23 +760,27 @@ class _PracticeCustomTestSolutionExamScreenState
       return Center(
         child: Text(
           "No filtered data available",
-          style: AppTokens.body(context),
+          style: interRegular.copyWith(
+            fontSize: Dimensions.fontSizeDefault,
+            fontWeight: FontWeight.w400,
+            color: ThemeManager.black,
+          ),
         ),
       );
     }
 
     String questionTxt = filterTest?[_currentQuestionIndex].questionText ?? "";
-    questionTxt = questionTxt.replaceAllMapped(
-        RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
+    questionTxt =
+        questionTxt.replaceAllMapped(RegExp(r'----(.*?)----', multiLine: true), (match) => 'splittedImage');
     List<String> splittedText = questionTxt.split("splittedImage");
     List<Widget> columns = [];
     int index = 0;
     for (String text in splittedText) {
       List<Widget> questionImageWidget = [];
       if (filterTest?[_currentQuestionIndex].questionImg?.isNotEmpty ?? false) {
-        for (String base64String in widget
-            .testExamPaper!.test![_currentQuestionIndex].questionImg!) {
+        for (String base64String in widget.testExamPaper!.test![_currentQuestionIndex].questionImg!) {
           try {
+            // Uint8List quesImgBytes = base64Decode(base64String);
             questionImageWidget.add(
               GestureDetector(
                 onTap: () {
@@ -645,6 +789,7 @@ class _PracticeCustomTestSolutionExamScreenState
                     builder: (context) {
                       return Dialog(
                         child: PhotoView(
+                          // imageProvider: MemoryImage(quesImgBytes),
                           imageProvider: NetworkImage(base64String),
                           minScale: PhotoViewComputedScale.contained,
                           maxScale: PhotoViewComputedScale.covered * 2,
@@ -653,15 +798,28 @@ class _PracticeCustomTestSolutionExamScreenState
                     },
                   );
                 },
-                child: InteractiveViewer(
-                  scaleEnabled: false,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: ClipRRect(
-                      borderRadius: AppTokens.radius12,
-                      child: Image.network(base64String, fit: BoxFit.cover),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InteractiveViewer(
+                        scaleEnabled: false,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            // width: MediaQuery.of(context).size.width,
+                            // height: MediaQuery.of(context).size.height * 0.4,
+                            child: Stack(
+                              children: [
+                                // Image.memory(quesImgBytes),
+                                Image.network(base64String, fit: BoxFit.cover),
+                                Container(color: Colors.transparent),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             );
@@ -677,31 +835,38 @@ class _PracticeCustomTestSolutionExamScreenState
             Text(
               text
                   .trim()
-                  .replaceAll("\t\t\t--", "                 •")
-                  .replaceAll("\t\t--", "           •")
-                  .replaceAll("\t--", "     •")
+                  .replaceAll("			--", "                 •")
+                  .replaceAll("		--", "           •")
+                  .replaceAll("	--", "     •")
                   .replaceAll("--", "•"),
               textAlign: TextAlign.left,
-              style: AppTokens.bodyLg(context),
+              style: interBlack.copyWith(
+                fontSize: Dimensions.fontSizeLarge,
+                fontWeight: FontWeight.w500,
+                color: ThemeManager.black,
+              ),
             ),
-            const SizedBox(height: AppTokens.s12),
+            const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: questionImageWidget,
             ),
-            const SizedBox(height: AppTokens.s8),
-            if (questionImageWidget.isNotEmpty)
-              Text(
-                "Tap the image to zoom In/Out",
-                style: AppTokens.caption(context)
-                    .copyWith(color: AppTokens.ink2(context)),
-              ),
+            const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+            questionImageWidget.isNotEmpty
+                ? Text(
+                    "Tap the image to zoom In/Out",
+                    style: interBlack.copyWith(
+                      fontSize: Dimensions.fontSizeSmall,
+                      fontWeight: FontWeight.w400,
+                      color: ThemeManager.black,
+                    ),
+                  )
+                : const SizedBox(),
           ],
         ),
       );
       index++;
-      if (index >=
-          (filterTest?[_currentQuestionIndex].questionImg?.length ?? 0) - 1) {
+      if (index >= (filterTest?[_currentQuestionIndex].questionImg?.length ?? 0) - 1) {
         break;
       }
     }
@@ -711,9 +876,37 @@ class _PracticeCustomTestSolutionExamScreenState
     );
   }
 
-  // ==========================================================================
-  // Build
-  // ==========================================================================
+  final ScrollController _scrollController = ScrollController();
+
+  void _scrollToIndex(int index) {
+    double totalWidth = (filterTest?.length ?? 0) *
+        (Dimensions.PADDING_SIZE_SMALL * 2.675 + Dimensions.PADDING_SIZE_SMALL * 1.7);
+
+    // Get the viewport width
+    double viewportWidth = MediaQuery.of(context).size.width;
+    double maxScrollExtent = totalWidth - viewportWidth;
+    maxScrollExtent = maxScrollExtent.clamp(0.0, double.infinity);
+    double targetScrollPosition =
+        index * (Dimensions.PADDING_SIZE_SMALL * 2.675 + Dimensions.PADDING_SIZE_SMALL * 1.7);
+    targetScrollPosition = targetScrollPosition.clamp(0.0, maxScrollExtent);
+
+    _scrollController.animateTo(
+      targetScrollPosition, // Adjust this value as per your requirement
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  Future<void> getCountReportPractice(context) async {
+    final store = Provider.of<TestCategoryStore>(context, listen: false);
+    await store.onGetCustomReportPracticeCountApiCall(widget.userExamId ?? "");
+  }
+
+  void _questionChange(int index) {
+    setState(() {
+      _currentQuestionIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -721,566 +914,1395 @@ class _PracticeCustomTestSolutionExamScreenState
     final store2 = Provider.of<TestCategoryStore>(context, listen: false);
     explanationWidget = getExplanationText(context);
     questionWidget = getQuestionText(context);
-
     return WillPopScope(
       onWillPop: _onBackPressed,
       child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: AppTokens.scaffold(context),
-        appBar: _buildAppBar(context, store2),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildIndexStrip(),
-            _buildCurrentQuestionHeader(),
-            const SizedBox(height: AppTokens.s12),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppTokens.s16,
-                  0,
-                  AppTokens.s16,
-                  AppTokens.s16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    questionWidget ?? const SizedBox(),
-                    const SizedBox(height: AppTokens.s12),
-                    _buildOptionsList(),
-                    if (isTapped == true && widget.isPracticeExam == true)
-                      _buildExplanationPanel(store),
-                  ],
-                ),
-              ),
-            ),
-            _buildNavBar(),
-          ],
-        ),
-        drawer: Drawer(
-          backgroundColor: AppTokens.surface(context),
-          child: CustomTestQuestionPallet(
-            widget.testExamPaper,
-            widget.userExamId,
-            null,
-            widget.isPracticeExam,
-            null,
-          ),
-        ),
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(
-      BuildContext context, TestCategoryStore store2) {
-    return AppBar(
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      backgroundColor: AppTokens.surface(context),
-      title: Row(
-        children: [
-          _CircleIconBtn(
-            icon: Icons.arrow_back_ios_new_rounded,
-            onTap: () => Navigator.of(context).pushNamed(Routes.testCategory),
-          ),
-          const SizedBox(width: AppTokens.s12),
-          _CircleIconBtn(
-            icon: Icons.grid_view_rounded,
-            onTap: () => _scaffoldKey.currentState?.openDrawer(),
-          ),
-          const Spacer(),
-          // Wave-2 Insights button — opens PostAttemptAnalyticsPanel.
-          if ((widget.userExamId ?? '').isNotEmpty) ...[
-            _CircleIconBtn(
-              icon: Icons.insights_rounded,
-              onTap: () => _openInsights(context),
-            ),
-            const SizedBox(width: AppTokens.s12),
-          ],
-          InkWell(
-            borderRadius: AppTokens.radius28,
-            onTap: () => _showSummaryDialog(store2),
-            child: Container(
-              height: 36,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: AppTokens.s16),
-              decoration: BoxDecoration(
-                color: AppTokens.accentSoft(context),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppTokens.accent(context)),
-              ),
-              child: Text(
-                "Save & Exit",
-                style: AppTokens.titleSm(context)
-                    .copyWith(color: AppTokens.accent(context)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Wave-2 fullscreen insights sheet — bundles heatmap +
-  /// time-pressure + calibration + cohort percentile + Claude
-  /// pattern summary + remediation CTA.
-  void _openInsights(BuildContext context) {
-    if ((widget.userExamId ?? '').isEmpty) return;
-    Navigator.of(context).push(MaterialPageRoute(
-      fullscreenDialog: true,
-      builder: (_) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Performance insights'),
-          backgroundColor: AppTokens.surface(context),
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: PostAttemptAnalyticsPanel(
-            userExamId: widget.userExamId!,
-            onRemediationCreated: (newId, count) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(
-                  'Remediation set ready ($count Qs). Find it in In-progress attempts.',
-                ),
-              ));
-            },
-          ),
-        ),
-      ),
-    ));
-  }
-
-  Widget _buildIndexStrip() {
-    final length = filterTest?.length ?? 0;
-    if (length == 0) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTokens.s16,
-        AppTokens.s16,
-        AppTokens.s16,
-        AppTokens.s8,
-      ),
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: List.generate(length, (index) {
-            final TestData? solutionReport = filterTest?[index];
-            final bool match = (solutionReport?.correctOption ?? "") ==
-                (solutionReport?.selectedOption ?? "");
-            final bool active = _currentQuestionIndex == index;
-            final Color tint = match
-                ? AppTokens.success(context)
-                : AppTokens.danger(context);
-            return Padding(
-              padding: const EdgeInsets.only(right: AppTokens.s8),
-              child: GestureDetector(
-                onTap: () => _questionChange(index),
-                child: Container(
-                  height: 36,
-                  width: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: active ? tint : Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: tint),
-                  ),
-                  child: Text(
-                    "${index + 1}",
-                    style: AppTokens.titleSm(context).copyWith(
-                      color: active ? Colors.white : tint,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCurrentQuestionHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppTokens.s16,
-        AppTokens.s8,
-        AppTokens.s16,
-        AppTokens.s4,
-      ),
-      child: Row(
-        children: [
-          Text(
-            "${_currentQuestionIndex + 1}.",
-            style: AppTokens.displayMd(context),
-          ),
-          const Spacer(),
-          _ActionPill(
-            onTap: () async {
-              if (!isbutton) {
-                setState(() {
-                  isprocess = true;
-                });
-              }
-              final TestData? solutionReport =
-                  filterTest?[_currentQuestionIndex];
-              final questionText = solutionReport?.questionText;
-              final currentOption = solutionReport?.correctOption;
-              final answerTitle =
-                  solutionReport?.optionsData?.map((e) => e.answerTitle);
-              int currentIndex = solutionReport?.optionsData
-                      ?.indexWhere((e) => e.value == currentOption) ??
-                  -1;
-              String? currentAnswerTitle = answerTitle?.elementAt(currentIndex);
-              List<String?> notMatchingAnswerTitles = answerTitle
-                      ?.where((title) => title != currentAnswerTitle)
-                      .toList() ??
-                  [];
-              String concatenatedTitles = notMatchingAnswerTitles
-                  .where((title) => title != null)
-                  .join(", ");
-              String question =
-                  "Explain why $currentAnswerTitle is the answer to the Question $questionText and why the remaining $concatenatedTitles are not correct answer";
-              debugPrint("question12 :$question");
-              if (isbutton == false) {
-                await _getExplanationData(question);
-              }
-            },
-            tone: _ActionTone.brand,
-            child: isprocess
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.0,
-                    ),
-                  )
-                : const Text("Ask Cortex.AI"),
-          ),
-          const SizedBox(width: AppTokens.s8),
-          _ActionPill(
-            tone: _ActionTone.outline,
-            onTap: () {
-              if (Platform.isWindows || Platform.isMacOS) {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      backgroundColor: AppTokens.surface(context),
-                      actionsPadding: EdgeInsets.zero,
-                      actions: [
-                        CustomBottomRaiseQueryWindow(
-                          questionId:
-                              filterTest?[_currentQuestionIndex].sId ?? "",
-                          questionText:
-                              filterTest?[_currentQuestionIndex].questionText ??
-                                  '',
-                          allOptions: _allOptionsPayload(),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              } else {
-                showModalBottomSheet<String>(
-                  shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(25)),
-                  ),
-                  clipBehavior: Clip.antiAliasWithSaveLayer,
-                  context: context,
-                  builder: (BuildContext context) {
-                    return CustomBottomRaiseQuery(
-                      questionId:
-                          filterTest?[_currentQuestionIndex].sId ?? "",
-                      questionText:
-                          filterTest?[_currentQuestionIndex].questionText ??
-                              '',
-                      allOptions: _allOptionsPayload(),
-                    );
-                  },
-                );
-              }
-            },
-            child: const Text("Raise Query"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _allOptionsPayload() {
-    final opts = filterTest?[_currentQuestionIndex].optionsData;
-    String pick(int i) {
-      if (opts == null || opts.length <= i) return "";
-      return opts[i].answerTitle ?? "";
-    }
-
-    return "a) ${pick(0)}\nb) ${pick(1)}\nc) ${pick(2)}\nd) ${pick(3)}";
-  }
-
-  Widget _buildOptionsList() {
-    final TestData? testExamPaper = filterTest?[_currentQuestionIndex];
-    final int count = testExamPaper?.optionsData?.length ?? 0;
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: count,
-      itemBuilder: (context, index) {
-        final optionValue = testExamPaper?.optionsData?[index].value ?? "";
-        final optionTitle =
-            testExamPaper?.optionsData?[index].answerTitle ?? "";
-        final String answerImg =
-            testExamPaper?.optionsData?[index].answerImg ?? "";
-
-        final bool isCorrect =
-            (testExamPaper?.correctOption ?? "") == optionValue;
-        final bool isSelected =
-            (testExamPaper?.selectedOption ?? "") == optionValue;
-
-        Color borderColor = AppTokens.border(context);
-        Color fillColor = AppTokens.surface(context);
-        Color textColor = AppTokens.ink(context);
-
-        if (isCorrect) {
-          borderColor = AppTokens.success(context);
-          fillColor = AppTokens.successSoft(context);
-          textColor = AppTokens.success(context);
-        } else if (isSelected) {
-          borderColor = AppTokens.danger(context);
-          fillColor = AppTokens.dangerSoft(context);
-          textColor = AppTokens.danger(context);
-        }
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: AppTokens.s8),
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: borderColor),
-              borderRadius: BorderRadius.circular(28),
-              color: fillColor,
-            ),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.s16,
-              vertical: AppTokens.s12,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          key: _scaffoldKey,
+          backgroundColor: ThemeManager.white,
+          // appBar: AppBar(
+          //   elevation: 0,
+          //   automaticallyImplyLeading: false,
+          //   backgroundColor: ThemeManager.currentTheme == AppTheme.Dark ? ThemeManager.white : Theme.of(context).primaryColor,
+          //   title: Padding(
+          //     padding: const EdgeInsets.only(left: Dimensions.PADDING_SIZE_DEFAULT),
+          //     child: Row(
+          //       children: [
+          //         Text(
+          //           widget.testExamPaper?.examName??"Test",
+          //           style: interRegular.copyWith(
+          //             fontSize: Dimensions.fontSizeLarge,
+          //             fontWeight: FontWeight.w500,
+          //             color: Colors.white,
+          //           ),
+          //         ),
+          //         const Spacer(),
+          //               IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,onPressed: (){
+          //           showDialog(
+          //             context: context,
+          //             builder: (context) => const CustomTestCancelDialogBox(null,null,true),
+          //           );
+          //         }, icon: const Icon(Icons.close,color: Colors.white)),
+          //         InkWell(
+          //           onTap: (){
+          //             _scaffoldKey.currentState?.openDrawer();
+          //           },
+          //           child: Image.asset("assets/image/question_palette.png",
+          //             height: 30,width: 30,),
+          //         )
+          //       ],
+          //     ),
+          //   ),
+          // ),
+          appBar: AppBar(
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            backgroundColor: ThemeManager.white,
+            title: Row(
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "$optionValue.  ",
-                      style: AppTokens.titleSm(context)
-                          .copyWith(color: textColor),
-                    ),
-                    Expanded(
-                      child: Text(
-                        optionTitle,
-                        style: AppTokens.body(context)
-                            .copyWith(color: textColor),
-                      ),
-                    ),
-                    if (isCorrect || isSelected) ...[
-                      const SizedBox(width: AppTokens.s8),
-                      Icon(
-                        isCorrect
-                            ? Icons.check_circle_rounded
-                            : Icons.cancel_rounded,
-                        color: textColor,
-                        size: 20,
-                      ),
-                    ],
-                  ],
+                InkWell(
+                    onTap: () {
+                      Navigator.of(context).pushNamed(Routes.testCategory);
+                    },
+                    child: SvgPicture.asset(
+                      "assets/image/arrow_back.svg",
+                      color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,
+                    )),
+                const SizedBox(
+                  width: Dimensions.RADIUS_EXTRA_LARGE * 1.1,
                 ),
-                if (answerImg.isNotEmpty) ...[
-                  const SizedBox(height: AppTokens.s8),
-                  InteractiveViewer(
-                    minScale: 1.0,
-                    maxScale: 3.0,
-                    child: ClipRRect(
-                      borderRadius: AppTokens.radius12,
-                      child: Image.network(
-                        answerImg,
-                        fit: BoxFit.cover,
-                        height: 200,
-                        width: double.infinity,
+                InkWell(
+                  onTap: () {
+                    _scaffoldKey.currentState?.openDrawer();
+                  },
+                  child: Image.asset(
+                    "assets/image/questionplatte.png",
+                    width: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+                  ),
+                ),
+                // const Spacer(),
+                // SvgPicture.asset("assets/image/testTimeIcon.svg",color: ThemeManager.currentTheme == AppTheme.Dark ? AppColors.white : null,),
+                // const SizedBox(width: Dimensions.PADDING_SIZE_EXTRA_SMALL,),
+                // Text(
+                //   "09:05",
+                //   style: interRegular.copyWith(
+                //     fontSize: Dimensions.fontSizeDefault,
+                //     fontWeight: FontWeight.w500,
+                //     color: ThemeManager.black,
+                //   ),
+                // ),
+                const Spacer(),
+                InkWell(
+                  onTap: () {
+                    // showDialog(
+                    //   context: context,
+                    //   builder: (context) => const CustomTestCancelDialogBox(null,null,true),
+                    // );
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: ThemeManager.white,
+                        surfaceTintColor: ThemeManager.white,
+                        contentPadding: const EdgeInsets.only(
+                            top: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                            left: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                            right: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                            bottom: Dimensions.PADDING_SIZE_SMALL * 2.3),
+                        alignment: Alignment.center,
+                        actionsPadding: const EdgeInsets.only(
+                            left: Dimensions.PADDING_SIZE_LARGE,
+                            right: Dimensions.PADDING_SIZE_LARGE,
+                            bottom: Dimensions.PADDING_SIZE_EXTRA_LARGE),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        content: FittedBox(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Practice Test Summary',
+                                style: interRegular.copyWith(
+                                  fontSize: Dimensions.fontSizeExtraLarge,
+                                  fontWeight: FontWeight.w500,
+                                  color: ThemeManager.black,
+                                ),
+                              ),
+                              const SizedBox(
+                                height: Dimensions.PADDING_SIZE_SMALL * 3.2,
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    height: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                                    width: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                                    alignment: Alignment.center,
+                                    decoration:
+                                        const BoxDecoration(color: Color(0xFF329B62), shape: BoxShape.circle),
+                                    child: Icon(
+                                      Icons.check,
+                                      color: ThemeManager.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                                  Text(
+                                    'Correct - ',
+                                    style: interRegular.copyWith(
+                                      fontSize: Dimensions.fontSizeDefaultLarge,
+                                      fontWeight: FontWeight.w400,
+                                      color: ThemeManager.black,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${store2.getCustomReportPracticeCountData.value?.correctAnswers}',
+                                    style: interRegular.copyWith(
+                                      fontSize: Dimensions.fontSizeDefaultLarge,
+                                      fontWeight: FontWeight.w700,
+                                      color: ThemeManager.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(
+                                height: Dimensions.PADDING_SIZE_SMALL * 1.6,
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    height: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                                    width: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                                    alignment: Alignment.center,
+                                    decoration:
+                                        const BoxDecoration(color: Color(0xFFFF0000), shape: BoxShape.circle),
+                                    child: Icon(
+                                      Icons.close,
+                                      color: ThemeManager.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                                  Text(
+                                    'Incorrect - ',
+                                    style: interRegular.copyWith(
+                                      fontSize: Dimensions.fontSizeDefaultLarge,
+                                      fontWeight: FontWeight.w400,
+                                      color: ThemeManager.black,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${store2.getCustomReportPracticeCountData.value?.incorrectAnswers}',
+                                    style: interRegular.copyWith(
+                                      fontSize: Dimensions.fontSizeDefaultLarge,
+                                      fontWeight: FontWeight.w700,
+                                      color: ThemeManager.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(
+                                height: Dimensions.PADDING_SIZE_SMALL * 1.6,
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    height: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                                    width: Dimensions.PADDING_SIZE_LARGE * 1.1,
+                                    alignment: Alignment.center,
+                                    decoration:
+                                        const BoxDecoration(color: Color(0xFFFFD53F), shape: BoxShape.circle),
+                                    child: Icon(
+                                      CupertinoIcons.exclamationmark,
+                                      color: ThemeManager.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                                  Text(
+                                    'Unanswered - ',
+                                    style: interRegular.copyWith(
+                                      fontSize: Dimensions.fontSizeDefaultLarge,
+                                      fontWeight: FontWeight.w400,
+                                      color: ThemeManager.black,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${store2.getCustomReportPracticeCountData.value?.notVisited}',
+                                    style: interRegular.copyWith(
+                                      fontSize: Dimensions.fontSizeDefaultLarge,
+                                      fontWeight: FontWeight.w700,
+                                      color: ThemeManager.black,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        actions: [
+                          InkWell(
+                            onTap: () => Navigator.of(context).pushNamed(Routes.testCategory),
+                            child: Container(
+                              height: Dimensions.PADDING_SIZE_DEFAULT * 3,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: ThemeManager.primaryColor,
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: [
+                                  ///first
+                                  BoxShadow(
+                                      offset: const Offset(0, 0),
+                                      color: ThemeManager.black.withOpacity(0.04),
+                                      blurRadius: 0,
+                                      spreadRadius: 0),
+
+                                  ///second
+                                  BoxShadow(
+                                      offset: const Offset(0, 4.62),
+                                      color: ThemeManager.black.withOpacity(0.04),
+                                      blurRadius: 10.165,
+                                      spreadRadius: 0),
+
+                                  ///third
+                                  BoxShadow(
+                                      offset: const Offset(0, 19.40),
+                                      color: ThemeManager.black.withOpacity(0.03),
+                                      blurRadius: 19.40,
+                                      spreadRadius: 0),
+
+                                  ///four
+                                  BoxShadow(
+                                      offset: const Offset(0, 43.436),
+                                      color: ThemeManager.black.withOpacity(0.02),
+                                      blurRadius: 25.876,
+                                      spreadRadius: 0),
+
+                                  ///five
+                                  BoxShadow(
+                                      offset: const Offset(0, 76.706),
+                                      color: ThemeManager.black.withOpacity(0.01),
+                                      blurRadius: 30.497,
+                                      spreadRadius: 0),
+
+                                  ///six
+                                  BoxShadow(
+                                      offset: const Offset(0, 120.142),
+                                      color: ThemeManager.black.withOpacity(0),
+                                      blurRadius: 33.270,
+                                      spreadRadius: 0),
+                                ],
+                              ),
+                              child: Text('Save & Exit',
+                                  style: interRegular.copyWith(
+                                    fontSize: Dimensions.fontSizeDefault,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.white,
+                                  )),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: Dimensions.PADDING_SIZE_SMALL * 2.7,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_LARGE),
+                    decoration: BoxDecoration(
+                        color: ThemeManager.transPrimary,
+                        border: Border.all(
+                          color: ThemeManager.blueFinalTrans,
+                        ),
+                        borderRadius: BorderRadius.circular(60)),
+                    child: Text(
+                      "Save & Exit",
+                      style: interRegular.copyWith(
+                        fontSize: Dimensions.fontSizeSmall,
+                        fontWeight: FontWeight.w600,
+                        color: ThemeManager.blueFinal,
                       ),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildExplanationPanel(ReportsCategoryStore store) {
-    return Observer(builder: (BuildContext context) {
-      final GetNotesSolutionModel? noteModel = store.notesData.value;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: AppTokens.s12),
-          Row(
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Explanation",
-                style: AppTokens.titleMd(context),
-              ),
-              const Spacer(),
-              IconButton(
-                tooltip: "Sticky note",
-                icon: Icon(
-                  Icons.sticky_note_2_rounded,
-                  color: AppTokens.accent(context),
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: Dimensions.PADDING_SIZE_LARGE * 1.4,
+                  left: Dimensions.PADDING_SIZE_SMALL * 1.6,
+                  right: Dimensions.PADDING_SIZE_SMALL * 1.4,
+                  // bottom: Dimensions.PADDING_SIZE_LARGE*1.4,
                 ),
-                onPressed: () => _showNotesDialog(
-                  context,
-                  filterTest?[_currentQuestionIndex].sId ?? "",
-                  noteModel?.notes ?? "",
-                ),
-              ),
-              IconButton(
-                tooltip: "Text size",
-                icon: Icon(
-                  Icons.text_fields_rounded,
-                  color: AppTokens.accent(context),
-                ),
-                onPressed: () => _showBottomSheet(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTokens.s8),
-          explanationWidget ?? const SizedBox(),
-          const SizedBox(height: AppTokens.s12),
-          if (isbutton == true)
-            Observer(builder: (BuildContext context) {
-              final GetExplanationModel? getExplainModel =
-                  store.getExplanationText.value;
-              return Container(
-                padding: const EdgeInsets.all(AppTokens.s16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTokens.brand, AppTokens.brand2],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: AppTokens.radius16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 28,
-                          height: 28,
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(filterTest?.length ?? 0, (index) {
+                      TestData? solutionReport = filterTest?[index];
+                      // String showTxt = ((solutionReport?.correctOption??"") == (solutionReport?.options?[index].value??"")) ?
+                      // "Correct Answer" : ((solutionReport?.selectedOption??"") == (solutionReport?.options?[index].value??""))
+                      //     ? "Incorrect Answer" : ((solutionReport?.guess??"") == (solutionReport?.options?[index].value??"")) ? "Guess" : "";
+
+                      // Color showColor = ((solutionReport?.correctOption??"") == (solutionReport?.options?[index].value??"")) ?
+                      // ThemeManager.greenBorder : ((solutionReport?.selectedOption??"") == (solutionReport?.options?[index].value??""))
+                      //     ? ThemeManager.redText : ThemeManager.borderBlue;
+                      // ? ThemeManager.redText : ((solutionReport?.guess??"") == (solutionReport?.options?[index].value??"")) ? (ThemeManager.currentTheme == AppTheme.Dark ? ThemeManager.black : Colors.brown) : ThemeManager.borderBlue;
+
+                      // debugPrint("sssssssssss:${solutionReport?.correctOption}");
+                      // debugPrint("aaaaaaaaaaaa:${solutionReport?.selectedOption??""}ssssss:${solutionReport?.guess}");
+                      // Color showColor = ((solutionReport?.correctOption??"") == (solutionReport?.selectedOption??"")) ?
+                      // ThemeManager.greenBorder : ((solutionReport?.correctOption??"") == (solutionReport?.selectedOption??""))
+                      //     ? ThemeManager.redText : ThemeManager.borderBlue;
+
+                      return GestureDetector(
+                        onTap: () {
+                          _questionChange(index);
+                        },
+                        child: Container(
+                          height: Dimensions.PADDING_SIZE_SMALL * 2.675,
+                          width: Dimensions.PADDING_SIZE_SMALL * 2.675,
+                          margin: const EdgeInsets.only(right: Dimensions.PADDING_SIZE_SMALL * 1.7),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withOpacity(0.2),
-                          ),
-                          child: const Text(
-                            "AI",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
+                              color: _currentQuestionIndex == index
+                                  ? (solutionReport?.correctOption ?? "") ==
+                                          (solutionReport?.selectedOption ?? "")
+                                      ? ThemeManager.greenBorder
+                                      : ThemeManager.redText
+                                  : ThemeManager.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: (solutionReport?.correctOption ?? "") ==
+                                        (solutionReport?.selectedOption ?? "")
+                                    ? ThemeManager.greenBorder
+                                    : ThemeManager.redText,
+                              )),
+                          child: Text(
+                            "${index + 1}",
+                            style: interRegular.copyWith(
+                              fontSize: Dimensions.fontSizeSmall,
+                              fontWeight: FontWeight.w500,
+                              color: (solutionReport?.correctOption ?? "") ==
+                                      (solutionReport?.selectedOption ?? "")
+                                  ? _currentQuestionIndex == index
+                                      ? ThemeManager.white
+                                      : ThemeManager.greenBorder
+                                  : _currentQuestionIndex == index
+                                      ? ThemeManager.white
+                                      : ThemeManager.redText,
                             ),
                           ),
                         ),
-                        const SizedBox(width: AppTokens.s8),
-                        const Text(
-                          "Cortex.AI Explains",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                      );
+                    }),
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.only(
+                  top: Dimensions.PADDING_SIZE_LARGE * 1.4,
+                  left: Dimensions.PADDING_SIZE_DEFAULT,
+                  right: Dimensions.PADDING_SIZE_DEFAULT,
+                  // bottom: Dimensions.PADDING_SIZE_LARGE*1.4,
+                ),
+                child: Row(
+                  children: [
+                    // Container(
+                    //   height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                    //   width: Dimensions.PADDING_SIZE_DEFAULT * 5,
+                    //   decoration: BoxDecoration(
+                    //       color: ThemeManager.borderBlue,
+                    //       borderRadius: BorderRadius.circular(Dimensions.RADIUS_LARGE)
+                    //   ),
+                    //   child: Center(
+                    //     child: Text("Q-${(filterTest?[_currentQuestionIndex].questionNumber??"").toString().padLeft(2, '0')}",
+                    //       style: interRegular.copyWith(
+                    //         fontSize: Dimensions.fontSizeDefault,
+                    //         fontWeight: FontWeight.w400,
+                    //         color: ThemeManager.black,
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
+                    // const SizedBox(width: Dimensions.PADDING_SIZE_SMALL,),
+                    Text(
+                      "${_currentQuestionIndex + 1}.",
+                      style: interRegular.copyWith(
+                        fontSize: Dimensions.fontSizeExtraExtraLarge,
+                        fontWeight: FontWeight.w500,
+                        color: ThemeManager.black,
+                      ),
+                    ),
+                    const Spacer(),
+                    InkWell(
+                      onTap: () async {
+                        if (!isbutton) {
+                          setState(() {
+                            isprocess = true;
+                          });
+                        }
+                        TestData? solutionReport = filterTest?[_currentQuestionIndex];
+
+                        final questionText = solutionReport?.questionText;
+                        final currentOption = solutionReport?.correctOption;
+
+                        final answerTitle = solutionReport?.optionsData?.map((e) => e.answerTitle);
+
+                        int currentIndex =
+                            solutionReport?.optionsData?.indexWhere((e) => e.value == currentOption) ?? -1;
+                        String? currentAnswerTitle = answerTitle?.elementAt(currentIndex);
+
+                        List<String?> notMatchingAnswerTitles =
+                            answerTitle?.where((title) => title != currentAnswerTitle).toList() ?? [];
+                        String concatenatedTitles =
+                            notMatchingAnswerTitles.where((title) => title != null).join(", ");
+
+                        String question =
+                            "Explain why $currentAnswerTitle is the answer to the Question $questionText and why the remaining $concatenatedTitles are not correct answer";
+                        debugPrint("question12 :$question");
+                        isbutton == false ? await _getExplanationData(question ?? '') : null;
+                      },
+                      child: Container(
+                        height: Dimensions.PADDING_SIZE_SMALL * 2.7,
+                        width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 4,
+                        alignment: Alignment.center,
+                        // padding: EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_DEFAULT),
+                        decoration: BoxDecoration(
+                            color: ThemeManager.primaryWhite, borderRadius: BorderRadius.circular(18.71)),
+                        child: isprocess == true
+                            ? Center(
+                                child: SizedBox(
+                                    height: 25,
+                                    width: 25,
+                                    child: CircularProgressIndicator(
+                                      color: ThemeManager.white,
+                                    )))
+                            : Text(
+                                "Ask Cortex.AI",
+                                style: interRegular.copyWith(
+                                  fontSize: Dimensions.fontSizeSmall,
+                                  fontWeight: FontWeight.w500,
+                                  color: ThemeManager.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(
+                      width: Dimensions.PADDING_SIZE_DEFAULT,
+                    ),
+                    InkWell(
+                      onTap: () {
+                        if (Platform.isWindows || Platform.isMacOS) {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                backgroundColor: ThemeManager.mainBackground,
+                                actionsPadding: EdgeInsets.zero,
+                                actions: [
+                                  CustomBottomRaiseQueryWindow(
+                                      questionId: filterTest?[_currentQuestionIndex].sId ?? "",
+                                      questionText: filterTest?[_currentQuestionIndex].questionText ?? '',
+                                      allOptions:
+                                          "a) ${filterTest?[_currentQuestionIndex].optionsData?[0].answerTitle}\nb) ${filterTest?[_currentQuestionIndex].optionsData?[1].answerTitle}\nc) ${filterTest?[_currentQuestionIndex].optionsData?[2].answerTitle}\nd) ${filterTest?[_currentQuestionIndex].optionsData?[3].answerTitle}"),
+                                ],
+                              );
+                            },
+                          );
+                        } else {
+                          showModalBottomSheet<String>(
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(25),
+                                ),
+                              ),
+                              clipBehavior: Clip.antiAliasWithSaveLayer,
+                              context: context,
+                              builder: (BuildContext context) {
+                                // return CustomTestBottomRaiseQuery(questionId: filterTest?[_currentQuestionIndex].sId??"");
+                                return CustomBottomRaiseQuery(
+                                    questionId: filterTest?[_currentQuestionIndex].sId ?? "",
+                                    questionText: filterTest?[_currentQuestionIndex].questionText ?? '',
+                                    allOptions:
+                                        "a) ${filterTest?[_currentQuestionIndex].optionsData?[0].answerTitle}\nb) ${filterTest?[_currentQuestionIndex].optionsData?[1].answerTitle}\nc) ${filterTest?[_currentQuestionIndex].optionsData?[2].answerTitle}\nd) ${filterTest?[_currentQuestionIndex].optionsData?[3].answerTitle}");
+                                // return CustomBottomRaiseQuery();
+                              });
+                        }
+                        // _showDialog(context,filterTest?[_currentQuestionIndex].sId??"");
+                      },
+                      child: Container(
+                        height: Dimensions.PADDING_SIZE_SMALL * 2.7,
+                        width: Dimensions.PADDING_SIZE_LARGE * 4.7,
+                        alignment: Alignment.center,
+                        //padding: EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_DEFAULT,vertical: Dimensions.PADDING_SIZE_SMALL),
+                        decoration: BoxDecoration(
+                            color: ThemeManager.whitePrimary,
+                            borderRadius: BorderRadius.circular(18.71),
+                            border: Border.all(
+                              color: ThemeManager.primaryColor,
+                            )),
+                        child: Text(
+                          "Raise Query",
+                          style: interRegular.copyWith(
+                            fontSize: Dimensions.fontSizeSmall,
+                            fontWeight: FontWeight.w400,
+                            color: ThemeManager.black,
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: AppTokens.s12),
-                    TypeWriterText(
-                      text: Text(
-                        getExplainModel?.text ?? '',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          height: 1.45,
+                    //       IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,onPressed: (){
+                    //   _putBookMarkApiCall(widget.testExamPaper?.examId??"",filterTest?[_currentQuestionIndex].sId??"");
+                    // }, icon: Icon(filterTest?[_currentQuestionIndex].bookmarks ??false ? Icons.bookmark : Icons.bookmark_add_outlined,color: Theme.of(context).hintColor,)),
+                    // Row(
+                    //   crossAxisAlignment: CrossAxisAlignment.start,
+                    //   children: [
+                    //     TextButton(onPressed: (){
+                    //       _showDialog(context,filterTest?[_currentQuestionIndex].sId??"");
+                    //     },
+                    //     child: Column(
+                    //       children: [
+                    //         Icon(Icons.question_mark, color: Theme.of(context).hintColor),
+                    //         Text('Raise Query',
+                    //           style: interRegular.copyWith(
+                    //             fontSize: Dimensions.fontSizeDefault,
+                    //             fontWeight: FontWeight.w400,
+                    //             color: Theme.of(context).hintColor,
+                    //           ),),
+                    //       ],
+                    //     )),
+                    //   ],
+                    // ),
+                    // ValueListenableBuilder<Duration>(
+                    //   valueListenable: remainingTimeNotifier,
+                    //   builder: (context, remainingTime, child) {
+                    //     return Text(
+                    //       "${remainingTime!.inHours.toString().padLeft(2, '0')}:${remainingTime!.inMinutes.remainder(60).toString().padLeft(2, '0')}:${remainingTime!.inSeconds.remainder(60).toString().padLeft(2, '0')}",
+                    //       style: interRegular.copyWith(
+                    //         fontSize: Dimensions.fontSizeDefault,
+                    //         fontWeight: FontWeight.w600,
+                    //         color: ThemeManager.greenSuccess,
+                    //       ),
+                    //     );
+                    //   },
+                    // ),
+                  ],
+                ),
+              ),
+              const SizedBox(
+                height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(
+                    left: Dimensions.PADDING_SIZE_DEFAULT,
+                    right: Dimensions.PADDING_SIZE_DEFAULT,
+                    // bottom: Dimensions.PADDING_SIZE_LARGE*1.4,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Text(
+                      //   filterTest?[_currentQuestionIndex].questionText??"",
+                      //   style: interRegular.copyWith(
+                      //     fontSize: Dimensions.fontSizeDefault,
+                      //     fontWeight: FontWeight.w400,
+                      //     color: ThemeManager.black,
+                      //   ),),
+                      // const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT,),
+                      //
+                      // filterTest?[_currentQuestionIndex].questionImg?.isNotEmpty ?? false?
+                      // InteractiveViewer(
+                      //   minScale: 1.0,
+                      //   maxScale: 3.0,
+                      //   child: Center(
+                      //     child: SizedBox(
+                      //       width: MediaQuery.of(context).size.width * 0.6,
+                      //       height: 250,
+                      //       child: Stack(
+                      //         children: [
+                      //           if (quesImgBytes != null)
+                      //             Image.memory(quesImgBytes!),
+                      //           Container(color: Colors.transparent),
+                      //         ],
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ):const SizedBox(),
+
+                      // questionWidget??const SizedBox(),
+                      questionWidget ?? const SizedBox(),
+                      // Row(
+                      //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      //   crossAxisAlignment: CrossAxisAlignment.start,
+                      //   children: [
+                      //     Expanded(child: questionWidget??const SizedBox()),
+                      //           IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,onPressed: (){
+                      //       _putBookMarkApiCall(widget.testExamPaper?.examId??"",filterTest?[_currentQuestionIndex].sId??"");
+                      //     }, icon: Icon(filterTest?[_currentQuestionIndex].bookmarks??false ? Icons.bookmark : Icons.bookmark_border,color: Theme.of(context).hintColor,)),
+                      //   ],
+                      // ),
+                      const SizedBox(
+                        height: Dimensions.PADDING_SIZE_DEFAULT,
+                      ),
+
+                      ListView.builder(
+                        shrinkWrap: true,
+                        // padding: EdgeInsets.zero,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: filterTest?[_currentQuestionIndex].optionsData?.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          TestData? testExamPaper = filterTest?[_currentQuestionIndex];
+                          String base64String = testExamPaper?.optionsData?[index].answerImg ?? "";
+                          try {
+                            // answerImgBytes = base64Decode(base64String);
+                          } catch (e) {
+                            debugPrint("Error decoding base64 string: $e");
+                          }
+
+                          bool isSelected = index == _selectedIndex;
+                          String showTxt = "";
+                          Color showColor = ThemeManager.borderBlue;
+                          Color showColor2 = ThemeManager.black;
+                          Color showColorBorder = ThemeManager.grey1;
+
+                          if (_selectedIndex >= 0 &&
+                              _selectedIndex < (testExamPaper?.optionsData?.length ?? 0)) {
+                            showTxt = ((testExamPaper?.correctOption ?? "") ==
+                                    (testExamPaper?.optionsData?[index].value ?? ""))
+                                ? "Correct Answer"
+                                : ((testExamPaper?.optionsData?[_selectedIndex].value ?? "") ==
+                                        (testExamPaper?.optionsData?[index].value ?? ""))
+                                    ? "Incorrect Answer"
+                                    : "";
+
+                            showColor = ((testExamPaper?.correctOption ?? "") ==
+                                    (testExamPaper?.optionsData?[index].value ?? ""))
+                                ? ThemeManager.greenSuccess
+                                : ((testExamPaper?.optionsData?[_selectedIndex].value ?? "") ==
+                                        (testExamPaper?.optionsData?[index].value ?? ""))
+                                    ? ThemeManager.redAlert
+                                    : ThemeManager.white;
+
+                            showColor2 = ((testExamPaper?.correctOption ?? "") ==
+                                    (testExamPaper?.optionsData?[index].value ?? ""))
+                                ? ThemeManager.greenSuccess
+                                : ((testExamPaper?.optionsData?[_selectedIndex].value ?? "") ==
+                                        (testExamPaper?.optionsData?[index].value ?? ""))
+                                    ? ThemeManager.redAlert
+                                    : ThemeManager.black;
+
+                            showColorBorder = ((testExamPaper?.correctOption ?? "") ==
+                                    (testExamPaper?.optionsData?[index].value ?? ""))
+                                ? ThemeManager.correctChart
+                                : ((testExamPaper?.optionsData?[_selectedIndex].value ?? "") ==
+                                        (testExamPaper?.optionsData?[index].value ?? ""))
+                                    ? ThemeManager.evolveRed
+                                    : ThemeManager.grey1;
+                          }
+
+                          // debugPrint("selectedndex $_selectedIndex");
+                          // return Padding(
+                          //   padding: const EdgeInsets.only(top: Dimensions.PADDING_SIZE_DEFAULT),
+                          //   child: InkWell(
+                          //     onTap: (){
+                          //       setState(() {
+                          //         if(widget.isPracticeExam==true) {
+                          //           if (!isTapped) {
+                          //             isTapped = true;
+                          //             _selectedIndex = index;
+                          //           }
+                          //         }
+                          //         else {
+                          //           if (isSelected) {
+                          //             _selectedIndex = -1;
+                          //           } else {
+                          //             _selectedIndex = index;
+                          //           }
+                          //         }
+                          //       });
+                          //     },
+                          //     child: Column(
+                          //       crossAxisAlignment: CrossAxisAlignment.end,
+                          //       children: [
+                          //         Container(
+                          //           decoration: BoxDecoration(
+                          //               border: Border.all(color: isTapped ? showColor : ThemeManager.borderBlue),
+                          //               borderRadius: BorderRadius.circular(Dimensions.RADIUS_DEFAULT)
+                          //           ),
+                          //           child: Padding(
+                          //             padding: const EdgeInsets.all(Dimensions.PADDING_SIZE_SMALL),
+                          //             child: Row(
+                          //               crossAxisAlignment: CrossAxisAlignment.start,
+                          //               children: [
+                          //                 Container(
+                          //                   height: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                          //                   width: Dimensions.PADDING_SIZE_DEFAULT * 2,
+                          //                   decoration: BoxDecoration(
+                          //                       color: ThemeManager.borderBlue,
+                          //                       borderRadius: BorderRadius.circular(Dimensions.RADIUS_LARGE)
+                          //                   ),
+                          //                   child: Center(
+                          //                     child: Text(testExamPaper?.optionsData?[index].value??"",
+                          //                       style: interRegular.copyWith(
+                          //                         fontSize: Dimensions.fontSizeDefault,
+                          //                         fontWeight: FontWeight.w400,
+                          //                         color: ThemeManager.black,
+                          //                       ),
+                          //                     ),
+                          //                   ),
+                          //                 ),
+                          //                 const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
+                          //                 Column(
+                          //                   children: [
+                          //                     SizedBox(
+                          //                       width: MediaQuery.of(context).size.width * 0.6,
+                          //                       child: Html(
+                          //                         data: '''
+                          //                         <div style="color: ${ThemeManager.currentTheme == AppTheme.Dark ? 'white' : 'black'};">
+                          //                         ${testExamPaper?.optionsData?[index].answerTitle ?? ""}
+                          //                         </div>
+                          //                         ''',
+                          //                         // data: testExamPaper?.optionsData?[index].answerTitle??"",
+                          //                         // style: TextStyle(
+                          //                         //   fontSize: Dimensions.fontSizeDefault,
+                          //                         //   fontWeight: FontWeight.w400,
+                          //                         //   color: ThemeManager.black,
+                          //                         // ),
+                          //                       ),
+                          //                     ),
+                          //                     testExamPaper?.optionsData?[index].answerImg!=""?
+                          //                     InteractiveViewer(
+                          //                       minScale: 1.0,
+                          //                       maxScale: 3.0,
+                          //                       child: Center(
+                          //                         child: SizedBox(
+                          //                           width: MediaQuery.of(context).size.width * 0.6,
+                          //                           height: 250,
+                          //                           child: Stack(
+                          //                             children: [
+                          //                               if (answerImgBytes != null)
+                          //                                 Image.memory(answerImgBytes!),
+                          //                               Container(color: Colors.transparent),
+                          //                             ],
+                          //                           ),
+                          //                         ),
+                          //                       ),
+                          //                     ):const SizedBox(),
+                          //                   ],
+                          //                 )
+                          //               ],
+                          //             ),
+                          //           ),
+                          //         ),
+                          //         const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL,),
+                          //         ((testExamPaper?.correctOption??"") == (testExamPaper?.optionsData?[index].value??"")) ||
+                          //             (_selectedIndex >= 0 && _selectedIndex < (testExamPaper?.optionsData?.length??0) &&
+                          //                 (testExamPaper?.optionsData?[_selectedIndex].value??"") == (testExamPaper?.optionsData?[index].value??"")) ?
+                          //         (isTapped == true && widget.isPracticeExam == true) ?
+                          //         Text(
+                          //             showTxt,
+                          //             style: TextStyle(
+                          //                 fontSize: Dimensions.fontSizeSmall,
+                          //                 fontWeight: FontWeight.w400,
+                          //                 color: showColor
+                          //             )):const SizedBox():const SizedBox()
+                          //       ],
+                          //     ),
+                          //   ),
+                          // );
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: Dimensions.PADDING_SIZE_DEFAULT),
+                            child: InkWell(
+                              onTap: () {
+                                // setState(() {
+                                //   if(widget.isPracticeExam==true) {
+                                //     if (!isTapped) {
+                                //       isTapped = true;
+                                //       _selectedIndex = index;
+                                //     }
+                                //   }
+                                //   else {
+                                //     if (isSelected) {
+                                //       _selectedIndex = -1;
+                                //     } else {
+                                //       _selectedIndex = index;
+                                //     }
+                                //   }
+                                // });
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                          color: ((testExamPaper?.correctOption ?? "") ==
+                                                  (testExamPaper?.optionsData?[index].value ?? ""))
+                                              ? ThemeManager.correctChart
+                                              : ((testExamPaper?.selectedOption ?? "") ==
+                                                      (testExamPaper?.optionsData?[index].value ?? ""))
+                                                  ? ThemeManager.evolveRed
+                                                  : ThemeManager.grey1,
+                                          width: 0.84),
+                                      borderRadius: BorderRadius.circular(33.44),
+                                      color: ((testExamPaper?.correctOption ?? "") ==
+                                              (testExamPaper?.optionsData?[index].value ?? ""))
+                                          ? ThemeManager.greenSuccess.withOpacity(0.1)
+                                          : ((testExamPaper?.selectedOption ?? "") ==
+                                                  (testExamPaper?.optionsData?[index].value ?? ""))
+                                              ? ThemeManager.redAlert.withOpacity(0.1)
+                                              : ThemeManager.white,
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: Dimensions.PADDING_SIZE_LARGE,
+                                        vertical: Dimensions.PADDING_SIZE_SMALL * 1.3,
+                                      ),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    "${testExamPaper?.optionsData?[index].value ?? ""}.  ",
+                                                    style: TextStyle(
+                                                      fontSize: Dimensions.fontSizeLarge,
+                                                      fontWeight: FontWeight.w400,
+                                                      color: ((testExamPaper?.correctOption ?? "") ==
+                                                              (testExamPaper?.optionsData?[index].value ??
+                                                                  ""))
+                                                          ? ThemeManager.greenSuccess
+                                                          : ((testExamPaper?.selectedOption ?? "") ==
+                                                                  (testExamPaper?.optionsData?[index].value ??
+                                                                      ""))
+                                                              ? ThemeManager.redAlert
+                                                              : ThemeManager.black,
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: MediaQuery.of(context).size.width * 0.6,
+                                                    child: Text(
+                                                      testExamPaper?.optionsData?[index].answerTitle ?? "",
+                                                      style: TextStyle(
+                                                        fontSize: Dimensions.fontSizeLarge,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: ((testExamPaper?.correctOption ?? "") ==
+                                                                (testExamPaper?.optionsData?[index].value ??
+                                                                    ""))
+                                                            ? ThemeManager.greenSuccess
+                                                            : ((testExamPaper?.selectedOption ?? "") ==
+                                                                    (testExamPaper
+                                                                            ?.optionsData?[index].value ??
+                                                                        ""))
+                                                                ? ThemeManager.redAlert
+                                                                : ThemeManager.black,
+                                                      ),
+                                                    ),
+                                                  )
+                                                ],
+                                              ),
+                                              testExamPaper?.optionsData?[index].answerImg != ""
+                                                  ? Row(
+                                                      children: [
+                                                        InteractiveViewer(
+                                                          minScale: 1.0,
+                                                          maxScale: 3.0,
+                                                          child: Center(
+                                                            child: SizedBox(
+                                                              width: MediaQuery.of(context).size.width * 0.6,
+                                                              height: 250,
+                                                              child: Stack(
+                                                                children: [
+                                                                  // if (answerImgBytes != null)
+                                                                  //   Image.memory(answerImgBytes!),
+                                                                  if (base64String != '')
+                                                                    Image.network(base64String),
+                                                                  Container(color: Colors.transparent),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    )
+                                                  : const SizedBox(),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  // const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL,),
+                                  // ((solutionReport?.correctOption??"") == (solutionReport?.options?[index].value??"")) ||
+                                  //     ((solutionReport?.selectedOption??"") == (solutionReport?.options?[index].value??"")) || ((solutionReport?.guess??"") == (solutionReport?.options?[index].value??"")) ?
+                                  // Text(
+                                  //   showTxt,
+                                  //   style: TextStyle(
+                                  //       fontSize: Dimensions.fontSizeSmall,
+                                  //       fontWeight: FontWeight.w400,
+                                  //       color: showColor
+                                  //   ),):const SizedBox()
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      (isTapped == true && widget.isPracticeExam == true)
+                          ? Observer(
+                              builder: (BuildContext context) {
+                                GetNotesSolutionModel? noteModel = store.notesData.value;
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_DEFAULT,
+                                    ),
+                                    //Solution Explanation
+                                    Row(
+                                      children: [
+                                        // Text("Explanation",
+                                        //   style: interBlack.copyWith(
+                                        //     fontSize: Dimensions.fontSizeLarge,
+                                        //     fontWeight: FontWeight.w500,
+                                        //     color: ThemeManager.black,
+                                        //   ),),
+                                        // const Spacer(),
+                                        // InkWell(
+                                        //   onTap: (){
+                                        //     _showNotesDialog(context, filterTest?[_currentQuestionIndex].sId ?? "", noteModel?.notes??"");
+                                        //   },
+                                        //   child: SvgPicture.asset("assets/image/penIcon.svg"),
+                                        // ),
+                                        //       IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,onPressed: (){
+                                        //   _showNotesDialog(context, filterTest?[_currentQuestionIndex].sId ?? "", noteModel?.notes??"");
+                                        // }, icon: Icon(Icons.edit_note_sharp,color: Theme.of(context).hintColor,)),
+                                        Text(
+                                          "Explanation:",
+                                          style: interBlack.copyWith(
+                                            fontSize: Dimensions.fontSizeLarge,
+                                            fontWeight: FontWeight.w700,
+                                            color: ThemeManager.black,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        // InkWell(
+                                        //   onTap: () {
+                                        //     _showNotesDialog(
+                                        //         context,
+                                        //         filterTest?[_currentQuestionIndex]
+                                        //                 .sId ??
+                                        //             "",
+                                        //         noteModel?.notes ?? "");
+                                        //   },
+                                        //   child: Container(
+                                        //     padding: const EdgeInsets.symmetric(
+                                        //         horizontal: 17, vertical: 6),
+                                        //     decoration: BoxDecoration(
+                                        //         color: ThemeManager.whiteTrans,
+                                        //         borderRadius:
+                                        //             BorderRadius.circular(
+                                        //                 18.71),
+                                        //         border: Border.all(
+                                        //             color: ThemeManager
+                                        //                 .blueFinal)),
+                                        //     child: Text(
+                                        //       "Stick Notes",
+                                        //       style: interBlack.copyWith(
+                                        //         fontSize:
+                                        //             Dimensions.fontSizeSmall,
+                                        //         fontWeight: FontWeight.w400,
+                                        //         color: AppColors.black,
+                                        //       ),
+                                        //     ),
+                                        //   ),
+                                        // ),
+                                        IconButton(
+                                          icon: Image.asset("assets/image/stickyIcon.png",
+                                              width: Dimensions.PADDING_SIZE_LARGE * 1.6,
+                                              height: Dimensions.PADDING_SIZE_LARGE * 1.6),
+                                          onPressed: () {
+                                            _showNotesDialog(
+                                                context,
+                                                filterTest?[_currentQuestionIndex].sId ?? "",
+                                                noteModel?.notes ?? "");
+                                          },
+                                        ),
+                                        const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+                                        IconButton(
+                                          icon: Image.asset("assets/image/font_icon.png",
+                                              width: Dimensions.PADDING_SIZE_LARGE * 1.6,
+                                              height: Dimensions.PADDING_SIZE_LARGE * 1.6),
+                                          onPressed: () => _showBottomSheet(context),
+                                        ),
+                                        // const SizedBox(width: Dimensions.PADDING_SIZE_EXTRA_LARGE,),
+                                        // if((noteModel?.notes??"") !="")
+                                        //   GestureDetector(
+                                        //     onTap: () async {
+                                        //       await _controller.showTooltip();
+                                        //     },
+                                        //     child: SuperTooltip(
+                                        //       showBarrier: true,
+                                        //       controller: _controller,
+                                        //       content: Text(
+                                        //         noteModel?.notes??"",
+                                        //         softWrap: true,
+                                        //         style: TextStyle(
+                                        //           fontSize: Dimensions.fontSizeDefault,
+                                        //           fontWeight: FontWeight.w400,
+                                        //           color: Theme.of(context).primaryColor,
+                                        //         ),
+                                        //       ),
+                                        //       child: SvgPicture.asset("assets/image/messageIcon.svg"),
+                                        //     ),
+                                        //   ),
+                                      ],
+                                    ),
+                                    const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_DEFAULT,
+                                    ),
+
+                                    explanationWidget ?? const SizedBox(),
+                                    const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_DEFAULT,
+                                    ),
+
+                                    isbutton == true
+                                        ? Observer(
+                                            builder: (BuildContext context) {
+                                              GetExplanationModel? getExplainModel =
+                                                  store.getExplanationText.value;
+                                              // debugPrint("store.getExplanationText.value.text: ${store.getExplanationText.value?.text}");
+                                              return Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: Dimensions.PADDING_SIZE_LARGE,
+                                                    vertical: Dimensions.PADDING_SIZE_LARGE),
+                                                decoration: BoxDecoration(
+                                                    color: ThemeManager.explainContainer,
+                                                    borderRadius:
+                                                        BorderRadius.circular(Dimensions.RADIUS_DEFAULT)),
+                                                child: Column(
+                                                  children: [
+                                                    Row(
+                                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                                      children: [
+                                                        Container(
+                                                          width: Dimensions.PADDING_SIZE_DEFAULT * 2.4,
+                                                          height: Dimensions.PADDING_SIZE_DEFAULT * 2.4,
+                                                          alignment: Alignment.center,
+                                                          decoration: BoxDecoration(
+                                                            shape: BoxShape.circle,
+                                                            color: ThemeManager.whitePrimary,
+                                                          ),
+                                                          child: Text(
+                                                            "AI",
+                                                            style: interBlack.copyWith(
+                                                              fontSize: Dimensions.fontSizeLarge,
+                                                              fontWeight: FontWeight.w700,
+                                                              color: ThemeManager.primaryWhite,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          width: Dimensions.PADDING_SIZE_SMALL,
+                                                        ),
+                                                        Text(
+                                                          "Cortex.AI ",
+                                                          style: interBlack.copyWith(
+                                                            fontSize: Dimensions.fontSizeExtraLarge,
+                                                            fontWeight: FontWeight.w500,
+                                                            color: AppColors.white,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          "Explains",
+                                                          style: interBlack.copyWith(
+                                                            fontSize: Dimensions.fontSizeExtraLarge,
+                                                            fontWeight: FontWeight.w700,
+                                                            color: AppColors.white,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(
+                                                      height: Dimensions.PADDING_SIZE_DEFAULT,
+                                                    ),
+                                                    TypeWriterText(
+                                                      text: Text(
+                                                        getExplainModel?.text ?? '',
+                                                        style: interBlack.copyWith(
+                                                          fontSize: Dimensions.fontSizeDefault,
+                                                          fontWeight: FontWeight.w400,
+                                                          color: AppColors.white,
+                                                        ),
+                                                      ),
+                                                      maintainSize: false,
+                                                      duration: const Duration(milliseconds: 10),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
+                                          )
+                                        : const SizedBox(),
+                                    const SizedBox(
+                                      height: Dimensions.PADDING_SIZE_DEFAULT,
+                                    ),
+                                  ],
+                                );
+                              },
+                            )
+                          : const SizedBox()
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(
+                height: Dimensions.PADDING_SIZE_DEFAULT,
+              ),
+              Container(
+                color: ThemeManager.buttonBackground,
+                padding: const EdgeInsets.only(
+                    top: Dimensions.PADDING_SIZE_DEFAULT * 1.2,
+                    left: Dimensions.PADDING_SIZE_EXTRA_LARGE * 1.1,
+                    right: Dimensions.PADDING_SIZE_LARGE * 1.3,
+                    bottom: Dimensions.PADDING_SIZE_LARGE * 1.33),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    InkWell(
+                      onTap: isprocess == true ? null : (firstQue ? null : _showPreviousQuestion),
+                      child: Container(
+                        height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                        width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color:
+                                  firstQue ? ThemeManager.nextButtonBorder : ThemeManager.previousNextPrimary,
+                            )),
+                        child: SvgPicture.asset(
+                          "assets/image/arrow_back.svg",
+                          color: firstQue ? ThemeManager.nextButtonBorder : ThemeManager.previousNextPrimary,
                         ),
                       ),
-                      maintainSize: false,
-                      duration: const Duration(milliseconds: 10),
+                    ),
+                    const SizedBox(
+                      width: Dimensions.PADDING_SIZE_DEFAULT * 1.1,
+                    ),
+                    InkWell(
+                      onTap: isprocess == true ? null : _showNextQuestion,
+                      child: Container(
+                        height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                        width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.14,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: ThemeManager.previousNextPrimary)),
+                        child: Transform.flip(
+                            flipX: true,
+                            child: SvgPicture.asset(
+                              "assets/image/arrow_back.svg",
+                              color: ThemeManager.previousNextPrimary,
+                            )),
+                      ),
                     ),
                   ],
                 ),
-              );
-            }),
-        ],
-      );
-    });
-  }
+              ),
 
-  Widget _buildNavBar() {
-    return Container(
-      color: AppTokens.surface2(context),
-      padding: const EdgeInsets.fromLTRB(
-        AppTokens.s24,
-        AppTokens.s16,
-        AppTokens.s24,
-        AppTokens.s20,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _NavCircleBtn(
-            icon: Icons.arrow_back_ios_new_rounded,
-            enabled: !firstQue && !isprocess,
-            onTap: () {
-              if (!firstQue && !isprocess) {
-                _showPreviousQuestion();
-              }
-            },
+              // Row(
+              //   children: [
+              //     Expanded(
+              //       child: SizedBox(
+              //         height: Dimensions.PADDING_SIZE_EXTRA_LARGE*2,
+              //         child: ElevatedButton(
+              //             style: ElevatedButton.styleFrom(
+              //                 shape: RoundedRectangleBorder(
+              //                   borderRadius: BorderRadius.circular(10),
+              //                 ),
+              //                 backgroundColor: Theme.of(context).primaryColor
+              //             ),
+              //             onPressed:isprocess == true ? null : (firstQue?null:_showPreviousQuestion),
+              //             child: Text("Previous",
+              //               style: TextStyle(
+              //                 fontSize: Dimensions.fontSizeDefault,
+              //                 fontWeight: FontWeight.w400,
+              //                 color: firstQue ? ThemeManager.black : ThemeManager.home1,
+              //               ),)),
+              //       ),
+              //     ),
+              //     const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
+              //     Expanded(
+              //       child: SizedBox(
+              //         height: Dimensions.PADDING_SIZE_EXTRA_LARGE*2,
+              //         child: ElevatedButton(
+              //             style: ElevatedButton.styleFrom(
+              //                 shape: RoundedRectangleBorder(
+              //                   borderRadius: BorderRadius.circular(10),
+              //                 ),
+              //                 backgroundColor: Theme.of(context).primaryColor
+              //             ),
+              //             onPressed:isprocess == true ? null : _showNextQuestion,
+              //             child: isLastQues==true?
+              //             Text("End Practice",
+              //               style: TextStyle(
+              //                 fontSize: Dimensions.fontSizeDefault,
+              //                 fontWeight: FontWeight.w400,
+              //                 color:ThemeManager.home1
+              //               ),):
+              //             Text("Next",
+              //               style: TextStyle(
+              //                 fontSize: Dimensions.fontSizeDefault,
+              //                 fontWeight: FontWeight.w400,
+              //                 color:ThemeManager.home1,
+              //               ),)),
+              //       ),
+              //     ),
+              //   ],
+              // ),
+              // CustomButton(onPressed: (){
+              //   isMarkedForReview=true;
+              //   _showNextQuestion();
+              //   // Navigator.of(context).pushNamed(Routes.questionPallet);
+              // },
+              //   buttonText: "Mark for review",
+              //   height: Dimensions.PADDING_SIZE_EXTRA_LARGE*2,
+              //   textAlign: TextAlign.center,
+              //   radius: Dimensions.RADIUS_DEFAULT,
+              //   transparent: true,
+              //   bgColor: Theme.of(context).primaryColor,
+              //   fontSize: Dimensions.fontSizeDefault,
+              // ),
+            ],
           ),
-          const SizedBox(width: AppTokens.s16),
-          _NavCircleBtn(
-            icon: Icons.arrow_forward_ios_rounded,
-            enabled: !isprocess,
-            onTap: () {
-              if (!isprocess) {
-                _showNextQuestion();
-              }
-            },
-          ),
-        ],
-      ),
+          drawer: Drawer(
+            backgroundColor: Colors.white,
+            child: CustomTestQuestionPallet(
+                widget.testExamPaper, widget.userExamId, null, widget.isPracticeExam, null),
+          )),
     );
   }
 
-  // ==========================================================================
-  // Legacy preserved dialog helpers
-  // ==========================================================================
-
   void _showNotesDialog(BuildContext context, String questionId, String notes) {
+    // showDialog(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (BuildContext context) {
+    //     TextEditingController queryController = TextEditingController();
+    //     queryController.text = notes;
+    //     return AlertDialog(
+    //       title: Text('Add Notes',
+    //         style: interRegular.copyWith(
+    //           fontSize: Dimensions.fontSizeExtraLarge,
+    //           fontWeight: FontWeight.w500,
+    //           color: ThemeManager.black,
+    //         ),),
+    //       content: Form(
+    //         child: SizedBox(
+    //           width: MediaQuery.of(context).size.width * 0.9,
+    //           height: MediaQuery.of(context).size.height * 0.2,
+    //           child: TextFormField(
+    //             cursorColor: Theme.of(context).primaryColor,
+    //             controller: queryController,
+    //             maxLines: 50,
+    //             keyboardType: TextInputType.multiline,
+    //             decoration: InputDecoration(
+    //               enabledBorder: UnderlineInputBorder(
+    //                 borderSide: BorderSide(color: Theme.of(context).primaryColor),
+    //               ),
+    //               focusedBorder: UnderlineInputBorder(
+    //                 borderSide: BorderSide(color:Theme.of(context).primaryColor),
+    //               ),
+    //               hintText: 'Enter your notes...',
+    //               hintStyle: interRegular.copyWith(
+    //                 fontSize: Dimensions.fontSizeLarge,
+    //                 fontWeight: FontWeight.w400,
+    //                 color: Theme.of(context).hintColor,
+    //               ),
+    //             ),
+    //             style: interRegular.copyWith(
+    //               fontSize: Dimensions.fontSizeLarge,
+    //               fontWeight: FontWeight.w400,
+    //               color: ThemeManager.black,
+    //             ),
+    //           ),
+    //         ),
+    //       ),
+    //       actions: [
+    //         Row(
+    //           mainAxisAlignment: MainAxisAlignment.center,
+    //           children: [
+    //             SizedBox(
+    //               height: Dimensions.PADDING_SIZE_LARGE * 2,
+    //               child: ElevatedButton(
+    //                 onPressed: () {
+    //                   Navigator.of(context).pop();
+    //                 },
+    //                 style: ElevatedButton.styleFrom(
+    //                     shape: RoundedRectangleBorder(
+    //                       borderRadius: BorderRadius.circular(8),
+    //                     ),
+    //                     backgroundColor: Theme.of(context).hintColor
+    //                 ),
+    //                 child: Text('Cancel',
+    //                   style: interRegular.copyWith(
+    //                     fontSize: Dimensions.fontSizeLarge,
+    //                     fontWeight: FontWeight.w400,
+    //                     color: Colors.white,
+    //                   ),),
+    //               ),
+    //             ),
+    //             const SizedBox(width: Dimensions.PADDING_SIZE_DEFAULT,),
+    //             SizedBox(
+    //               height: Dimensions.PADDING_SIZE_LARGE * 2,
+    //               child: ElevatedButton(
+    //                 style: ElevatedButton.styleFrom(
+    //                     shape: RoundedRectangleBorder(
+    //                       borderRadius: BorderRadius.circular(8),
+    //                     ),
+    //                     backgroundColor: Theme.of(context).primaryColor
+    //                 ),
+    //                 onPressed: () {
+    //                   String notes = queryController.text;
+    //                   debugPrint('enterTxt$notes');
+    //                   addNotes(filterTest?[_currentQuestionIndex].sId,notes);
+    //                   Navigator.of(context).pop();
+    //                 },
+    //                 child: Text('Submit',
+    //                   style: interRegular.copyWith(
+    //                     fontSize: Dimensions.fontSizeLarge,
+    //                     fontWeight: FontWeight.w400,
+    //                     color: Colors.white,
+    //                   ),),
+    //               ),
+    //             ),
+    //           ],
+    //         ),
+    //         const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT,),
+    //       ],
+    //     );
+    //   },
+    // );
     if (Platform.isWindows || Platform.isMacOS) {
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: AppTokens.surface(context),
+            backgroundColor: ThemeManager.mainBackground,
             actionsPadding: EdgeInsets.zero,
             insetPadding: const EdgeInsets.symmetric(horizontal: 250),
             actions: [
-              CustomBottomStickNotesWindow(
-                questionId: questionId,
-                notes: notes,
-              ),
+              CustomBottomStickNotesWindow(questionId: questionId, notes: notes),
             ],
           );
         },
@@ -1299,6 +2321,23 @@ class _PracticeCustomTestSolutionExamScreenState
     }
   }
 
+  Future<void> addNotes(String? questionId, String? notes) async {
+    final store = Provider.of<ReportsCategoryStore>(context, listen: false);
+    await store.onCreateNotes(context, questionId ?? "", notes ?? "");
+    _getNotesData(filterTest?[_currentQuestionIndex].sId ?? "");
+    BottomToast.showBottomToastOverlay(
+      context: context,
+      errorMessage: "Notes Added Successfully!",
+      backgroundColor: Theme.of(context).primaryColor,
+    );
+  }
+
+  Future<void> _getNotesData(String queId) async {
+    final store = Provider.of<ReportsCategoryStore>(context, listen: false);
+    await store.onGetNotesData(queId);
+    debugPrint('queIdbookmark$queId');
+  }
+
   void _showDialog(BuildContext context, String questionId) {
     showDialog(
       context: context,
@@ -1308,34 +2347,47 @@ class _PracticeCustomTestSolutionExamScreenState
         String errorText = '';
 
         return AlertDialog(
-          backgroundColor: AppTokens.surface(context),
-          shape: RoundedRectangleBorder(borderRadius: AppTokens.radius16),
           title: Text(
             'Have a Query?',
-            style: AppTokens.titleMd(context),
+            style: interRegular.copyWith(
+              fontSize: Dimensions.fontSizeExtraLarge,
+              fontWeight: FontWeight.w500,
+              color: ThemeManager.black,
+            ),
           ),
           content: Form(
             child: SizedBox(
               width: MediaQuery.of(context).size.width * 0.9,
               height: MediaQuery.of(context).size.height * 0.2,
               child: TextFormField(
-                cursorColor: AppTokens.accent(context),
+                cursorColor: Theme.of(context).primaryColor,
                 controller: queryController,
                 maxLines: 7,
                 decoration: InputDecoration(
                   enabledBorder: UnderlineInputBorder(
-                    borderSide:
-                        BorderSide(color: AppTokens.accent(context)),
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
                   ),
                   focusedBorder: UnderlineInputBorder(
-                    borderSide:
-                        BorderSide(color: AppTokens.accent(context)),
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor),
                   ),
                   hintText: 'Enter your query...',
-                  hintStyle: AppTokens.body(context)
-                      .copyWith(color: AppTokens.muted(context)),
+                  hintStyle: interRegular.copyWith(
+                    fontSize: Dimensions.fontSizeLarge,
+                    fontWeight: FontWeight.w400,
+                    color: Theme.of(context).hintColor,
+                  ),
+                  errorText: 'Please enter your query',
+                  errorStyle: interRegular.copyWith(
+                    fontSize: Dimensions.fontSizeLarge,
+                    fontWeight: FontWeight.w400,
+                    color: Theme.of(context).hintColor,
+                  ),
                 ),
-                style: AppTokens.body(context),
+                style: interRegular.copyWith(
+                  fontSize: Dimensions.fontSizeLarge,
+                  fontWeight: FontWeight.w400,
+                  color: ThemeManager.black,
+                ),
               ),
             ),
           ),
@@ -1343,26 +2395,63 @@ class _PracticeCustomTestSolutionExamScreenState
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _PrimaryBtn(
-                  label: 'Cancel',
-                  tone: _PillTone.neutral,
-                  onTap: () => Navigator.of(context).pop(),
+                SizedBox(
+                  height: Dimensions.PADDING_SIZE_LARGE * 2,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        backgroundColor: Theme.of(context).hintColor),
+                    child: Text(
+                      'Cancel',
+                      style: interRegular.copyWith(
+                        fontSize: Dimensions.fontSizeLarge,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(width: AppTokens.s12),
-                _PrimaryBtn(
-                  label: 'Submit',
-                  onTap: () {
-                    String enteredText = queryController.text;
-                    if (enteredText.isEmpty) {
-                      setState(() {
-                        errorText = 'Please enter your query';
-                      });
-                    }
-                  },
+                const SizedBox(
+                  width: Dimensions.PADDING_SIZE_DEFAULT,
+                ),
+                SizedBox(
+                  height: Dimensions.PADDING_SIZE_LARGE * 2,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        backgroundColor: Theme.of(context).primaryColor),
+                    onPressed: () {
+                      String enteredText = queryController.text;
+                      if (enteredText.isEmpty) {
+                        setState(() {
+                          errorText = 'Please enter your query';
+                        });
+                      } else {
+                        // addQuery(questionId, enteredText,context);
+                      }
+                    },
+                    child: Text(
+                      'Submit',
+                      style: interRegular.copyWith(
+                        fontSize: Dimensions.fontSizeLarge,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: AppTokens.s12),
+            const SizedBox(
+              height: Dimensions.PADDING_SIZE_DEFAULT,
+            ),
           ],
         );
       },
@@ -1370,367 +2459,283 @@ class _PracticeCustomTestSolutionExamScreenState
   }
 
   Future<void> _showBottomSheet(BuildContext context) async {
-    final double? selectedFontSize = Platform.isWindows || Platform.isMacOS
-        ? await showDialog<double>(
-            context: context,
-            builder: (BuildContext context) {
-              return _FontSizeDialog(
-                initial: _textSize,
-                initialShow: showfontSize,
-                desktop: true,
-              );
-            },
-          )
-        : await showModalBottomSheet<double>(
-            context: context,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    if (Platform.isWindows || Platform.isMacOS) {
+      final double? selectedFontSize = await showDialog<double>(
+        context: context,
+        builder: (BuildContext context) {
+          double currentFontSize = _textSize;
+          double showCurrFontSize = showfontSize;
+
+          return AlertDialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 250),
+            backgroundColor: ThemeManager.mainBackground,
+            content: StatefulBuilder(
+              builder: (BuildContext context, StateSetter setModalState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Sample Text',
+                          style: interBlack.copyWith(
+                            fontSize: currentFontSize,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Font size',
+                          style: interBlack.copyWith(
+                            fontSize: Dimensions.fontSizeDefault,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.black,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  if (showCurrFontSize > 50) {
+                                    showCurrFontSize -= 10;
+                                    currentFontSize -= 1;
+                                  }
+                                });
+                              },
+                              icon: const Icon(Icons.remove_circle_outline),
+                              color: Colors.grey[600],
+                            ),
+                            Text(
+                              '$showCurrFontSize',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  showCurrFontSize += 10;
+                                  currentFontSize += 1;
+                                });
+                              },
+                              icon: const Icon(Icons.add_circle_outline),
+                              color: Colors.grey[600],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CustomButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          buttonText: "Cancel",
+                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 6,
+                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                          textAlign: TextAlign.center,
+                          radius: Dimensions.RADIUS_DEFAULT,
+                          transparent: true,
+                          bgColor: ThemeManager.btnGrey,
+                          fontSize: Dimensions.fontSizeDefault,
+                        ),
+                        CustomButton(
+                          onPressed: () {
+                            Navigator.pop(context, currentFontSize);
+                          },
+                          buttonText: "Apply",
+                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 6,
+                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                          textAlign: TextAlign.center,
+                          radius: Dimensions.RADIUS_DEFAULT,
+                          transparent: true,
+                          bgColor: Theme.of(context).primaryColor,
+                          fontSize: Dimensions.fontSizeDefault,
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              },
             ),
-            builder: (BuildContext context) {
-              return _FontSizeDialog(
-                initial: _textSize,
-                initialShow: showfontSize,
-                desktop: false,
+          );
+        },
+      );
+
+      if (selectedFontSize != null) {
+        setState(() {
+          _textSize = selectedFontSize;
+          showfontSize = (100 + ((selectedFontSize - Dimensions.fontSizeDefault) * 10));
+        });
+      }
+    } else {
+      final double? selectedFontSize = await showModalBottomSheet<double>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(20),
+          ),
+        ),
+        builder: (BuildContext context) {
+          double currentFontSize = _textSize;
+          double showCurrFontSize = showfontSize;
+
+          return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Sample Text',
+                          style: interBlack.copyWith(
+                            fontSize: currentFontSize,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Font size',
+                          style: interBlack.copyWith(
+                            fontSize: Dimensions.fontSizeDefault,
+                            fontWeight: FontWeight.w400,
+                            color: AppColors.black,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  if (showCurrFontSize > 50) {
+                                    showCurrFontSize -= 10;
+                                    currentFontSize -= 1;
+                                  }
+                                });
+                              },
+                              icon: const Icon(Icons.remove_circle_outline),
+                              color: Colors.grey[600],
+                            ),
+                            Text(
+                              '$showCurrFontSize',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                setModalState(() {
+                                  showCurrFontSize += 10;
+                                  currentFontSize += 1;
+                                });
+                              },
+                              icon: const Icon(Icons.add_circle_outline),
+                              color: Colors.grey[600],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CustomButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          buttonText: "Cancel",
+                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 6,
+                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                          textAlign: TextAlign.center,
+                          radius: Dimensions.RADIUS_DEFAULT,
+                          transparent: true,
+                          bgColor: ThemeManager.btnGrey,
+                          fontSize: Dimensions.fontSizeDefault,
+                        ),
+                        CustomButton(
+                          onPressed: () {
+                            Navigator.pop(context, currentFontSize);
+                          },
+                          buttonText: "Apply",
+                          width: Dimensions.PADDING_SIZE_EXTRA_LARGE * 6,
+                          height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                          textAlign: TextAlign.center,
+                          radius: Dimensions.RADIUS_DEFAULT,
+                          transparent: true,
+                          bgColor: Theme.of(context).primaryColor,
+                          fontSize: Dimensions.fontSizeDefault,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               );
             },
           );
-
-    if (selectedFontSize != null) {
-      setState(() {
-        _textSize = selectedFontSize;
-        showfontSize =
-            (100 + ((selectedFontSize - Dimensions.fontSizeDefault) * 10));
-      });
-    }
-  }
-}
-
-// ============================================================================
-//                               Primitives
-// ============================================================================
-
-enum _StatTone { success, warning, danger }
-
-enum _ActionTone { brand, outline }
-
-enum _PillTone { primary, neutral }
-
-class _CircleIconBtn extends StatelessWidget {
-  const _CircleIconBtn({required this.icon, required this.onTap});
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppTokens.surface2(context),
-            border: Border.all(color: AppTokens.border(context)),
-          ),
-          child: Icon(icon, size: 18, color: AppTokens.ink(context)),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionPill extends StatelessWidget {
-  const _ActionPill({
-    required this.onTap,
-    required this.child,
-    required this.tone,
-  });
-  final VoidCallback onTap;
-  final Widget child;
-  final _ActionTone tone;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color bg = tone == _ActionTone.brand
-        ? AppTokens.accent(context)
-        : AppTokens.surface(context);
-    final Color fg = tone == _ActionTone.brand
-        ? Colors.white
-        : AppTokens.ink(context);
-    final Color border = tone == _ActionTone.brand
-        ? AppTokens.accent(context)
-        : AppTokens.border(context);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: onTap,
-        child: Container(
-          height: 36,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: AppTokens.s12),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: border),
-          ),
-          child: DefaultTextStyle(
-            style: AppTokens.titleSm(context).copyWith(color: fg),
-            child: child,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavCircleBtn extends StatelessWidget {
-  const _NavCircleBtn({
-    required this.icon,
-    required this.enabled,
-    required this.onTap,
-  });
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color fg = enabled
-        ? AppTokens.accent(context)
-        : AppTokens.muted(context);
-    return InkWell(
-      borderRadius: BorderRadius.circular(999),
-      onTap: enabled ? onTap : null,
-      child: Container(
-        height: 52,
-        width: 52,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: fg),
-          color: enabled
-              ? AppTokens.accentSoft(context)
-              : AppTokens.surface(context),
-        ),
-        child: Icon(icon, color: fg, size: 18),
-      ),
-    );
-  }
-}
-
-class _PrimaryBtn extends StatelessWidget {
-  const _PrimaryBtn({
-    required this.label,
-    required this.onTap,
-    this.tone = _PillTone.primary,
-  });
-  final String label;
-  final VoidCallback onTap;
-  final _PillTone tone;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color bg = tone == _PillTone.primary
-        ? AppTokens.accent(context)
-        : AppTokens.surface2(context);
-    final Color fg = tone == _PillTone.primary
-        ? Colors.white
-        : AppTokens.ink(context);
-    return InkWell(
-      borderRadius: AppTokens.radius12,
-      onTap: onTap,
-      child: Container(
-        height: 44,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: AppTokens.s20),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: AppTokens.radius12,
-          border: Border.all(color: bg),
-        ),
-        child: Text(
-          label,
-          style: AppTokens.titleSm(context).copyWith(color: fg),
-        ),
-      ),
-    );
-  }
-}
-
-class _SummaryStat extends StatelessWidget {
-  const _SummaryStat({
-    required this.icon,
-    required this.tone,
-    required this.label,
-    required this.value,
-  });
-  final IconData icon;
-  final _StatTone tone;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    Color bg;
-    Color fg;
-    switch (tone) {
-      case _StatTone.success:
-        bg = AppTokens.successSoft(context);
-        fg = AppTokens.success(context);
-        break;
-      case _StatTone.danger:
-        bg = AppTokens.dangerSoft(context);
-        fg = AppTokens.danger(context);
-        break;
-      case _StatTone.warning:
-        bg = AppTokens.warningSoft(context);
-        fg = AppTokens.warning(context);
-        break;
-    }
-    return Row(
-      children: [
-        Container(
-          width: 32,
-          height: 32,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-          child: Icon(icon, size: 18, color: fg),
-        ),
-        const SizedBox(width: AppTokens.s12),
-        Expanded(
-          child: Text(
-            label,
-            style: AppTokens.body(context),
-          ),
-        ),
-        Text(
-          value,
-          style: AppTokens.titleMd(context),
-        ),
-      ],
-    );
-  }
-}
-
-class _FontSizeDialog extends StatefulWidget {
-  const _FontSizeDialog({
-    required this.initial,
-    required this.initialShow,
-    required this.desktop,
-  });
-  final double initial;
-  final double initialShow;
-  final bool desktop;
-
-  @override
-  State<_FontSizeDialog> createState() => _FontSizeDialogState();
-}
-
-class _FontSizeDialogState extends State<_FontSizeDialog> {
-  late double currentFontSize = widget.initial;
-  late double showCurrFontSize = widget.initialShow;
-
-  @override
-  Widget build(BuildContext context) {
-    final body = Padding(
-      padding: const EdgeInsets.all(AppTokens.s16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 50,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppTokens.border(context),
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          const SizedBox(height: AppTokens.s16),
-          Container(
-            padding: const EdgeInsets.all(AppTokens.s16),
-            decoration: BoxDecoration(
-              color: AppTokens.surface2(context),
-              borderRadius: AppTokens.radius12,
-              border: Border.all(color: AppTokens.border(context)),
-            ),
-            child: Center(
-              child: Text(
-                'Sample Text',
-                style: AppTokens.body(context).copyWith(
-                  fontSize: currentFontSize,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppTokens.s16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Font size', style: AppTokens.body(context)),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        if (showCurrFontSize > 50) {
-                          showCurrFontSize -= 10;
-                          currentFontSize -= 1;
-                        }
-                      });
-                    },
-                    icon: const Icon(Icons.remove_circle_outline),
-                    color: AppTokens.ink2(context),
-                  ),
-                  Text(
-                    '$showCurrFontSize',
-                    style: AppTokens.titleSm(context),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        showCurrFontSize += 10;
-                        currentFontSize += 1;
-                      });
-                    },
-                    icon: const Icon(Icons.add_circle_outline),
-                    color: AppTokens.ink2(context),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTokens.s16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _PrimaryBtn(
-                label: "Cancel",
-                tone: _PillTone.neutral,
-                onTap: () => Navigator.pop(context),
-              ),
-              _PrimaryBtn(
-                label: "Apply",
-                onTap: () => Navigator.pop(context, currentFontSize),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-    if (widget.desktop) {
-      return AlertDialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 250),
-        backgroundColor: AppTokens.surface(context),
-        shape: RoundedRectangleBorder(borderRadius: AppTokens.radius16),
-        content: body,
+        },
       );
+
+      if (selectedFontSize != null) {
+        setState(() {
+          _textSize = selectedFontSize;
+          showfontSize = (100 + ((selectedFontSize - Dimensions.fontSizeDefault) * 10));
+        });
+      }
     }
-    return body;
   }
+
+  // Future<void> addQuery(String questionId, String queryTxt, BuildContext context) async {
+  //   final store = Provider.of<ReportsCategoryStore>(context, listen: false);
+  //   await store.onCreateQuerySolutionReport(context, questionId, queryTxt);
+  //   BottomToast.showBottomToastOverlay(
+  //     context: context,
+  //     errorMessage: "Query Successfully Submitted",
+  //     backgroundColor: Theme.of(context).primaryColor,
+  //   );
+  //   Navigator.of(context).pop();
+  // }
 }

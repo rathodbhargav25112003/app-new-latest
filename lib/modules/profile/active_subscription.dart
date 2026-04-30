@@ -10,7 +10,6 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:shusruta_lms/app/routes.dart';
 import 'package:shusruta_lms/helpers/app_tokens.dart';
 import 'package:shusruta_lms/helpers/colors.dart';
@@ -24,6 +23,8 @@ import 'package:shusruta_lms/modules/new_subscription_plans/store/ordered_book_s
 import 'package:shusruta_lms/modules/subscriptionplans/store/subscription_store.dart';
 import 'package:shusruta_lms/modules/widgets/custom_button.dart';
 import 'package:shusruta_lms/modules/widgets/no_internet_connection.dart';
+
+import '../../helpers/styles.dart';
 
 /// Local platform-shorthand used to toggle hero-header/border-radius
 /// between desktop & mobile surfaces.
@@ -98,8 +99,7 @@ class ActiveSubscriptionScreen extends StatefulWidget {
   final bool isHome;
 
   @override
-  State<ActiveSubscriptionScreen> createState() =>
-      _ActiveSubscriptionScreenState();
+  State<ActiveSubscriptionScreen> createState() => _ActiveSubscriptionScreenState();
 
   static Route<dynamic> route(RouteSettings routeSettings) {
     return CupertinoPageRoute(
@@ -281,13 +281,322 @@ class _ActiveSubscriptionScreenState extends State<ActiveSubscriptionScreen> {
     final homeStore = Provider.of<HomeStore>(context);
     return Scaffold(
       backgroundColor: AppTokens.scaffold(context),
-      bottomNavigationBar: _BottomActionBar(
-        onDeleteTap: () => _showDeleteAccountDialog(homeStore),
-        onLogoutTap: () async {
-          await clearAppData();
-          if (!mounted) return;
-          _showLogoutDialog(homeStore);
-        },
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            decoration: BoxDecoration(
+              color: ThemeManager.white,
+              border: Border(
+                top: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return Dialog(
+                            backgroundColor: Colors.transparent,
+                            child: FittedBox(
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.topCenter,
+                                children: [
+                                  Container(
+                                    padding:
+                                        const EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_LARGE),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: ThemeManager.white,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        const SizedBox(
+                                          height: Dimensions.PADDING_SIZE_LARGE * 1.7,
+                                        ),
+                                        Text(
+                                          "Are you sure you want to Delete Account?",
+                                          style: interMedium.copyWith(
+                                              fontSize: Dimensions.fontSizeDefault,
+                                              color: ThemeManager.black,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        const SizedBox(
+                                          height: Dimensions.PADDING_SIZE_SMALL * 1.3,
+                                        ),
+                                        Container(
+                                          // width: MediaQuery.of(context)
+                                          //         .size
+                                          //         .width *
+                                          //     0.5,
+                                          child: Row(
+                                            children: [
+                                              InkWell(
+                                                onTap: () {
+                                                  _deleteAccountUser(homeStore);
+                                                },
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  alignment: Alignment.center,
+                                                  constraints: const BoxConstraints(minWidth: 20),
+                                                  decoration: BoxDecoration(
+                                                    color: ThemeManager.logOutContainer.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    "Delete Account",
+                                                    style: interBold.copyWith(
+                                                        fontSize: Dimensions.fontSizeDefault,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: ThemeManager.logOutContainer,
+                                                        height: 0),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                width: Dimensions.PADDING_SIZE_SMALL * 2.2,
+                                              ),
+                                              InkWell(
+                                                onTap: () {
+                                                  // signOut(store, loggedInPlatform);
+                                                  Navigator.pop(context);
+                                                },
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                  alignment: Alignment.center,
+                                                  constraints: const BoxConstraints(minWidth: 20),
+                                                  decoration: BoxDecoration(
+                                                    color: ThemeManager.logOutContainer,
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    "Cancel",
+                                                    style: interBold.copyWith(
+                                                        fontSize: Dimensions.fontSizeSmall,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: ThemeManager.white,
+                                                        height: 0),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(
+                                          height: Dimensions.PADDING_SIZE_SMALL * 2.2,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: -MediaQuery.of(context).size.height * 0.026,
+                                    child: Container(
+                                      height: 48,
+                                      width: 48,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                          color: ThemeManager.white,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              offset: const Offset(0, 4),
+                                              blurRadius: 14,
+                                              spreadRadius: -2,
+                                              color: ThemeManager.black.withOpacity(0.05),
+                                            ),
+                                          ]),
+                                      child: SvgPicture.asset("assets/image/deleteAccount.svg"),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Delete Account',
+                          style: interRegular.copyWith(
+                            fontSize: Dimensions.fontSizeDefault,
+                            color: ThemeManager.black,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      await clearAppData();
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return Dialog(
+                            backgroundColor: Colors.transparent,
+                            child: FittedBox(
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.topCenter,
+                                children: [
+                                  Container(
+                                    padding:
+                                        const EdgeInsets.symmetric(horizontal: Dimensions.PADDING_SIZE_LARGE),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: ThemeManager.white,
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        const SizedBox(
+                                          height: Dimensions.PADDING_SIZE_LARGE * 1.7,
+                                        ),
+                                        Text(
+                                          "Are you sure you want to log out?",
+                                          style: interMedium.copyWith(
+                                              fontSize: Dimensions.fontSizeDefault,
+                                              color: ThemeManager.black,
+                                              fontWeight: FontWeight.w500),
+                                        ),
+                                        const SizedBox(
+                                          height: Dimensions.PADDING_SIZE_SMALL * 1.3,
+                                        ),
+                                        Container(
+                                          // width: MediaQuery.of(context)
+                                          //         .size
+                                          //         .width *
+                                          //     0.5,
+                                          child: Row(
+                                            children: [
+                                              InkWell(
+                                                onTap: () async {
+                                                  Navigator.pop(context); // Close dialog first
+                                                  await clearAppData();
+                                                  signOut(homeStore, _getPlatformString());
+                                                },
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  alignment: Alignment.center,
+                                                  constraints: const BoxConstraints(minWidth: 20),
+                                                  decoration: BoxDecoration(
+                                                    color: ThemeManager.logOutContainer.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    "Log out",
+                                                    style: interBold.copyWith(
+                                                        fontSize: Dimensions.fontSizeDefault,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: ThemeManager.logOutContainer,
+                                                        height: 0),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                width: Dimensions.PADDING_SIZE_SMALL * 2.2,
+                                              ),
+                                              InkWell(
+                                                onTap: () {
+                                                  // signOut(store, loggedInPlatform);
+                                                  Navigator.pop(context);
+                                                },
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                  alignment: Alignment.center,
+                                                  constraints: const BoxConstraints(minWidth: 20),
+                                                  decoration: BoxDecoration(
+                                                    color: ThemeManager.logOutContainer,
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text(
+                                                    "Cancel",
+                                                    style: interBold.copyWith(
+                                                        fontSize: Dimensions.fontSizeSmall,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: ThemeManager.white,
+                                                        height: 0),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(
+                                          height: Dimensions.PADDING_SIZE_SMALL * 2.2,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: -MediaQuery.of(context).size.height * 0.026,
+                                    child: Container(
+                                      height: 48,
+                                      width: 48,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                          color: ThemeManager.white,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              offset: const Offset(0, 4),
+                                              blurRadius: 14,
+                                              spreadRadius: -2,
+                                              color: ThemeManager.black.withOpacity(0.05),
+                                            ),
+                                          ]),
+                                      child: SvgPicture.asset("assets/image/log-out.svg"),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Log Out',
+                          style: interRegular.copyWith(
+                            fontSize: Dimensions.fontSizeDefault,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Dimensions.PADDING_SIZE_DEFAULT),
+        ],
       ),
       body: Column(
         children: [
@@ -344,13 +653,10 @@ class _ActiveSubscriptionScreenState extends State<ActiveSubscriptionScreen> {
                                             ),
                                           )
                                         : Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              _SectionHeading(
-                                                  title: "My Subscription"),
-                                              const SizedBox(
-                                                  height: AppTokens.s12),
+                                              _SectionHeading(title: "My Subscription"),
+                                              const SizedBox(height: AppTokens.s12),
                                               buildSubscribedPlansView(),
                                             ],
                                           ),
@@ -366,9 +672,7 @@ class _ActiveSubscriptionScreenState extends State<ActiveSubscriptionScreen> {
                             : const NoInternetWidget();
                       },
                     ),
-                    if (_loginStore.settingsData.value?.isInAPurchases ==
-                            true &&
-                        Platform.isMacOS) ...[
+                    if (_loginStore.settingsData.value?.isInAPurchases == true && Platform.isMacOS) ...[
                       const SizedBox.shrink(),
                     ] else ...[
                       _SectionHeading(title: 'Order History'),
@@ -383,26 +687,19 @@ class _ActiveSubscriptionScreenState extends State<ActiveSubscriptionScreen> {
                                       ),
                                       child: _orderedBookStore.isLoading
                                           ? Center(
-                                              child:
-                                                  CircularProgressIndicator(
+                                              child: CircularProgressIndicator(
                                                 color: AppColors.primaryColor,
                                               ),
                                             )
                                           : ListView.builder(
-                                              itemCount: _orderedBookStore
-                                                  .orderedBooks.length,
+                                              itemCount: _orderedBookStore.orderedBooks.length,
                                               shrinkWrap: true,
                                               padding: EdgeInsets.zero,
-                                              physics:
-                                                  const NeverScrollableScrollPhysics(),
-                                              itemBuilder: (BuildContext
-                                                      context,
-                                                  int index) {
+                                              physics: const NeverScrollableScrollPhysics(),
+                                              itemBuilder: (BuildContext context, int index) {
                                                 OrderedBookModel? bookOrder =
-                                                    _orderedBookStore
-                                                        .orderedBooks[index];
-                                                return _buildOrderedBookCard(
-                                                    context, bookOrder);
+                                                    _orderedBookStore.orderedBooks[index];
+                                                return _buildOrderedBookCard(context, bookOrder);
                                               },
                                             ),
                                     )
@@ -560,8 +857,7 @@ class _ActiveSubscriptionScreenState extends State<ActiveSubscriptionScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (book.description != null &&
-                      book.description!.isNotEmpty) ...[
+                  if (book.description != null && book.description!.isNotEmpty) ...[
                     const SizedBox(height: AppTokens.s8),
                     Text(
                       book.description!,
@@ -581,16 +877,13 @@ class _ActiveSubscriptionScreenState extends State<ActiveSubscriptionScreen> {
                       const SizedBox(width: AppTokens.s16),
                       _buildInfoColumn('Quantity', '${book.quantity ?? 1}'),
                       const SizedBox(width: AppTokens.s16),
-                      if (book.discountPrice != null &&
-                          book.discountPrice! > 0)
-                        _buildInfoColumn(
-                            'Discount', '₹${book.discountPrice}'),
+                      if (book.discountPrice != null && book.discountPrice! > 0)
+                        _buildInfoColumn('Discount', '₹${book.discountPrice}'),
                     ],
                   ),
 
                   const SizedBox(height: AppTokens.s12),
-                  if (book.deliveryCharge != null &&
-                      book.deliveryCharge! > 0)
+                  if (book.deliveryCharge != null && book.deliveryCharge! > 0)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1054,8 +1347,7 @@ class _BottomActionBar extends StatelessWidget {
                 onTap: onDeleteTap,
                 borderRadius: BorderRadius.circular(AppTokens.r12),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppTokens.s12),
+                  padding: const EdgeInsets.symmetric(vertical: AppTokens.s12),
                   decoration: BoxDecoration(
                     border: Border.all(color: AppTokens.border(context)),
                     borderRadius: BorderRadius.circular(AppTokens.r12),
@@ -1078,8 +1370,7 @@ class _BottomActionBar extends StatelessWidget {
                 onTap: onLogoutTap,
                 borderRadius: BorderRadius.circular(AppTokens.r12),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppTokens.s12),
+                  padding: const EdgeInsets.symmetric(vertical: AppTokens.s12),
                   decoration: BoxDecoration(
                     color: AppTokens.danger(context),
                     borderRadius: BorderRadius.circular(AppTokens.r12),
@@ -1233,13 +1524,10 @@ Widget buildSubscribedPlanItem(BuildContext context, int index) {
   final store = Provider.of<SubscriptionStore>(context);
   // Your existing item builder code
   SubscribedPlanModel? subscribedPlans = store.subscribedPlan[index];
-  String? subPlanOffer = store.subscribedPlan[index]?.buyDuration?.offer
-      ?.toString()
-      .replaceAll("%", "");
+  String? subPlanOffer = store.subscribedPlan[index]?.buyDuration?.offer?.toString().replaceAll("%", "");
   // ignore: unused_local_variable
-  num offerPrice = (store.subscribedPlan[index]?.buyDuration?.price ??
-      store.subscribedPlan[index]?.amount ??
-      0);
+  num offerPrice =
+      (store.subscribedPlan[index]?.buyDuration?.price ?? store.subscribedPlan[index]?.amount ?? 0);
   if (subPlanOffer != null && subPlanOffer.isNotEmpty) {
     try {
       double discountPercentage = double.parse(subPlanOffer);
@@ -1248,20 +1536,15 @@ Widget buildSubscribedPlanItem(BuildContext context, int index) {
       debugPrint("catch");
     }
   }
-  DateTime expiryDate = DateFormat("MMM dd, yyyy, hh:mm a")
-      .parse(subscribedPlans?.expirationDate ?? '');
-  DateTime startDate = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSZ")
-      .parse(subscribedPlans?.created_at ?? '');
+  DateTime expiryDate = DateFormat("MMM dd, yyyy, hh:mm a").parse(subscribedPlans?.expirationDate ?? '');
+  DateTime startDate = DateFormat("yyyy-MM-ddTHH:mm:ss.SSSZ").parse(subscribedPlans?.created_at ?? '');
   // ignore: unused_local_variable
-  String formattedExpiryDate =
-      DateFormat("MMMM dd'TH' yyyy").format(expiryDate);
+  String formattedExpiryDate = DateFormat("MMMM dd'TH' yyyy").format(expiryDate);
   // ignore: unused_local_variable
   String formattedStartDate = DateFormat("MMMM dd'TH' yyyy").format(startDate);
 
   // ignore: unused_local_variable
-  int monthsDifference = (expiryDate.year - startDate.year) * 12 +
-      expiryDate.month -
-      startDate.month;
+  int monthsDifference = (expiryDate.year - startDate.year) * 12 + expiryDate.month - startDate.month;
   // ignore: unused_local_variable
   int yearsDifference = expiryDate.year - startDate.year;
   // ignore: unused_local_variable
@@ -1339,14 +1622,10 @@ Widget buildSubscribedPlanItem(BuildContext context, int index) {
                   : Observer(
                       builder: (context) {
                         // Show upgrade plan button only when isInAPurchases is true
-                        final loginStore =
-                            Provider.of<LoginStore>(context, listen: false);
-                        final bool isIAPEnabled = loginStore
-                                .settingsData.value?.isInAPurchases ==
-                            true;
+                        final loginStore = Provider.of<LoginStore>(context, listen: false);
+                        final bool isIAPEnabled = loginStore.settingsData.value?.isInAPurchases == true;
 
-                        if (isIAPEnabled &&
-                            (Platform.isMacOS || Platform.isIOS)) {
+                        if (isIAPEnabled && (Platform.isMacOS || Platform.isIOS)) {
                           // When IAP is disabled, show blank container (no upgrade option)
                           return const SizedBox.shrink();
                         } else {
@@ -1360,21 +1639,17 @@ Widget buildSubscribedPlanItem(BuildContext context, int index) {
                                 builder: (ctx) => UpgradePlanPopup(
                                   currentExpiryDate: expiryDate,
                                   onProceed: (mode) {
-                                    Navigator.of(ctx)
-                                        .pop(mode); // Return selected mode
+                                    Navigator.of(ctx).pop(mode); // Return selected mode
                                   },
                                 ),
                               );
                               // After dialog closes, handle navigation here
                               if (selectedMode != null) {
                                 // Determine flags for API based on selectedMode
-                                final sameValidity =
-                                    selectedMode == 'same-validity';
-                                final isDiffValidity =
-                                    selectedMode == 'new-validity';
+                                final sameValidity = selectedMode == 'same-validity';
+                                final isDiffValidity = selectedMode == 'new-validity';
                                 // Get userId from the current plan/subscription
-                                final subscriptionId =
-                                    subscribedPlans?.order_id ?? '';
+                                final subscriptionId = subscribedPlans?.order_id ?? '';
                                 // Navigate to the new upgrade plan selection screen
                                 if (!context.mounted) return;
                                 Navigator.of(context).pushNamed(
@@ -1388,8 +1663,7 @@ Widget buildSubscribedPlanItem(BuildContext context, int index) {
                                 );
                               }
                             },
-                            borderRadius:
-                                BorderRadius.circular(AppTokens.r20),
+                            borderRadius: BorderRadius.circular(AppTokens.r20),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppTokens.s12,
@@ -1404,8 +1678,7 @@ Widget buildSubscribedPlanItem(BuildContext context, int index) {
                                     AppTokens.brand2,
                                   ],
                                 ),
-                                borderRadius: BorderRadius.all(
-                                    Radius.circular(AppTokens.r20)),
+                                borderRadius: BorderRadius.all(Radius.circular(AppTokens.r20)),
                               ),
                               child: Text(
                                 "Upgrade plan",
@@ -1444,8 +1717,7 @@ Widget buildSubscribedPlanItem(BuildContext context, int index) {
               const SizedBox(height: AppTokens.s16),
               Column(
                 children: subscribedPlans?.benifit?.map<Widget>((feature) {
-                      return _buildFeatureRow(
-                          Icons.check_circle_outline, feature);
+                      return _buildFeatureRow(Icons.check_circle_outline, feature);
                     }).toList() ??
                     [],
               ),
@@ -1535,20 +1807,7 @@ class _UpgradePlanPopupState extends State<UpgradePlanPopup> {
   }
 
   String _monthAbbr(int month) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec'
-    ];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return months[month - 1];
   }
 
@@ -1616,8 +1875,7 @@ class _UpgradePlanPopupState extends State<UpgradePlanPopup> {
                 value: 'new-validity',
                 title: ' 🔓  Upgrade Tier – Extend / New Validity',
                 subtitle: _newValidityText,
-                tagline:
-                    '🔹 Upgrade and get Extra Validity added to your plan.',
+                tagline: '🔹 Upgrade and get Extra Validity added to your plan.',
               ),
               const SizedBox(height: AppTokens.s24 + AppTokens.s4),
               // Proceed button
@@ -1672,15 +1930,11 @@ class _UpgradePlanPopupState extends State<UpgradePlanPopup> {
         ),
         decoration: BoxDecoration(
           border: Border.all(
-            color: selected
-                ? AppTokens.accent(context)
-                : AppTokens.border(context),
+            color: selected ? AppTokens.accent(context) : AppTokens.border(context),
             width: selected ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(AppTokens.r12),
-          color: selected
-              ? AppTokens.accentSoft(context)
-              : AppTokens.surface(context),
+          color: selected ? AppTokens.accentSoft(context) : AppTokens.surface(context),
         ),
         child: Row(
           children: [

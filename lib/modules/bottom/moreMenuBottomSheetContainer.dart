@@ -1,4 +1,535 @@
+// import 'dart:io';
+// import 'dart:math';
+// import '../../app/routes.dart';
+// import 'homeBottomSheetMenu.dart';
+// import '../../helpers/colors.dart';
+// import '../../helpers/styles.dart';
+// import '../widgets/bottom_toast.dart';
+// import 'package:flutter/material.dart';
+// import '../../helpers/dimensions.dart';
+// import '../login/verify_otp_mail.dart';
+// import 'package:provider/provider.dart';
+// import '../login/store/login_store.dart';
+// import '../dashboard/store/home_store.dart';
+// import 'package:flutter_svg/flutter_svg.dart';
+// import '../videolectures/video_category.dart';
+// import 'package:url_launcher/url_launcher.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
+// import '../widgets/my_doubts_screen.dart';
+//
+// class MoreMenuBottomsheetContainer extends StatefulWidget {
+//   // final Function onTapMoreMenuItemContainer;
+//   final Function closeBottomMenu;
+//   const MoreMenuBottomsheetContainer(
+//       {Key? key,
+//       // required this.onTapMoreMenuItemContainer,
+//       required this.closeBottomMenu})
+//       : super(key: key);
+//
+//   @override
+//   State<MoreMenuBottomsheetContainer> createState() =>
+//       _MoreMenuBottomsheetContainerState();
+// }
+//
+// class _MoreMenuBottomsheetContainerState
+//     extends State<MoreMenuBottomsheetContainer> {
+//   Future<void> _launchURL(String url) async {
+//     debugPrint('usel$url');
+//     // ignore: deprecated_member_use
+//     if (await canLaunch(url)) {
+//       await launch(url);
+//     } else {
+//       throw 'Could not launch $url';
+//     }
+//   }
+//
+//   _launchEmail(String email) async {
+//     final Uri _emailLaunchUri = Uri(
+//       scheme: 'mailto',
+//       path: email,
+//     );
+//     if (await canLaunch(_emailLaunchUri.toString())) {
+//       await launch(_emailLaunchUri.toString());
+//     } else {
+//       throw 'Could not launch email';
+//     }
+//   }
+//
+//   _launchWhatsApp(String phone) async {
+//     final Uri whatsAppLaunchUri =
+//         Uri(scheme: 'https', host: 'wa.me', path: "91$phone");
+//     if (await canLaunch(whatsAppLaunchUri.toString())) {
+//       await launch(whatsAppLaunchUri.toString());
+//     } else {
+//       throw 'Could not launch WhatsApp';
+//     }
+//   }
+//
+//   String loggedInPlatform = '';
+//   void signOut(HomeStore store, String loggedInPlatform) async {
+//     SharedPreferences prefs = await SharedPreferences.getInstance();
+//     bool? loggedInEmail = prefs.getBool('isloggedInEmail');
+//     bool? loggedInWt = prefs.getBool('isLoggedInWt');
+//     // bool? signInGoogle = prefs.getBool('isSignInGoogle');
+//     String? fcmToken = prefs.getString('fcmtoken');
+//
+//     // Try to call the API logout, but don't block local logout if it fails
+//     try {
+//       await store.onSignoutUser(loggedInPlatform);
+//     } catch (e) {
+//       print("API logout failed, proceeding with local logout: $e");
+//     }
+//
+//     // Perform local logout operations regardless of API call success
+//     // If user reached this screen, they must be logged in, so always allow logout
+//     String? token = prefs.getString('token');
+//     bool shouldLogout = true; // Always allow logout if user clicked logout button
+//
+//     print("Logout Debug - loggedInEmail: $loggedInEmail, loggedInWt: $loggedInWt, token: ${token?.substring(0, token != null && token.length > 10 ? 10 : token?.length ?? 0)}..., shouldLogout: $shouldLogout, platform: ${Platform.operatingSystem}");
+//
+//     if (shouldLogout) {
+//       prefs.setString('token', '');
+//       prefs.setString('fcmtoken', '');
+//       prefs.setBool('isLoggedInWt', false);
+//       prefs.setBool('isloggedInEmail', false);
+//       prefs.setBool('isSignInGoogle', false);
+//       prefs.clear();
+//       ThemeManager.currentTheme == AppTheme.Dark
+//           ? Provider.of<ThemeNotifier>(context, listen: false).toggleTheme()
+//           : null;
+//       // Navigator.of(context).pushNamed(Routes.loginWithPass);
+//       Navigator.of(context)
+//           .pushNamedAndRemoveUntil(Routes.login, (context) => false);
+//       print("User Logged Out - Navigation to login screen executed");
+//     } else {
+//       print("Logout failed - shouldLogout condition not met");
+//     }
+//     // else if(signInGoogle==true){
+//     //   await _googleSignIn.signOut();
+//     //   prefs.setString('fcmtoken','');
+//     //   prefs.setString('token','');
+//     //   prefs.setBool('isSignInGoogle',false);
+//     //   prefs.clear();
+//     //   Navigator.of(context).pushNamed(Routes.splash);
+//     //   print("User Sign Out");
+//     // }
+//
+//     // Only delete FCM token on mobile platforms where FCM is available
+//     if (fcmToken != null && !Platform.isWindows && !Platform.isMacOS) {
+//       try {
+//         await store.onDeleteNotificationToken(fcmToken);
+//       } catch (e) {
+//         print("FCM token deletion failed: $e");
+//       }
+//     }
+//   }
+//
+//   Future<void> _deleteAccountUser() async {
+//     final store = Provider.of<HomeStore>(context, listen: false);
+//     await store.onDeleteUserAccountCall(store.userDetails.value?.id ?? '');
+//   }
+//
+//   void _navigateToScreen(int currentlyOpenMenuIndex) {
+//     final loginStore = Provider.of<LoginStore>(context, listen: false);
+//     final store = Provider.of<HomeStore>(context, listen: false);
+//     final deviceType = getDeviceType(context);
+//     String type = deviceType == DeviceType.Tablet ? 'Tablet' : 'Mobile';
+//
+//     // Enhanced platform detection for desktop platforms
+//     if (Platform.isIOS) {
+//       loggedInPlatform = "ios$type";
+//     } else if (Platform.isAndroid) {
+//       loggedInPlatform = "android$type";
+//     } else if (Platform.isMacOS) {
+//       loggedInPlatform = "macOSDesktop";
+//     } else if (Platform.isWindows) {
+//       loggedInPlatform = "windowsDesktop";
+//     } else {
+//       loggedInPlatform = "unknownDesktop";
+//     }
+//     String title = homeBottomSheetMenu[currentlyOpenMenuIndex].title;
+//
+//     if (title == "Videos") {
+//       Navigator.pushNamed(context, Routes.videoLectures);
+//     }
+//     if (title == "Tests") {
+//       Navigator.pushNamed(context, Routes.testCategory);
+//     }
+//     if (title == "Notes") {
+//       Navigator.pushNamed(context, Routes.notesCategory);
+//     }
+//     if (title == "Analysis & Solutions") {
+//       Navigator.pushNamed(context, Routes.reportsCategoryList,
+//           arguments: {'fromhome': true});
+//     }
+//     if (title == "Mock Exam Analysis") {
+//       Navigator.pushNamed(context, Routes.masterReportsCategoryList,
+//           arguments: {'fromhome': true});
+//     }
+//     if (title == "Offline Notes") {
+//       Navigator.pushNamed(context, Routes.downloadedNotesCategory);
+//     }
+//     if (title == "My Plan") {
+//       Navigator.pushNamed(context, Routes.subscriptionPlan);
+//     }
+//     if (title == "Subscription Plan") {
+//       Navigator.pushNamed(context, Routes.newSubscription, arguments: {'showBackButton': true});
+//     }
+//     if (title == "Notification") {
+//       Navigator.pushNamed(context, Routes.notificationScreen,
+//           arguments: {'fromhome': true});
+//     }
+//     if (title == "Bookmarks") {
+//       Navigator.pushNamed(context, Routes.bookMarkCategoryList,
+//           arguments: {'fromhome': true});
+//     }
+//     if (title == "Mock Exam Bookmarks") {
+//       Navigator.pushNamed(context, Routes.masterBookMarkCategoryList,
+//           arguments: {'fromhome': true});
+//     }
+//     if (title == "My Doubts") {
+//       Navigator.of(context).push(
+//         MaterialPageRoute(builder: (context) => const MyDoubtsScreen()),
+//       );
+//     }
+//     if (title == "Privacy Policy") {
+//       _launchURL("https://sushrutalgs.in/privacy-policy");
+//     }
+//     if (title == "Refund Policy") {
+//       _launchURL("https://sushrutalgs.in/refund-policy");
+//     }
+//     if (title == "Terms & Conditions") {
+//       _launchURL("https://sushrutalgs.in/terms-%26-conditions");
+//     }
+//     if (title == "Contact Us") {
+//       debugPrint("Phone:${loginStore.settingsData.value?.phone}");
+//       _launchWhatsApp(loginStore.settingsData.value?.phone ?? "");
+//     }
+//     if (title == "Email") {
+//       debugPrint("email:${loginStore.settingsData.value?.email}");
+//       _launchEmail(loginStore.settingsData.value?.email ?? "");
+//     }
+//     if (title == "Logout") {
+//       // Set platform detection for logout
+//       final deviceType = getDeviceType(context);
+//       String type = deviceType == DeviceType.Tablet ? 'Tablet' : 'Mobile';
+//
+//       // Enhanced platform detection for desktop platforms
+//       if (Platform.isIOS) {
+//         loggedInPlatform = "ios$type";
+//       } else if (Platform.isAndroid) {
+//         loggedInPlatform = "android$type";
+//       } else if (Platform.isMacOS) {
+//         loggedInPlatform = "macOSDesktop";
+//       } else if (Platform.isWindows) {
+//         loggedInPlatform = "windowsDesktop";
+//       } else {
+//         loggedInPlatform = "unknownDesktop";
+//       }
+//
+//       showDialog(
+//           context: context,
+//           builder: (context) => AlertDialog(
+//                 backgroundColor: ThemeManager.white,
+//                 content: Text(
+//                   'Do you want to logout this Account? ',
+//                   style: interRegular.copyWith(
+//                     fontSize: Dimensions.fontSizeLarge,
+//                     fontWeight: FontWeight.w500,
+//                     color: ThemeManager.black,
+//                   ),
+//                 ),
+//                 actions: [
+//                   TextButton(
+//                     style: TextButton.styleFrom(
+//                         foregroundColor: Colors.white,
+//                         elevation: 2,
+//                         backgroundColor: Theme.of(context).hintColor),
+//                     onPressed: () => Navigator.pop(context, false),
+//                     child: Text('No',
+//                         style: interRegular.copyWith(
+//                           fontSize: Dimensions.fontSizeDefault,
+//                           fontWeight: FontWeight.w500,
+//                           color: ThemeManager.white,
+//                         )),
+//                   ),
+//                   TextButton(
+//                     style: TextButton.styleFrom(
+//                         foregroundColor: Colors.white,
+//                         elevation: 2,
+//                         backgroundColor: Theme.of(context).primaryColor),
+//                     onPressed: () {
+//                       Navigator.pop(context); // Close dialog first
+//                       signOut(store, loggedInPlatform);
+//                     },
+//                     child: Text('Yes',
+//                         style: interRegular.copyWith(
+//                           fontSize: Dimensions.fontSizeDefault,
+//                           fontWeight: FontWeight.w500,
+//                           color: ThemeManager.white,
+//                         )),
+//                   ),
+//                 ],
+//               ));
+//     }
+//     if (title == "Delete Account") {
+//       showDialog(
+//           context: context,
+//           builder: (context) => AlertDialog(
+//                 backgroundColor: ThemeManager.white,
+//                 content: Text(
+//                   'Do you want to Delete this Account? ',
+//                   style: interRegular.copyWith(
+//                     fontSize: Dimensions.fontSizeLarge,
+//                     fontWeight: FontWeight.w500,
+//                     color: ThemeManager.black,
+//                   ),
+//                 ),
+//                 actions: [
+//                   TextButton(
+//                     style: TextButton.styleFrom(
+//                         foregroundColor: Colors.white,
+//                         elevation: 2,
+//                         backgroundColor: Theme.of(context).hintColor),
+//                     onPressed: () => Navigator.pop(context, false),
+//                     child: Text('No',
+//                         style: interRegular.copyWith(
+//                           fontSize: Dimensions.fontSizeDefault,
+//                           fontWeight: FontWeight.w500,
+//                           color: ThemeManager.white,
+//                         )),
+//                   ),
+//                   TextButton(
+//                     style: TextButton.styleFrom(
+//                         foregroundColor: Colors.white,
+//                         elevation: 2,
+//                         backgroundColor: Theme.of(context).primaryColor),
+//                     onPressed: () {
+//                       _deleteAccountUser();
+//                       // Navigator.of(context).pushNamed(Routes.loginWithPass);
+//                       Navigator.of(context).pushNamed(Routes.login);
+//                     },
+//                     child: Text('Yes',
+//                         style: interRegular.copyWith(
+//                           fontSize: Dimensions.fontSizeDefault,
+//                           fontWeight: FontWeight.w500,
+//                           color: ThemeManager.white,
+//                         )),
+//                   ),
+//                 ],
+//               ));
+//     }
+//   }
+//
+//   final ScrollController scrollController = ScrollController();
+//   Widget _buildMoreMenuContainer(
+//       {required BuildContext context,
+//       required BoxConstraints boxConstraints,
+//       required String iconUrl,
+//       required String title}) {
+//     return title != ""
+//         ? Padding(
+//             padding: EdgeInsets.only(bottom: 20),
+//             child: GestureDetector(
+//               onTap: () {
+//                 // widget.onTapMoreMenuItemContainer(homeBottomSheetMenu
+//                 //     .indexWhere((element) => element.title == title));
+//                 int currentlyOpenMenuIndex = homeBottomSheetMenu
+//                     .indexWhere((element) => element.title == title);
+//                 // widget.onTapMoreMenuItemContainer(currentlyOpenMenuIndex);
+//                 _navigateToScreen(currentlyOpenMenuIndex);
+//               },
+//               child: Column(
+//                 children: [
+//                   // homeBottomSheetMenu.indexWhere((element) => element.title == title ?
+//                   // student?.hostelId.toString() != "0" ?
+//                   Container(
+//                     margin: EdgeInsets.symmetric(
+//                       horizontal: boxConstraints.maxWidth * (0.1),
+//                     ),
+//                     width: boxConstraints.maxWidth * (0.18),
+//                     height: boxConstraints.maxWidth * (0.18),
+//                     padding: EdgeInsets.only(
+//                       left: 12.5,
+//                       right: 12.5,
+//                       top: 12.5,
+//                       bottom: 6,
+//                     ),
+//                     child: SvgPicture.asset(iconUrl),
+//                   ),
+//                   // :SizedBox(),
+//                   // SizedBox(height: 5),
+//                   SizedBox(
+//                     width: boxConstraints.maxWidth * (0.23),
+//                     child: Text(
+//                       title,
+//                       textAlign: TextAlign.center,
+//                       style:
+//                           TextStyle(color: ThemeManager.black, fontSize: 14.0),
+//                     ),
+//                   )
+//                 ],
+//               ),
+//             ),
+//           )
+//         : SizedBox.shrink();
+//   }
+//
+//   Future<void> _getUserDetails() async {
+//     final store = Provider.of<HomeStore>(context, listen: false);
+//     await store.onGetUserDetailsCall(context);
+//   }
+//
+//   @override
+//   void initState() {
+//     // TODO: implement initState
+//     super.initState();
+//     _getUserDetails();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     final store = Provider.of<HomeStore>(context, listen: false);
+//     return Container(
+//       // padding: EdgeInsets.only(top: 25.0, right: 25.0, left: 25.0),
+//       child: LayoutBuilder(builder: (context, boxConstraints) {
+//         return SingleChildScrollView(
+//           child: Column(
+//             mainAxisSize: MainAxisSize.min,
+//             children: [
+//               InkWell(
+//                 onTap: () {
+//                   store.userDetails.value != null
+//                       ? Navigator.of(context).pushNamed(Routes.editProfile,
+//                           arguments: {'userprofile': store.userDetails.value})
+//                       : BottomToast.showBottomToastOverlay(
+//                           context: context,
+//                           errorMessage: "Something went wrong!",
+//                           backgroundColor: ThemeManager.redAlert,
+//                         );
+//                 },
+//                 child: Padding(
+//                   padding: EdgeInsets.only(top: 25.0, right: 25.0),
+//                   child: Row(
+//                     children: [
+//                       SizedBox(
+//                         width: boxConstraints.maxWidth * (0.075),
+//                       ),
+//                       Column(
+//                         crossAxisAlignment: CrossAxisAlignment.start,
+//                         children: [
+//                           Text(
+//                             store.userDetails.value?.fullname ?? "",
+//                             style: interRegular.copyWith(
+//                               fontSize: Dimensions.fontSizeOverLarge,
+//                               fontWeight: FontWeight.bold,
+//                               color: ThemeManager.black,
+//                             ),
+//                           ),
+//                           Text(
+//                             store.userDetails.value?.username ?? "",
+//                             style: interRegular.copyWith(
+//                               fontSize: Dimensions.fontSizeLarge,
+//                               fontWeight: FontWeight.w500,
+//                               color: ThemeManager.profileName,
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                       Spacer(),
+//                       SizedBox(
+//                           height: 21,
+//                           width: 22,
+//                           child: Icon(
+//                             ThemeManager.currentTheme == AppTheme.Dark
+//                                 ? Icons.nightlight
+//                                 : Icons.sunny,
+//                             color: ThemeManager.black,
+//                           )),
+//                       const SizedBox(width: Dimensions.PADDING_SIZE_SMALL),
+//                       Switch(
+//                         inactiveThumbColor: Colors.white,
+//                         inactiveTrackColor: Colors.blue,
+//                         activeColor: Colors.white,
+//                         activeTrackColor: Colors.green,
+//                         value: ThemeManager.currentTheme == AppTheme.Dark,
+//                         onChanged: (value) {
+//                           setState(() {
+//                             Provider.of<ThemeNotifier>(context, listen: false)
+//                                 .toggleTheme();
+//                             value = !value;
+//                           });
+//                         },
+//                       ),
+//                     ],
+//                   ),
+//                 ),
+//               ),
+//               Padding(
+//                 padding: EdgeInsets.only(right: 25.0, left: 25.0),
+//                 child: Divider(
+//                   color: ThemeManager.black,
+//                   height: 50,
+//                 ),
+//               ),
+//               // Container(
+//               //   height: MediaQuery.of(context).size.height * 0.5,
+//               //   child: SingleChildScrollView(
+//               //     child: Wrap(
+//               //       children: homeBottomSheetMenu
+//               //           .map((e) => _buildMoreMenuContainer(
+//               //               context: context,
+//               //               boxConstraints: boxConstraints,
+//               //               iconUrl: e.iconUrl,
+//               //               title: e.title))
+//               //           .toList(),
+//               //     ),
+//               //   ),
+//               // ),
+//               Container(
+//                 height: MediaQuery.of(context).size.height * 0.5,
+//                 padding: EdgeInsets.only(right: 25.0, left: 25.0),
+//                 child: Scrollbar(
+//                   controller: scrollController,
+//                   thumbVisibility: true,
+//                   child: SingleChildScrollView(
+//                     controller: scrollController,
+//                     child: Wrap(
+//                       spacing: MediaQuery.of(context).size.width * 0.09,
+//                       children:
+//                           List.generate(homeBottomSheetMenu.length, (index) {
+//                         String titleToSend = homeBottomSheetMenu[index].title;
+//
+//                         return _buildMoreMenuContainer(
+//                             context: context,
+//                             boxConstraints: boxConstraints,
+//                             iconUrl: homeBottomSheetMenu[index].iconUrl,
+//                             title: titleToSend);
+//                       }),
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//               SizedBox(
+//                 height: MediaQuery.of(context).size.height * 0.1,
+//               ),
+//             ],
+//           ),
+//         );
+//       }),
+//       width: MediaQuery.of(context).size.width,
+//       decoration: BoxDecoration(
+//           color: ThemeManager.white,
+//           borderRadius: BorderRadius.only(
+//               topLeft: Radius.circular(25), topRight: Radius.circular(25))),
+//     );
+//   }
+// }
+
 import 'dart:io';
+// ignore: unused_import
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -7,23 +538,21 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../app/routes.dart';
 import '../../helpers/app_tokens.dart';
-import '../dashboard/store/home_store.dart';
-import '../login/store/login_store.dart';
-import '../widgets/bottom_toast.dart';
-import 'homeBottomSheetMenu.dart';
 // Legacy imports preserved for API parity; no longer referenced by the UI.
 // ignore: unused_import
 import '../../helpers/colors.dart';
 // ignore: unused_import
-import '../../helpers/styles.dart';
-// ignore: unused_import
 import '../../helpers/dimensions.dart';
+// ignore: unused_import
+import '../../helpers/styles.dart';
+import '../dashboard/store/home_store.dart';
+import '../login/store/login_store.dart';
 // ignore: unused_import
 import '../login/verify_otp_mail.dart';
 // ignore: unused_import
 import '../videolectures/video_category.dart';
-// ignore: unused_import
-import 'dart:math';
+import '../widgets/bottom_toast.dart';
+import 'homeBottomSheetMenu.dart';
 
 /// MoreMenuBottomsheetContainer — the "More" sheet shown from the bottom
 /// nav. Public surface preserved exactly:
@@ -50,12 +579,10 @@ class MoreMenuBottomsheetContainer extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<MoreMenuBottomsheetContainer> createState() =>
-      _MoreMenuBottomsheetContainerState();
+  State<MoreMenuBottomsheetContainer> createState() => _MoreMenuBottomsheetContainerState();
 }
 
-class _MoreMenuBottomsheetContainerState
-    extends State<MoreMenuBottomsheetContainer> {
+class _MoreMenuBottomsheetContainerState extends State<MoreMenuBottomsheetContainer> {
   String loggedInPlatform = '';
   final ScrollController scrollController = ScrollController();
 
@@ -87,8 +614,7 @@ class _MoreMenuBottomsheetContainerState
   }
 
   Future<void> _launchWhatsApp(String phone) async {
-    final Uri whatsAppLaunchUri =
-        Uri(scheme: 'https', host: 'wa.me', path: '91$phone');
+    final Uri whatsAppLaunchUri = Uri(scheme: 'https', host: 'wa.me', path: '91$phone');
     // ignore: deprecated_member_use
     if (await canLaunch(whatsAppLaunchUri.toString())) {
       // ignore: deprecated_member_use
@@ -114,11 +640,8 @@ class _MoreMenuBottomsheetContainerState
     }
 
     final token = prefs.getString('token');
-    final tokenPreview = token == null
-        ? 'null'
-        : token.substring(0, token.length > 10 ? 10 : token.length);
-    debugPrint(
-        'Logout Debug - loggedInEmail: $loggedInEmail, loggedInWt: $loggedInWt, '
+    final tokenPreview = token == null ? 'null' : token.substring(0, token.length > 10 ? 10 : token.length);
+    debugPrint('Logout Debug - loggedInEmail: $loggedInEmail, loggedInWt: $loggedInWt, '
         'token: $tokenPreview…, platform: ${Platform.operatingSystem}');
 
     if (!mounted) return;
@@ -131,8 +654,7 @@ class _MoreMenuBottomsheetContainerState
     if (ThemeManager.currentTheme == AppTheme.Dark) {
       Provider.of<ThemeNotifier>(context, listen: false).toggleTheme();
     }
-    Navigator.of(context)
-        .pushNamedAndRemoveUntil(Routes.login, (context) => false);
+    Navigator.of(context).pushNamedAndRemoveUntil(Routes.login, (context) => false);
     debugPrint('User Logged Out - Navigation to login screen executed');
 
     if (fcmToken != null && !Platform.isWindows && !Platform.isMacOS) {
@@ -175,6 +697,12 @@ class _MoreMenuBottomsheetContainerState
     final title = homeBottomSheetMenu[currentlyOpenMenuIndex].title;
 
     switch (title) {
+      case 'Daily Review':
+        Navigator.pushNamed(context, Routes.dailyReview);
+        break;
+      case 'Settings':
+        Navigator.pushNamed(context, Routes.settings);
+        break;
       case 'Videos':
         Navigator.pushNamed(context, Routes.videoLectures);
         break;
@@ -185,12 +713,10 @@ class _MoreMenuBottomsheetContainerState
         Navigator.pushNamed(context, Routes.notesCategory);
         break;
       case 'Analysis & Solutions':
-        Navigator.pushNamed(context, Routes.reportsCategoryList,
-            arguments: {'fromhome': true});
+        Navigator.pushNamed(context, Routes.reportsCategoryList, arguments: {'fromhome': true});
         break;
       case 'Mock Exam Analysis':
-        Navigator.pushNamed(context, Routes.masterReportsCategoryList,
-            arguments: {'fromhome': true});
+        Navigator.pushNamed(context, Routes.masterReportsCategoryList, arguments: {'fromhome': true});
         break;
       case 'Offline Notes':
         Navigator.pushNamed(context, Routes.downloadedNotesCategory);
@@ -199,20 +725,16 @@ class _MoreMenuBottomsheetContainerState
         Navigator.pushNamed(context, Routes.subscriptionPlan);
         break;
       case 'Subscription Plan':
-        Navigator.pushNamed(context, Routes.newSubscription,
-            arguments: {'showBackButton': true});
+        Navigator.pushNamed(context, Routes.newSubscription, arguments: {'showBackButton': true});
         break;
       case 'Notification':
-        Navigator.pushNamed(context, Routes.notificationScreen,
-            arguments: {'fromhome': true});
+        Navigator.pushNamed(context, Routes.notificationScreen, arguments: {'fromhome': true});
         break;
       case 'Bookmarks':
-        Navigator.pushNamed(context, Routes.bookMarkCategoryList,
-            arguments: {'fromhome': true});
+        Navigator.pushNamed(context, Routes.bookMarkCategoryList, arguments: {'fromhome': true});
         break;
       case 'Mock Exam Bookmarks':
-        Navigator.pushNamed(context, Routes.masterBookMarkCategoryList,
-            arguments: {'fromhome': true});
+        Navigator.pushNamed(context, Routes.masterBookMarkCategoryList, arguments: {'fromhome': true});
         break;
 
       // ── MCQ Review v3 — spaced repetition + planning + reading prefs ──
@@ -251,8 +773,7 @@ class _MoreMenuBottomsheetContainerState
       case 'Logout':
         _showConfirmDialog(
           title: 'Log out of this account?',
-          message:
-              'You will need to sign in again to access your plan and progress.',
+          message: 'You will need to sign in again to access your plan and progress.',
           confirmLabel: 'Log out',
           confirmColor: AppTokens.danger(context),
           icon: Icons.logout_rounded,
@@ -265,8 +786,7 @@ class _MoreMenuBottomsheetContainerState
       case 'Delete Account':
         _showConfirmDialog(
           title: 'Delete this account?',
-          message:
-              'This is permanent. Your progress, notes and subscription data will be removed.',
+          message: 'This is permanent. Your progress, notes and subscription data will be removed.',
           confirmLabel: 'Delete',
           confirmColor: AppTokens.danger(context),
           icon: Icons.delete_forever_rounded,
@@ -311,8 +831,7 @@ class _MoreMenuBottomsheetContainerState
             Expanded(
               child: Text(
                 title,
-                style: AppTokens.titleMd(ctx)
-                    .copyWith(fontWeight: FontWeight.w700),
+                style: AppTokens.titleMd(ctx).copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -374,23 +893,18 @@ class _MoreMenuBottomsheetContainerState
     required String title,
   }) {
     if (title.isEmpty) return const SizedBox.shrink();
-    final crossSize =
-        (boxConstraints.maxWidth / 4).clamp(84.0, 140.0).toDouble();
+    final crossSize = (boxConstraints.maxWidth / 4).clamp(84.0, 140.0).toDouble();
     final isDestructive = title == 'Logout' || title == 'Delete Account';
-    final iconColor = isDestructive
-        ? AppTokens.danger(context)
-        : AppTokens.accent(context);
-    final iconBgColor = isDestructive
-        ? AppTokens.dangerSoft(context)
-        : AppTokens.accentSoft(context);
+    final iconColor = isDestructive ? AppTokens.danger(context) : AppTokens.accent(context);
+    final iconBgColor = isDestructive ? AppTokens.dangerSoft(context) : AppTokens.accentSoft(context);
     return SizedBox(
       width: crossSize,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            final int currentlyOpenMenuIndex = homeBottomSheetMenu
-                .indexWhere((element) => element.title == title);
+            final int currentlyOpenMenuIndex =
+                homeBottomSheetMenu.indexWhere((element) => element.title == title);
             _navigateToScreen(currentlyOpenMenuIndex);
           },
           borderRadius: BorderRadius.circular(AppTokens.r16),
@@ -417,8 +931,7 @@ class _MoreMenuBottomsheetContainerState
                           iconUrl,
                           width: 24,
                           height: 24,
-                          colorFilter:
-                              ColorFilter.mode(iconColor, BlendMode.srcIn),
+                          colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
                         )
                       : Icon(
                           materialIcon ?? Icons.circle_outlined,
@@ -529,16 +1042,12 @@ class _MoreMenuBottomsheetContainerState
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
-                            borderRadius:
-                                BorderRadius.circular(AppTokens.r16),
+                            borderRadius: BorderRadius.circular(AppTokens.r16),
                           ),
                           child: Text(
-                            (store.userDetails.value?.fullname ?? 'U')
-                                .trim()
-                                .isEmpty
+                            (store.userDetails.value?.fullname ?? 'U').trim().isEmpty
                                 ? 'U'
-                                : (store.userDetails.value!.fullname![0])
-                                    .toUpperCase(),
+                                : (store.userDetails.value!.fullname![0]).toUpperCase(),
                             style: AppTokens.titleLg(context).copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
@@ -572,9 +1081,7 @@ class _MoreMenuBottomsheetContainerState
                         ),
                         const SizedBox(width: AppTokens.s8),
                         Icon(
-                          isDark
-                              ? Icons.nightlight_round
-                              : Icons.wb_sunny_rounded,
+                          isDark ? Icons.nightlight_round : Icons.wb_sunny_rounded,
                           color: AppTokens.ink2(context),
                           size: 20,
                         ),

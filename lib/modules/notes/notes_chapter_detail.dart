@@ -1,114 +1,35 @@
-// ignore_for_file: deprecated_member_use, library_private_types_in_public_api, constant_identifier_names, non_constant_identifier_names, unused_field
-
-import 'dart:async';
 import 'dart:io';
-
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_mobx/flutter_mobx.dart';
+import 'dart:ui';
+import '../../app/routes.dart';
+import '../../helpers/app_skeleton.dart';
+import '../../helpers/app_tokens.dart';
+import '../../helpers/colors.dart';
+import '../../helpers/empty_state.dart';
+import '../../helpers/styles.dart';
+import '../../helpers/dbhelper.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
+import '../widgets/bottom_toast.dart';
+import 'package:flutter/material.dart';
+import '../../helpers/dimensions.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
-
-import 'package:shusruta_lms/app/routes.dart';
-import 'package:shusruta_lms/helpers/app_tokens.dart';
-import 'package:shusruta_lms/helpers/colors.dart';
-import 'package:shusruta_lms/helpers/custom_dynamic_height_gridview.dart';
-import 'package:shusruta_lms/helpers/dbhelper.dart';
-import 'package:shusruta_lms/models/notes_offline_data_model.dart';
-import 'package:shusruta_lms/models/notes_topic_model.dart';
-import 'package:shusruta_lms/modules/dashboard/models/global_search_model.dart';
-import 'package:shusruta_lms/modules/dashboard/store/home_store.dart';
+import 'package:http/http.dart' as http;
+import '../dashboard/store/home_store.dart';
+import '../../models/notes_topic_model.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import '../widgets/no_access_bottom_sheet.dart';
+import '../widgets/no_internet_connection.dart';
+import 'package:path_provider/path_provider.dart';
+import '../../models/notes_offline_data_model.dart';
+import 'package:shusruta_lms/helpers/constants.dart';
+import '../dashboard/models/global_search_model.dart';
+import '../videolectures/store/video_category_store.dart';
 import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
-import 'package:shusruta_lms/modules/notes/store/notes_category_store.dart';
-import 'package:shusruta_lms/modules/videolectures/store/video_category_store.dart';
-import 'package:shusruta_lms/modules/widgets/bottom_toast.dart';
+import 'package:shusruta_lms/helpers/custom_dynamic_height_gridview.dart';
 import 'package:shusruta_lms/modules/widgets/no_access_alert_dialog.dart';
-import 'package:shusruta_lms/modules/widgets/no_access_bottom_sheet.dart';
-import 'package:shusruta_lms/modules/widgets/no_internet_connection.dart';
+import 'package:shusruta_lms/modules/notes/store/notes_category_store.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-/// Leaf-level chapter-detail screen in the notes module. Shows every
-/// `NotesTopicModel` under a given topic (chapter) as a card row with
-/// title, page count, read-progress status, bookmark toggle, and — on
-/// tap — an access-gated jump into [Routes.notesReadView].
-///
-/// Preserved public contract:
-///   • `NotesChapterDetail({super.key, required this.chapter,
-///     required this.subcatId, required this.subcaptername,
-///     required this.topicname})` — note that `chapter` / `subcatId`
-///     are non-nullable `String` and `subcaptername` / `topicname`
-///     are required but nullable (`String?`). All four names kept.
-///   • Static `route(RouteSettings)` factory reading `arguments`
-///     keys `topicname`, `subcaptername`, `chapter`, `subcatId` and
-///     returning a `CupertinoPageRoute`.
-///   • MobX wiring: `Provider.of<NotesCategoryStore>` +
-///     `onTopicApiCall(widget.subcatId)` in initState,
-///     `store.notestopic` / `isLoading` / `isConnected` /
-///     `pdfPageCounts` / `fetchPdfPageCount(url)` /
-///     `isLoadingPdf` / `isDownloading` / `startDownload` /
-///     `completeDownload` / `cancelDownload`; all wrapped in nested
-///     `Observer` builders.
-///   • `Provider.of<VideoCategoryStore>` used for
-///     `onCreateBookmarkContentApiCall(titleId)` (bookmark toggle).
-///   • `Provider.of<HomeStore>` used for
-///     `onGlobalSearchApiCall(keyword, "pdf")` / `globalSearchList`
-///     / `isLoading` (global search hit rendering).
-///   • Public state helpers preserved (exposed via GlobalKey):
-///     - `buildItem(BuildContext, GlobalSearchDataModel?)` — search
-///       hit tile with 4-way navigation matrix
-///     - `buildItem1(BuildContext, NotesTopicModel?, int,
-///       NotesCategoryStore, int pageCount, {bool? isDownloaded})`
-///       — the main note card
-///     - `downloadPDF(String, String, NotesCategoryStore,
-///       NotesTopicModel?)` — kicks off a streamed download and
-///       persists a `NotesOfflineDataModel` row
-///     - `_checkIfNoteDownloaded(String)` — retained for legacy
-///       callers even though the UI now reads from the synchronous
-///       `_downloadedTitleIdsCache` populated in initState
-///   • Navigator push targets preserved byte-for-byte:
-///     - `Routes.notesSubjectDetail` (Category hit): args
-///       `{subject, noteid}`
-///     - `Routes.notesTopicCategory` (Subcategory hit): args
-///       `{topicname, topic, subcatId}`
-///     - `Routes.notesChapterDetail` (Topic hit): args
-///       `{topicname, chapter, subcatId, subcaptername}`
-///     - `Routes.notesReadView` (Content hit): 10-key args map
-///       `{contentUrl, title, topic_name, category_name,
-///        subcategory_name, isDownloaded, topicId, titleId,
-///        categoryId, subcategoryId}`
-///     - `Routes.notesReadView` (main tile tap, isAccess==true):
-///       14-key args map `{topic_name, category_name,
-///        subcategory_name, categoryId, subcategoryId, contentUrl,
-///        title, titleId, annotationData, isDownloaded, isCompleted,
-///        topicId, isBookMark (capital M preserved), pageNo}` with
-///       `.then((value) => _getNotesList())` for refresh
-///   • `isAccess==false` → desktop `NoAccessAlertDialog` /
-///     mobile `NoAccessBottomSheet`, each with
-///     `onTap: _getNotesList`, `planId`, `day: int.parse(day ?? "0")`,
-///     `isFree: isfreeTrail` — kept byte-for-byte including the
-///     `.parse(... ?? "0")` fallback.
-///   • Six filters kept with their predicates:
-///     All / Completed / In Progress / Not Started / Offline Notes /
-///     Bookmarked Notes (note: the trailing "ed" on "Bookmarked"
-///     is how this screen labels it — preserved, even though the
-///     sibling screens use "Bookmark Notes").
-///   • `_filterNotes()` predicates kept: Completed uses
-///     `isCompleted`, In Progress uses `isPaused`, Not Started
-///     inverts Completed + isPaused, Offline Notes uses the
-///     pre-loaded cache, Bookmarked Notes uses `isBookmark`.
-///   • `_loadDownloadedTitleIds()` parallel batch + stale-row
-///     cleanup behaviour preserved.
-///   • Download path writes `NotesOfflineDataModel` via
-///     `DbHelper.insert()`; cache is updated in-place on
-///     completion (`_downloadedTitleIdsCache.add(titleId)`).
-///   • Android notification channel IDs 'download_channel' /
-///     'Downloads' and 'pdf_download_channel' / 'PDF Downloads'
-///     preserved, mobile-only via top-level `isDesktop`.
-///   • Bookmark toggle updates both `isBookmarkedDone[index]` and
-///     `filteredNotes[index]?.isBookmark` so the Observer sees the
-///     change before the next refresh.
 class NotesChapterDetail extends StatefulWidget {
   final String chapter;
   final String subcatId;
@@ -125,7 +46,6 @@ class NotesChapterDetail extends StatefulWidget {
 
   @override
   State<NotesChapterDetail> createState() => _NotesChapterDetailState();
-
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map<String, dynamic>;
     return CupertinoPageRoute(
@@ -150,59 +70,13 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   bool isDownloaded = false;
 
-  // Replaces per-row FutureBuilder<bool>(_checkIfNoteDownloaded). We load
-  // the full set of downloaded titleIds once (one SQLite query + a batch
-  // of file.exists checks) and let every row do a synchronous set lookup.
-  final Set<String> _downloadedTitleIdsCache = <String>{};
-
-  static const List<String> _filters = <String>[
-    "All",
-    "Completed",
-    "In Progress",
-    "Not Started",
-    "Offline Notes",
-    "Bookmarked Notes",
-  ];
-
   @override
   void initState() {
     super.initState();
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     _initializeNotifications();
-    _loadDownloadedTitleIds();
     _getNotesList();
   }
-
-  /// Loads all downloaded PDF titleIds into [_downloadedTitleIdsCache].
-  /// Concurrency-safe: one DB query -> parallel file.exists checks.
-  Future<void> _loadDownloadedTitleIds() async {
-    try {
-      final rows = await dbHelper.getAllNotes();
-      // Parallel file.exists — avoids N sequential awaits inside a loop.
-      final checks = await Future.wait(rows.map((n) async {
-        final path = n.notePath;
-        if (path == null || path.isEmpty) return null;
-        final exists = await File(path).exists();
-        if (!exists) {
-          // Stale row — best-effort cleanup, fire-and-forget.
-          unawaited(dbHelper.deleteNoteByTitleId(n.titleId ?? ""));
-          return null;
-        }
-        return n.titleId;
-      }));
-      if (!mounted) return;
-      setState(() {
-        _downloadedTitleIdsCache
-          ..clear()
-          ..addAll(checks.whereType<String>());
-      });
-    } catch (e) {
-      debugPrint('loadDownloadedTitleIds failed: $e');
-    }
-  }
-
-  bool _isNoteDownloadedSync(String titleId) =>
-      _downloadedTitleIdsCache.contains(titleId);
 
   Future<void> _initializeNotifications() async {
     const AndroidNotificationChannel androidNotificationChannel =
@@ -223,6 +97,7 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
     final store = Provider.of<NotesCategoryStore>(context, listen: false);
     await store.onTopicApiCall(widget.subcatId);
     await _filterOfflineNotes();
+    // isBookmarkedDone = store.notestopic.map((topic) => topic?.isBookmark ?? false).toList();
   }
 
   Future<void> _putBookMarkApiCall(String? titleId) async {
@@ -231,197 +106,531 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
   }
 
   Future<void> searchCategory(String keyword) async {
+    // final store = Provider.of<NotesCategoryStore>(context, listen: false);
+    // await store.onSearchApiCall(keyword, "PDF");
     final store = Provider.of<HomeStore>(context, listen: false);
     await store.onGlobalSearchApiCall(keyword, "pdf");
   }
 
-  // ───────────────────────────────────────────────────────────────────
-  // Build
-  // ───────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    final bool isDesktopEnv = Platform.isWindows || Platform.isMacOS;
+    final List<String> filters = [
+      "All",
+      "Completed",
+      "In Progress",
+      "Not Started",
+      "Offline Notes",
+      "Bookmarked Notes"
+    ];
+
+    bool isDesktop = Platform.isWindows || Platform.isMacOS;
     final store = Provider.of<NotesCategoryStore>(context, listen: false);
     final homeStore = Provider.of<HomeStore>(context, listen: false);
-
     return Scaffold(
-      backgroundColor: AppTokens.scaffold(context),
-      body: Column(
-        children: [
-          _HeroHeader(
-            isDesktop: isDesktopEnv,
-            chapter: widget.chapter,
+        backgroundColor: AppTokens.scaffold(context),
+        appBar: AppBar(
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          backgroundColor: AppTokens.scaffold(context),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: AppTokens.ink(context), size: 18),
+            onPressed: () => Navigator.of(context).maybePop(),
           ),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.only(
-                left: AppTokens.s20,
-                right: AppTokens.s20,
-                top: AppTokens.s24,
-              ),
-              decoration: BoxDecoration(
-                color: AppTokens.scaffold(context),
-                borderRadius: isDesktopEnv
-                    ? null
-                    : const BorderRadius.only(
-                        topLeft: Radius.circular(AppTokens.r28),
-                        topRight: Radius.circular(AppTokens.r28),
+          title: Text(widget.chapter, style: AppTokens.titleLg(context)),
+          centerTitle: false,
+        ),
+        // appBar: AppBar(
+        //   elevation: 0,
+        //   automaticallyImplyLeading: false,
+        //   backgroundColor: ThemeManager.white,
+        //   leading: Padding(
+        //     padding: const EdgeInsets.only(left: Dimensions.PADDING_SIZE_SMALL),
+        //     child:       IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,
+        //       icon:  Icon(Icons.arrow_back_ios, color: ThemeManager.iconColor),
+        //       onPressed: () {
+        //         Navigator.pop(context);
+        //       },
+        //     ),
+        //   ),
+        //   actions: [
+        //     Padding(
+        //       padding: const EdgeInsets.only(right: Dimensions.PADDING_SIZE_SMALL),
+        //       child:       IconButton(       highlightColor: Colors.transparent,     hoverColor: Colors.transparent,
+        //         icon:  Icon(Icons.home, color: ThemeManager.iconColor),
+        //         onPressed: () {
+        //           Navigator.of(context).pushNamed(Routes.dashboard);
+        //         },
+        //       ),
+        //     ),
+        //   ],
+        //   centerTitle: true,
+        //   title: Observer(
+        //     builder: (_){
+        //       return Column(
+        //         children: [
+        //           Text(
+        //             widget.chapter,
+        //             style: interRegular.copyWith(
+        //               fontSize: Dimensions.fontSizeLarge,
+        //               fontWeight: FontWeight.w500,
+        //               color: ThemeManager.black,
+        //             ),
+        //           ),
+        //           Text(
+        //             "${store.notestopic.length.toString().padLeft(2,'0')} Notes",
+        //             style: interRegular.copyWith(
+        //               fontSize: Dimensions.fontSizeExtraSmall,
+        //               fontWeight: FontWeight.w400,
+        //               color: Theme.of(context).hintColor,
+        //             ),
+        //           ),
+        //         ],
+        //       );
+        //     },
+        //   ),
+        // ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Padding(
+              //   padding: const EdgeInsets.only(
+              //       left: Dimensions.PADDING_SIZE_LARGE * 1.2,
+              //       right: Dimensions.PADDING_SIZE_LARGE * 1.2,
+              //       bottom: Dimensions.PADDING_SIZE_SMALL * 2.1),
+              //   child: Row(
+              //     crossAxisAlignment: CrossAxisAlignment.end,
+              //     children: [
+              //       Container(
+              //         height: Dimensions.PADDING_SIZE_SMALL * 3.362,
+              //         width: Dimensions.PADDING_SIZE_SMALL * 3.362,
+              //         margin: const EdgeInsets.only(
+              //             right: Dimensions.PADDING_SIZE_SMALL),
+              //         padding: const EdgeInsets.all(
+              //             Dimensions.PADDING_SIZE_EXTRA_SMALL * 1.6),
+              //         decoration: BoxDecoration(
+              //             color: ThemeManager.videoSubjectContainer
+              //                 .withOpacity(0.3),
+              //             borderRadius: BorderRadius.circular(9.61)),
+              //         child: SvgPicture.asset("assets/image/notedetails2.svg"),
+              //       ),
+              //       const SizedBox(
+              //         width: Dimensions.PADDING_SIZE_DEFAULT,
+              //       ),
+              //       Column(
+              //         crossAxisAlignment: CrossAxisAlignment.start,
+              //         children: [
+              //           Text(
+              //             "Topics",
+              //             style: interRegular.copyWith(
+              //                 fontSize: Dimensions.fontSizeSmall,
+              //                 fontWeight: FontWeight.w400,
+              //                 color: AppColors.white,
+              //                 height: 0),
+              //           ),
+              //           const SizedBox(
+              //             height: 5,
+              //           ),
+              //           Observer(builder: (context) {
+              //             return Text(
+              //               store.notestopic.length.toString().padLeft(2, '0'),
+              //               style: interRegular.copyWith(
+              //                   fontSize: Dimensions.fontSizeDefault,
+              //                   fontWeight: FontWeight.w500,
+              //                   color: AppColors.white,
+              //                   height: 0),
+              //             );
+              //           }),
+              //         ],
+              //       ),
+              //       // const Spacer(),
+              //       // InkWell(
+              //       //   onTap: () {
+              //       //     Navigator.of(context)
+              //       //         .pushNamed(Routes.downloadedNotesCategory);
+              //       //   },
+              //       //   child: Container(
+              //       //     padding: const EdgeInsets.symmetric(
+              //       //         horizontal: Dimensions.PADDING_SIZE_SMALL * 1.2,
+              //       //         vertical:
+              //       //             Dimensions.PADDING_SIZE_EXTRA_SMALL * 1.2),
+              //       //     decoration: BoxDecoration(
+              //       //         color: ThemeManager.whitePrimary,
+              //       //         borderRadius: BorderRadius.circular(50.53)),
+              //       //     child: Text(
+              //       //       "Offline Notes",
+              //       //       style: interRegular.copyWith(
+              //       //         fontSize: Dimensions.fontSizeSmall,
+              //       //         fontWeight: FontWeight.w500,
+              //       //         color: ThemeManager.blueFinal,
+              //       //       ),
+              //       //     ),
+              //       //   ),
+              //       // ),
+              //     ],
+              //   ),
+              // ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppTokens.s24, AppTokens.s8, AppTokens.s24, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // query.isNotEmpty
+                      //     ? Text(
+                      //         "Results for “$query”",
+                      //         style: interRegular.copyWith(
+                      //           fontSize: Dimensions.fontSizeDefault,
+                      //           fontWeight: FontWeight.w400,
+                      //           color: ThemeManager.black,
+                      //         ),
+                      //       )
+                      //     : const SizedBox(),
+                      // const SizedBox(
+                      //   height: Dimensions.PADDING_SIZE_SMALL,
+                      // ),
+                      //
+                      // ///Search bar
+                      // SizedBox(
+                      //   height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                      //   child: TextField(
+                      //     onChanged: (value) {
+                      //       setState(() {
+                      //         query = value;
+                      //       });
+                      //     },
+                      //     style: interRegular.copyWith(
+                      //         fontSize: Dimensions.fontSizeDefault,
+                      //         color: ThemeManager.black,
+                      //         fontWeight: FontWeight.w500,
+                      //         fontFamily: 'DM Sans'),
+                      //     cursorColor: ThemeManager.grey,
+                      //     decoration: InputDecoration(
+                      //       suffixIcon: const Icon(CupertinoIcons.search),
+                      //       suffixIconColor: ThemeManager.black,
+                      //       hintStyle: interRegular.copyWith(
+                      //           fontSize: Dimensions.fontSizeDefault,
+                      //           color: ThemeManager.grey,
+                      //           fontWeight: FontWeight.w500,
+                      //           fontFamily: 'DM Sans'),
+                      //       hintText: 'Search',
+                      //       fillColor: ThemeManager.white,
+                      //       filled: true,
+                      //       border: OutlineInputBorder(
+                      //           borderRadius: BorderRadius.circular(
+                      //               Dimensions.RADIUS_DEFAULT),
+                      //           borderSide: BorderSide(
+                      //             color: ThemeManager.mainBorder,
+                      //           )),
+                      //       focusedBorder: OutlineInputBorder(
+                      //         borderRadius: BorderRadius.circular(
+                      //             Dimensions.RADIUS_DEFAULT),
+                      //         borderSide: BorderSide(
+                      //           color: ThemeManager.mainBorder,
+                      //         ),
+                      //       ),
+                      //       enabledBorder: OutlineInputBorder(
+                      //         borderRadius: BorderRadius.circular(
+                      //             Dimensions.RADIUS_DEFAULT),
+                      //         borderSide: BorderSide(
+                      //           color: ThemeManager.mainBorder,
+                      //         ),
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
+                      // Container(
+                      //   constraints: const BoxConstraints(
+                      //     minHeight: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2,
+                      //   ),
+                      //   decoration: BoxDecoration(
+                      //     color: ThemeManager.white,
+                      //     borderRadius: const BorderRadius.horizontal(
+                      //         left: Radius.circular(10),
+                      //         right: Radius.circular(10)),
+                      //   ),
+                      //   child: TextFormField(
+                      //     cursorColor: ThemeManager.textColor4,
+                      //     style: interRegular.copyWith(
+                      //         fontSize: Dimensions.fontSizeDefault,
+                      //         color: ThemeManager.textColor4),
+                      //     focusNode: _focusNode,
+                      //     onChanged: (value) {
+                      //       setState(() {
+                      //         query = value;
+                      //         if (query.length >= 3) {
+                      //           searchCategory(query);
+                      //         }
+                      //       });
+                      //     },
+                      //     keyboardType: TextInputType.text,
+                      //     // controller: _searchController,
+                      //     decoration: InputDecoration(
+                      //       contentPadding: const EdgeInsets.only(
+                      //           left: Dimensions.PADDING_SIZE_SMALL * 1.2),
+                      //       fillColor: Theme.of(context).disabledColor,
+                      //       enabledBorder: InputBorder.none,
+                      //       hintText: 'Search chapter name, topic...',
+                      //       hintStyle: interRegular.copyWith(
+                      //         fontSize: Dimensions.fontSizeSmall,
+                      //         color: ThemeManager.textColor4.withOpacity(0.5),
+                      //       ),
+                      //       counterText: '',
+                      //       focusedBorder: InputBorder.none,
+                      //       border: InputBorder.none,
+                      //     ),
+                      //   ),
+                      // ),
+                      // const SizedBox(
+                      //   height: Dimensions.PADDING_SIZE_DEFAULT,
+                      // ),
+                      // if(query.isEmpty)
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: filters.map((filter) {
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 2.0),
+                              child: ChoiceChip(
+                                side:
+                                    BorderSide(color: ThemeManager.mainBorder),
+                                label: Text(filter),
+                                labelStyle: interRegular.copyWith(
+                                  fontSize: Dimensions.fontSizeExtraSmall,
+                                  fontWeight: FontWeight.w400,
+                                  color: selectedFilter == filter
+                                      ? ThemeManager.white
+                                      : ThemeManager.black,
+                                ),
+                                selected: selectedFilter == filter,
+                                selectedColor: Theme.of(context).primaryColor,
+                                backgroundColor: ThemeManager.white,
+                                onSelected: (bool isSelected) {
+                                  setState(() {
+                                    selectedFilter = filter;
+                                  });
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _FilterChipRow(
-                    filters: _filters,
-                    selected: selectedFilter,
-                    onSelected: (f) {
-                      setState(() {
-                        selectedFilter = f;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: AppTokens.s16),
-                  Expanded(
-                    child: Observer(
-                      builder: (BuildContext context) {
-                        filteredNotes = store.notestopic;
-                        _filterNotes();
-                        if (store.isLoading) {
-                          return Center(
-                            child: CircularProgressIndicator(
-                              color: AppTokens.accent(context),
-                            ),
-                          );
-                        }
-                        if (store.notestopic.isEmpty) {
-                          return const _EmptyState();
-                        }
-                        if (store.isConnected) {
-                          return RefreshIndicator(
-                            onRefresh: () => _getNotesList(),
-                            child:
-                                homeStore.isLoading && store.isLoadingPdf
-                                    ? const Center(
-                                        child: CircularProgressIndicator())
+                      const SizedBox(
+                        height: Dimensions.PADDING_SIZE_DEFAULT,
+                      ),
+
+                      ///Chapters list
+                      Expanded(
+                        child: Observer(
+                          builder: (BuildContext context) {
+                            filteredNotes = store.notestopic;
+                            // _fetchOfflineCounts();
+                            _filterNotes();
+                            if (store.isLoading) {
+                              return const SkeletonList(
+                                  count: 5, itemHeight: 96);
+                            }
+                            if (store.notestopic.isEmpty) {
+                              return const EmptyState(
+                                icon: Icons.picture_as_pdf_outlined,
+                                title: 'No notes yet',
+                                subtitle:
+                                    'New notes will appear here as soon as they’re published.',
+                              );
+                            }
+                            if (store.isConnected) {
+                              return RefreshIndicator(
+                                color: AppTokens.accent(context),
+                                backgroundColor: AppTokens.surface(context),
+                                onRefresh: () => _getNotesList(),
+                                child: homeStore.isLoading && store.isLoadingPdf
+                                    ? const SkeletonList(
+                                        count: 5, itemHeight: 96)
                                     : (homeStore.globalSearchList.isNotEmpty &&
                                             query.isNotEmpty)
-                                        ? _buildSearchList(
-                                            context,
-                                            isDesktopEnv,
-                                            homeStore,
-                                          )
-                                        : _buildNotesList(
-                                            context,
-                                            isDesktopEnv,
-                                            store,
-                                          ),
-                          );
-                        } else {
-                          return const NoInternetScreen();
-                        }
-                      },
-                    ),
+                                        ? isDesktop
+                                            ? CustomDynamicHeightGridView(
+                                                crossAxisCount: 3,
+                                                mainAxisSpacing: 10,
+                                                itemCount: homeStore
+                                                    .globalSearchList.length,
+                                                builder: (BuildContext context,
+                                                    int index) {
+                                                  return buildItem(
+                                                      context,
+                                                      homeStore
+                                                              .globalSearchList[
+                                                          index]);
+                                                },
+                                              )
+                                            : ListView.builder(
+                                                itemCount: homeStore
+                                                    .globalSearchList.length,
+                                                shrinkWrap: true,
+                                                padding: EdgeInsets.zero,
+                                                physics:
+                                                    const BouncingScrollPhysics(),
+                                                itemBuilder:
+                                                    (BuildContext context,
+                                                        int index) {
+                                                  return buildItem(
+                                                      context,
+                                                      homeStore
+                                                              .globalSearchList[
+                                                          index]);
+                                                },
+                                              )
+                                        : isDesktop
+                                            ? CustomDynamicHeightGridView(
+                                                crossAxisCount: 3,
+                                                mainAxisSpacing: 10,
+                                                itemCount: filteredNotes.length,
+                                                builder: (BuildContext context,
+                                                    int index) {
+                                                  if (filteredNotes.isEmpty) {
+                                                    return const Center(
+                                                      child: Text(
+                                                          "No videos available"),
+                                                    );
+                                                  }
+
+                                                  final titleId =
+                                                      filteredNotes[index]
+                                                              ?.sId
+                                                              .toString() ??
+                                                          "";
+                                                  final String pdfUrl =
+                                                      filteredNotes[index]
+                                                              ?.contentUrl ??
+                                                          "";
+                                                  if (!store.pdfPageCounts
+                                                      .containsKey(pdfUrl)) {
+                                                    store.fetchPdfPageCount(
+                                                        pdfUrl);
+                                                  }
+                                                  return Observer(
+                                                    builder: (context) {
+                                                      final int pageCount =
+                                                          store.pdfPageCounts[
+                                                                  pdfUrl] ??
+                                                              0;
+                                                      return FutureBuilder<
+                                                          bool>(
+                                                        future:
+                                                            _checkIfNoteDownloaded(
+                                                                titleId),
+                                                        builder: (context,
+                                                            snapshot) {
+                                                          final isDownloaded =
+                                                              snapshot.data ??
+                                                                  false;
+                                                          return buildItem1(
+                                                            context,
+                                                            filteredNotes[
+                                                                index],
+                                                            index,
+                                                            store,
+                                                            pageCount,
+                                                            isDownloaded:
+                                                                isDownloaded,
+                                                          );
+                                                        },
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              )
+                                            : ListView.builder(
+                                                itemCount: filteredNotes.length,
+                                                shrinkWrap: true,
+                                                padding: EdgeInsets.zero,
+                                                physics:
+                                                    const AlwaysScrollableScrollPhysics(),
+                                                itemBuilder:
+                                                    (BuildContext context,
+                                                        int index) {
+                                                  if (filteredNotes.isEmpty) {
+                                                    return const Center(
+                                                      child: Text(
+                                                          "No videos available"),
+                                                    );
+                                                  }
+
+                                                  final titleId =
+                                                      filteredNotes[index]
+                                                              ?.sId
+                                                              .toString() ??
+                                                          "";
+                                                  final String pdfUrl =
+                                                      filteredNotes[index]
+                                                              ?.contentUrl ??
+                                                          "";
+                                                  if (!store.pdfPageCounts
+                                                      .containsKey(pdfUrl)) {
+                                                    store.fetchPdfPageCount(
+                                                        pdfUrl);
+                                                  }
+                                                  return Observer(
+                                                    builder: (context) {
+                                                      final int pageCount =
+                                                          store.pdfPageCounts[
+                                                                  pdfUrl] ??
+                                                              0;
+                                                      return FutureBuilder<
+                                                          bool>(
+                                                        future:
+                                                            _checkIfNoteDownloaded(
+                                                                titleId),
+                                                        builder: (context,
+                                                            snapshot) {
+                                                          final isDownloaded =
+                                                              snapshot.data ??
+                                                                  false;
+                                                          return buildItem1(
+                                                            context,
+                                                            filteredNotes[
+                                                                index],
+                                                            index,
+                                                            store,
+                                                            pageCount,
+                                                            isDownloaded:
+                                                                isDownloaded,
+                                                          );
+                                                        },
+                                                      );
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                              );
+                            } else {
+                              return const NoInternetScreen();
+                            }
+                          },
+                        ),
+                      )
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
-    );
+        ));
   }
-
-  Widget _buildSearchList(
-      BuildContext context, bool isDesktopEnv, HomeStore homeStore) {
-    if (isDesktopEnv) {
-      return CustomDynamicHeightGridView(
-        crossAxisCount: 3,
-        mainAxisSpacing: 10,
-        itemCount: homeStore.globalSearchList.length,
-        builder: (BuildContext context, int index) {
-          return buildItem(context, homeStore.globalSearchList[index]);
-        },
-      );
-    }
-    return ListView.builder(
-      itemCount: homeStore.globalSearchList.length,
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      physics: const BouncingScrollPhysics(),
-      itemBuilder: (BuildContext context, int index) {
-        return buildItem(context, homeStore.globalSearchList[index]);
-      },
-    );
-  }
-
-  Widget _buildNotesList(
-      BuildContext context, bool isDesktopEnv, NotesCategoryStore store) {
-    if (isDesktopEnv) {
-      return CustomDynamicHeightGridView(
-        crossAxisCount: 3,
-        mainAxisSpacing: 10,
-        itemCount: filteredNotes.length,
-        builder: (BuildContext context, int index) {
-          if (filteredNotes.isEmpty) {
-            return const Center(child: Text("No videos available"));
-          }
-          return _buildNoteTileObserver(context, index, store);
-        },
-      );
-    }
-    return ListView.builder(
-      itemCount: filteredNotes.length,
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      physics: const AlwaysScrollableScrollPhysics(),
-      itemBuilder: (BuildContext context, int index) {
-        if (filteredNotes.isEmpty) {
-          return const Center(child: Text("No videos available"));
-        }
-        return _buildNoteTileObserver(context, index, store);
-      },
-    );
-  }
-
-  Widget _buildNoteTileObserver(
-      BuildContext context, int index, NotesCategoryStore store) {
-    final titleId = filteredNotes[index]?.sId.toString() ?? "";
-    final String pdfUrl = filteredNotes[index]?.contentUrl ?? "";
-    if (!store.pdfPageCounts.containsKey(pdfUrl)) {
-      store.fetchPdfPageCount(pdfUrl);
-    }
-    return Observer(
-      builder: (context) {
-        final int pageCount = store.pdfPageCounts[pdfUrl] ?? 0;
-        final isDownloaded = _isNoteDownloadedSync(titleId);
-        return buildItem1(
-          context,
-          filteredNotes[index],
-          index,
-          store,
-          pageCount,
-          isDownloaded: isDownloaded,
-        );
-      },
-    );
-  }
-
-  // ───────────────────────────────────────────────────────────────────
-  // Public state helpers — preserved for GlobalKey-based callers.
-  // ───────────────────────────────────────────────────────────────────
 
   Widget buildItem(
       BuildContext context, GlobalSearchDataModel? searchDataModel) {
-    final GlobalSearchDataModel? noteTopic = searchDataModel;
-    final String? categoryName = noteTopic?.categoryName;
-    final String? subcategoryName = noteTopic?.subcategoryName;
-    final String? topicName = noteTopic?.topicName;
-    final String? title = noteTopic?.title;
+    GlobalSearchDataModel? noteTopic = searchDataModel;
+    String? categoryName = noteTopic?.categoryName;
+    String? subcategoryName = noteTopic?.subcategoryName;
+    String? topicName = noteTopic?.topicName;
+    String? title = noteTopic?.title;
 
-    final String displayText =
+    String displayText =
         categoryName ?? subcategoryName ?? topicName ?? title ?? "";
-    final String type = categoryName != null
+    String type = categoryName != null
         ? "Category"
         : subcategoryName != null
             ? "Subcategory"
@@ -430,147 +639,162 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
                 : title != null
                     ? "Content"
                     : "";
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTokens.s8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTokens.r12),
-          onTap: () {
-            if (type == "Category") {
-              Navigator.of(context).pushNamed(
-                Routes.notesSubjectDetail,
-                arguments: {"subject": categoryName, "noteid": noteTopic?.id},
-              );
-            } else if (type == "Subcategory") {
-              Navigator.of(context).pushNamed(
-                Routes.notesTopicCategory,
-                arguments: {
-                  "topicname": subcategoryName,
-                  "topic": subcategoryName,
-                  "subcatId": noteTopic?.id
-                },
-              );
-            } else if (type == "Topic") {
-              Navigator.of(context).pushNamed(
-                Routes.notesChapterDetail,
-                arguments: {
-                  "topicname": topicName,
-                  "chapter": topicName,
-                  "subcatId": noteTopic?.id,
-                  "subcaptername": noteTopic?.subName,
-                },
-              );
-            } else if (type == "Content") {
-              Navigator.of(context).pushNamed(
-                Routes.notesReadView,
-                arguments: {
-                  'contentUrl': noteTopic?.contentUrl,
-                  'title': noteTopic?.title ?? '',
-                  'topic_name': noteTopic?.topicName ?? '',
-                  'category_name': noteTopic?.categoryName ?? '',
-                  'subcategory_name': noteTopic?.subcategoryName ?? '',
-                  'isDownloaded': false,
-                  'topicId': noteTopic?.topicId,
-                  'titleId': noteTopic?.id,
-                  'categoryId': noteTopic?.categoryId,
-                  'subcategoryId': noteTopic?.subcategoryId,
-                },
-              );
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.all(AppTokens.s16),
-            decoration: BoxDecoration(
-              color: AppTokens.surface(context),
-              border: Border.all(color: AppTokens.border(context)),
-              borderRadius: BorderRadius.circular(AppTokens.r12),
-              boxShadow: AppTokens.shadow1(context),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  height: AppTokens.s32 + AppTokens.s24,
-                  width: AppTokens.s32 + AppTokens.s24,
-                  padding: const EdgeInsets.all(AppTokens.s12),
-                  decoration: BoxDecoration(
-                    color: AppTokens.accentSoft(context),
-                    borderRadius: BorderRadius.circular(AppTokens.r12),
-                  ),
-                  child: SvgPicture.asset(
-                    "assets/image/notedetails.svg",
-                    color: AppTokens.accent(context),
-                  ),
+      padding: const EdgeInsets.only(bottom: Dimensions.PADDING_SIZE_SMALL),
+      child: InkWell(
+        onTap: () {
+          if (type == "Category") {
+            Navigator.of(context).pushNamed(Routes.notesSubjectDetail,
+                arguments: {"subject": categoryName, "noteid": noteTopic?.id});
+          } else if (type == "Subcategory") {
+            Navigator.of(context)
+                .pushNamed(Routes.notesTopicCategory, arguments: {
+              "topicname": subcategoryName,
+              "topic": subcategoryName,
+              "subcatId": noteTopic?.id
+            });
+          } else if (type == "Topic") {
+            Navigator.of(context)
+                .pushNamed(Routes.notesChapterDetail, arguments: {
+              "topicname": topicName,
+              "chapter": topicName,
+              "subcatId": noteTopic?.id,
+              "subcaptername": noteTopic?.subName,
+            });
+          } else if (type == "Content") {
+            Navigator.of(context).pushNamed(Routes.notesReadView, arguments: {
+              'contentUrl': noteTopic?.contentUrl,
+              'title': noteTopic?.title ?? '',
+              'topic_name': noteTopic?.topicName ?? '',
+              'category_name': noteTopic?.categoryName ?? '',
+              'subcategory_name': noteTopic?.subcategoryName ?? '',
+              'isDownloaded': false,
+              'topicId': noteTopic?.topicId,
+              'titleId': noteTopic?.id,
+              'categoryId': noteTopic?.categoryId,
+              'subcategoryId': noteTopic?.subcategoryId,
+            });
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(Dimensions.PADDING_SIZE_DEFAULT),
+          decoration: BoxDecoration(
+              color: ThemeManager.white,
+              border: Border.all(color: ThemeManager.mainBorder),
+              borderRadius: BorderRadius.circular(9.6)),
+          child: Row(
+            children: [
+              Container(
+                height: Dimensions.PADDING_SIZE_LARGE * 3.2,
+                width: Dimensions.PADDING_SIZE_LARGE * 3.2,
+                padding: const EdgeInsets.all(Dimensions.PADDING_SIZE_LARGE),
+                decoration: BoxDecoration(
+                  color: ThemeManager.continueContainerTrans,
+                  borderRadius: BorderRadius.circular(14.4),
                 ),
-                const SizedBox(width: AppTokens.s12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        displayText,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTokens.body(context).copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppTokens.ink(context),
-                        ),
-                      ),
-                      const SizedBox(height: AppTokens.s4),
-                      Text(
-                        noteTopic?.description ?? "",
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTokens.caption(context).copyWith(
-                          color: AppTokens.muted(context),
-                        ),
-                      ),
-                      const SizedBox(height: AppTokens.s8),
-                      _TypeBadge(label: type),
-                    ],
-                  ),
+                child: SvgPicture.asset(
+                  "assets/image/notedetails.svg",
+                  color: ThemeManager.currentTheme == AppTheme.Dark
+                      ? AppColors.white
+                      : null,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(
+                width: Dimensions.PADDING_SIZE_SMALL,
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.56,
+                    child: Text(
+                      displayText ?? "",
+                      maxLines: 3,
+                      overflow: TextOverflow.visible,
+                      style: interSemiBold.copyWith(
+                        fontSize: Dimensions.fontSizeDefault,
+                        fontWeight: FontWeight.w600,
+                        color: ThemeManager.black,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: Dimensions.PADDING_SIZE_EXTRA_SMALL,
+                  ),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.56,
+                    child: Text(
+                      noteTopic?.description ?? "",
+                      style: interRegular.copyWith(
+                        fontSize: Dimensions.fontSizeSmall,
+                        fontWeight: FontWeight.w400,
+                        overflow: TextOverflow.ellipsis,
+                        color: ThemeManager.black.withOpacity(0.5),
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                  const SizedBox(
+                    height: Dimensions.PADDING_SIZE_EXTRA_SMALL,
+                  ),
+                  Text(
+                    type,
+                    style: interSemiBold.copyWith(
+                      fontSize: Dimensions.fontSizeSmall,
+                      fontWeight: FontWeight.w600,
+                      color: ThemeManager.black,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget buildItem1(
-    BuildContext context,
-    NotesTopicModel? notesTopicModel,
-    int index,
-    NotesCategoryStore store,
-    int pageCount, {
-    bool? isDownloaded = false,
-  }) {
-    final NotesTopicModel? notesTopic = notesTopicModel;
+  Widget buildItem1(BuildContext context, NotesTopicModel? notesTopicModel,
+      int index, NotesCategoryStore store, int pageCount,
+      {bool? isDownloaded = false}) {
+    NotesTopicModel? notesTopic = notesTopicModel;
+    // debugPrint('bookmark${isBookmarkedDone?[index]}');
+    // debugPrint('annotationList${notesTopicModel?.annotation.toString()}');
     if (query.isNotEmpty &&
         (!notesTopic!.title!.toLowerCase().contains(query.toLowerCase()))) {
-      return const SizedBox.shrink();
+      return Container();
     }
-    final bool completed = notesTopic?.isCompleted == true;
-    final bool inProgress =
-        (notesTopic?.pageNumber ?? 0) != 0 && !completed;
-    final bool isLocked = notesTopic?.isAccess == false;
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppTokens.s8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppTokens.r12),
-          onTap: () async {
-            if (notesTopic?.isAccess == true) {
-              if (notesTopic?.contentUrl != null &&
-                  notesTopic?.contentUrl != "") {
-                Navigator.of(context).pushNamed(
-                  Routes.notesReadView,
-                  arguments: {
+      padding: const EdgeInsets.only(bottom: Dimensions.PADDING_SIZE_SMALL),
+      child: InkWell(
+        onTap: () async {
+          // if(notesTopic?.contentUrl!=null&&
+          //     notesTopic?.contentUrl!=""){
+          //   Navigator.of(context).pushNamed(Routes.notesReadView,
+          //       arguments: {
+          //         'contentUrl': notesTopic?.contentUrl,
+          //         'title': notesTopic?.title ?? '',
+          //         'topic_name': notesTopic?.topic_name ?? '',
+          //         'category_name': notesTopic?.category_name ?? '',
+          //         'subcategory_name': notesTopic?.subcategory_name ?? '',
+          //         'isDownloaded': false,
+          //         'topicId': notesTopic?.topicId,
+          //         'titleId': notesTopic?.sId,
+          //         'categoryId': notesTopic?.categoryId,
+          //         'subcategoryId': notesTopic?.subcategoryId,
+          //       });
+          // }
+          // else{
+          //   BottomToast.showBottomToastOverlay(
+          //     context: context,
+          //     errorMessage: "No File is Found!",
+          //     backgroundColor: ThemeManager.redAlert,
+          //   );
+          // }
+          if (notesTopic?.isAccess == true) {
+            notesTopic?.contentUrl != null && notesTopic?.contentUrl != ""
+                ? Navigator.of(context)
+                    .pushNamed(Routes.notesReadView, arguments: {
                     'topic_name': notesTopic?.topic_name ?? '',
                     'category_name': notesTopic?.category_name ?? '',
                     'subcategory_name': notesTopic?.subcategory_name ?? '',
@@ -579,51 +803,46 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
                     'contentUrl': notesTopic?.contentUrl,
                     'title': notesTopic?.title,
                     'titleId': notesTopic?.sId,
-                    'annotationData':
-                        notesTopicModel?.annotationData.toString(),
+                    'annotationData': notesTopicModel?.annotationData.toString(),
                     'isDownloaded': isDownloaded,
                     'isCompleted': notesTopic?.isCompleted,
                     'topicId': notesTopic?.topicId,
                     'isBookMark': notesTopic?.isBookmark,
                     'pageNo': notesTopicModel?.pageNumber,
-                  },
-                ).then((value) => _getNotesList());
-              } else {
-                BottomToast.showBottomToastOverlay(
-                  context: context,
-                  errorMessage: "No File is Found!",
-                  backgroundColor: AppTokens.danger(context),
-                );
-              }
+                  }).then((value) => _getNotesList())
+                : BottomToast.showBottomToastOverlay(
+                    context: context,
+                    errorMessage: "No File is Found!",
+                    backgroundColor: ThemeManager.redAlert,
+                  );
+          } else {
+            if (Platform.isWindows || Platform.isMacOS) {
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    backgroundColor: ThemeManager.mainBackground,
+                    actionsPadding: EdgeInsets.zero,
+                    insetPadding: const EdgeInsets.symmetric(horizontal: 100),
+                    actions: [
+                      NoAccessAlertDialog(
+                        onTap: () {
+                          _getNotesList();
+                        },
+                        planId: notesTopic?.plan_id ?? "",
+                        day: int.parse(notesTopic?.day ?? "0"),
+                        isFree: notesTopic!.isfreeTrail!,
+                      ),
+                    ],
+                  );
+                },
+              );
             } else {
-              if (Platform.isWindows || Platform.isMacOS) {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      backgroundColor: AppTokens.scaffold(context),
-                      actionsPadding: EdgeInsets.zero,
-                      insetPadding:
-                          const EdgeInsets.symmetric(horizontal: 100),
-                      actions: [
-                        NoAccessAlertDialog(
-                          onTap: () {
-                            _getNotesList();
-                          },
-                          planId: notesTopic?.plan_id ?? "",
-                          day: int.parse(notesTopic?.day ?? "0"),
-                          isFree: notesTopic!.isfreeTrail!,
-                        ),
-                      ],
-                    );
-                  },
-                );
-              } else {
                 showModalBottomSheet<void>(
                   isScrollControlled: true,
                   shape: const RoundedRectangleBorder(
                     borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(AppTokens.r20),
+                      top: Radius.circular(25),
                     ),
                   ),
                   clipBehavior: Clip.antiAliasWithSaveLayer,
@@ -640,130 +859,419 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
                   },
                 );
               }
-            }
-          },
-          child: Stack(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppTokens.s16),
-                decoration: BoxDecoration(
-                  color: AppTokens.surface(context),
-                  border: Border.all(color: AppTokens.border(context)),
-                  borderRadius: BorderRadius.circular(AppTokens.r12),
-                  boxShadow: AppTokens.shadow1(context),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          height: AppTokens.s32 + AppTokens.s24,
-                          width: AppTokens.s32 + AppTokens.s24,
-                          padding: const EdgeInsets.all(AppTokens.s12),
-                          decoration: BoxDecoration(
-                            color: AppTokens.accentSoft(context),
-                            borderRadius:
-                                BorderRadius.circular(AppTokens.r12),
-                          ),
-                          child: SvgPicture.asset(
-                            "assets/image/notedetails.svg",
-                            color: AppTokens.accent(context),
-                          ),
+            // BottomToast.showBottomToastOverlay(context: context,
+            //     errorMessage: "Upgrade Your Plan",
+            //     backgroundColor: ThemeManager.redAlert);
+            // Navigator.of(context).pushNamed(Routes.subscriptionPlan);
+          }
+        },
+        child: Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(Dimensions.PADDING_SIZE_DEFAULT),
+              decoration: BoxDecoration(
+                  color: ThemeManager.white,
+                  border: Border.all(color: ThemeManager.mainBorder),
+                  borderRadius: BorderRadius.circular(9.6)),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: Dimensions.PADDING_SIZE_LARGE * 3.2,
+                        width: Dimensions.PADDING_SIZE_LARGE * 3.2,
+                        padding:
+                            const EdgeInsets.all(Dimensions.PADDING_SIZE_LARGE),
+                        decoration: BoxDecoration(
+                          color: ThemeManager.continueContainerTrans,
+                          borderRadius: BorderRadius.circular(14.4),
+                          // border: ProgressBorder.all(
+                          //   width: 2,
+                          //   color: ThemeManager.greenBorder,
+                          //   progress: (notesTopic?.isCompleted == false) ? 0 : 100,
+                          // )
                         ),
-                        const SizedBox(width: AppTokens.s12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                notesTopic?.title ?? "",
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTokens.body(context).copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTokens.ink(context),
-                                ),
-                              ),
-                              const SizedBox(height: AppTokens.s4),
-                              Text(
-                                "Total Pages — $pageCount",
-                                style: AppTokens.caption(context).copyWith(
-                                  color: AppTokens.muted(context),
-                                ),
-                              ),
-                            ],
-                          ),
+                        child: SvgPicture.asset(
+                          "assets/image/notedetails.svg",
+                          color: ThemeManager.currentTheme == AppTheme.Dark
+                              ? AppColors.white
+                              : null,
                         ),
-                        InkWell(
-                          onTap: () {
-                            _putBookMarkApiCall(notesTopic?.sId);
-                            setState(() {
-                              isBookmarkedDone?[index] =
-                                  !isBookmarkedDone![index];
-                              filteredNotes[index]?.isBookmark =
-                                  isBookmarkedDone?[index];
-                            });
-                          },
-                          borderRadius:
-                              BorderRadius.circular(AppTokens.r8),
-                          child: Padding(
-                            padding: const EdgeInsets.all(AppTokens.s4),
-                            child: Icon(
-                              isBookmarkedDone?[index] == true
-                                  ? Icons.bookmark_rounded
-                                  : Icons.bookmark_border_rounded,
-                              size: 24,
-                              color: isBookmarkedDone?[index] == true
-                                  ? AppTokens.accent(context)
-                                  : AppTokens.muted(context),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppTokens.s12),
-                    _StatusRow(
-                      completed: completed,
-                      inProgress: inProgress,
-                      pageNumber: notesTopic?.pageNumber ?? 0,
-                    ),
-                  ],
-                ),
-              ),
-              if (isLocked)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    height: AppTokens.s24,
-                    width: AppTokens.s24,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppTokens.accent(context),
-                      borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(AppTokens.r12),
-                        bottomLeft: Radius.circular(AppTokens.r12),
                       ),
-                    ),
-                    child: const Icon(
-                      Icons.lock,
-                      color: AppColors.white,
-                      size: 14,
-                    ),
+                      const SizedBox(
+                        width: Dimensions.PADDING_SIZE_SMALL,
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: isDesktop
+                                          ? MediaQuery.of(context).size.width *
+                                              0.2
+                                          : MediaQuery.of(context).size.width *
+                                              0.4,
+                                      child: Text(
+                                        notesTopic?.title ?? "",
+                                        maxLines: 3,
+                                        overflow: TextOverflow.visible,
+                                        style: interSemiBold.copyWith(
+                                          fontSize: Dimensions.fontSizeDefault,
+                                          fontWeight: FontWeight.w600,
+                                          color: ThemeManager.black,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(
+                                        height: Dimensions
+                                            .PADDING_SIZE_EXTRA_SMALL),
+                                    Text(
+                                      "Total Pages - $pageCount",
+                                      style: interRegular.copyWith(
+                                        fontSize: Dimensions.fontSizeExtraSmall,
+                                        color:
+                                            ThemeManager.black.withOpacity(0.6),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    _putBookMarkApiCall(notesTopic?.sId);
+                                    setState(() {
+                                      isBookmarkedDone?[index] =
+                                          !isBookmarkedDone![index];
+                                      filteredNotes[index]?.isBookmark =
+                                          isBookmarkedDone?[index];
+                                    });
+                                  },
+                                  child: isBookmarkedDone?[index] == true
+                                      ? SvgPicture.asset(
+                                          "assets/image/bookmarkfill_video_icon.svg",
+                                          height: Dimensions
+                                              .PADDING_SIZE_EXTRA_LARGE,
+                                          width: Dimensions
+                                              .PADDING_SIZE_EXTRA_LARGE,
+                                        )
+                                      : SvgPicture.asset(
+                                          "assets/image/bookmark_video_icon.svg",
+                                          height: Dimensions
+                                              .PADDING_SIZE_EXTRA_LARGE,
+                                          width: Dimensions
+                                              .PADDING_SIZE_EXTRA_LARGE,
+                                        ),
+                                )
+                              ],
+                            ),
+                            const SizedBox(
+                              height: Dimensions.PADDING_SIZE_EXTRA_SMALL,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: Dimensions.PADDING_SIZE_EXTRA_SMALL),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      notesTopic?.isCompleted == true
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                SvgPicture.asset(
+                                  "assets/image/completed_status_icon.svg",
+                                  height: Dimensions.PADDING_SIZE_LARGE,
+                                  width: Dimensions.PADDING_SIZE_LARGE,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  " Completed",
+                                  style: interRegular.copyWith(
+                                    fontSize: Dimensions.fontSizeExtraSmall,
+                                    color: ThemeManager.black.withOpacity(0.6),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : notesTopic?.pageNumber != 0
+                              ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    SvgPicture.asset(
+                                      "assets/image/inprogress_status_icon.svg",
+                                      height: Dimensions.PADDING_SIZE_LARGE,
+                                      width: Dimensions.PADDING_SIZE_LARGE,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    SizedBox(
+                                      width: isDesktop
+                                          ? null
+                                          : MediaQuery.of(context).size.width *
+                                              0.45,
+                                      child: Text(
+                                        " Paused | Continue Reading - Page ${notesTopic?.pageNumber.toString() ?? "0"}",
+                                        // " Paused | $totalPageno out of ${notesTopic?.pageNumber.toString() ?? "0"} left",
+                                        style: interRegular.copyWith(
+                                          fontSize:
+                                              Dimensions.fontSizeExtraSmall,
+                                          color: ThemeManager.black
+                                              .withOpacity(0.6),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : notesTopic?.notStart == true
+                                  ? Row(
+                                      children: [
+                                        SvgPicture.asset(
+                                          "assets/image/notstart_status_icon.svg",
+                                          height: Dimensions.PADDING_SIZE_LARGE,
+                                          width: Dimensions.PADDING_SIZE_LARGE,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          " Not Started",
+                                          style: interRegular.copyWith(
+                                            fontSize:
+                                                Dimensions.fontSizeExtraSmall,
+                                            color: ThemeManager.black
+                                                .withOpacity(0.6),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      children: [
+                                        SvgPicture.asset(
+                                          "assets/image/notstart_status_icon.svg",
+                                          height: Dimensions.PADDING_SIZE_LARGE,
+                                          width: Dimensions.PADDING_SIZE_LARGE,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          " Not Started",
+                                          style: interRegular.copyWith(
+                                            fontSize:
+                                                Dimensions.fontSizeExtraSmall,
+                                            color: ThemeManager.black
+                                                .withOpacity(0.6),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                      // Observer(builder: (BuildContext context) {
+                      //   final isDownloading = store
+                      //       .isDownloading(notesTopic?.sId?.toString() ?? "");
+
+                      //   debugPrint('isdownl$isDownloading');
+                      //   return InkWell(
+                      //     onTap: () async {
+                      //       if (isDownloaded) {
+                      //         showDialog(
+                      //           context: context,
+                      //           builder: (BuildContext context) {
+                      //             return AlertDialog(
+                      //               title: Text(
+                      //                 "Delete Confirmation",
+                      //                 style: interRegular.copyWith(
+                      //                   fontSize: Dimensions.fontSizeDefault,
+                      //                   fontWeight: FontWeight.w600,
+                      //                   color: ThemeManager.blackColor,
+                      //                 ),
+                      //               ),
+                      //               content: Text(
+                      //                 "Are you sure you want to delete the offline downloaded note?",
+                      //                 style: interRegular.copyWith(
+                      //                   fontSize: Dimensions.fontSizeSmall,
+                      //                   fontWeight: FontWeight.w600,
+                      //                   color: ThemeManager.blackColor,
+                      //                 ),
+                      //               ),
+                      //               actions: [
+                      //                 TextButton(
+                      //                   onPressed: () {
+                      //                     Navigator.pop(context);
+                      //                   },
+                      //                   child: Text(
+                      //                     "Cancel",
+                      //                     style: interRegular.copyWith(
+                      //                       fontSize:
+                      //                           Dimensions.fontSizeDefault,
+                      //                       fontWeight: FontWeight.w600,
+                      //                       color: ThemeManager.blackColor,
+                      //                     ),
+                      //                   ),
+                      //                 ),
+                      //                 ElevatedButton(
+                      //                   onPressed: () async {
+                      //                     await dbHelper.deleteNoteByTitleId(
+                      //                         notesTopic?.sId.toString() ?? "");
+                      //                     BottomToast.showBottomToastOverlay(
+                      //                       context: context,
+                      //                       errorMessage:
+                      //                           "Offline downloaded note has been deleted successfully!",
+                      //                       backgroundColor:
+                      //                           Theme.of(context).primaryColor,
+                      //                     );
+                      //                     Navigator.pop(context);
+                      //                     Navigator.pop(context);
+                      //                     Navigator.pop(context);
+                      //                     setState(() {});
+                      //                   },
+                      //                   style: ElevatedButton.styleFrom(
+                      //                     backgroundColor: AppColors.redText,
+                      //                   ),
+                      //                   child: Text(
+                      //                     "Delete",
+                      //                     style: interRegular.copyWith(
+                      //                       fontSize:
+                      //                           Dimensions.fontSizeDefault,
+                      //                       fontWeight: FontWeight.w600,
+                      //                       color: ThemeManager.white,
+                      //                     ),
+                      //                   ),
+                      //                 ),
+                      //               ],
+                      //             );
+                      //           },
+                      //         );
+                      //       } else {
+                      //         String pdfUrl = notesTopic?.contentUrl ?? "";
+                      //         if (pdfUrl.isNotEmpty) {
+                      //           pdfUrl =
+                      //               "getPDF${pdfUrl.substring(pdfUrl.lastIndexOf('/'))}";
+                      //         }
+                      //         String url = pdfBaseUrl + pdfUrl;
+                      //         String filename = notesTopic?.title ?? "Notes";
+                      //         downloadPDF(url, filename, store, notesTopic);
+                      //       }
+                      //     },
+                      //     child: Row(
+                      //       mainAxisAlignment: MainAxisAlignment.end,
+                      //       children: [
+                      //         isDownloading
+                      //             ? SizedBox(
+                      //                 width: 20,
+                      //                 height: 20,
+                      //                 child: CircularProgressIndicator(
+                      //                   color: ThemeManager.primaryColor,
+                      //                 ),
+                      //               )
+                      //             : Icon(
+                      //                 isDownloaded!
+                      //                     ? Icons.check_circle
+                      //                     : Icons.download_for_offline,
+                      //                 color: isDownloaded
+                      //                     ? Colors.green
+                      //                     : ThemeManager.blueFinal,
+                      //               ),
+                      //         const SizedBox(width: 4),
+                      //         Text(
+                      //           isDownloaded!
+                      //               ? "Downloaded"
+                      //               : isDownloading
+                      //                   ? "Downloading"
+                      //                   : "Download",
+                      //           style: interRegular.copyWith(
+                      //             fontSize: Dimensions.fontSizeExtraSmall,
+                      //             fontWeight: FontWeight.w500,
+                      //             color: isDownloaded
+                      //                 ? Colors.green
+                      //                 : isDownloading
+                      //                     ? ThemeManager.primaryColor
+                      //                     : ThemeManager.blackColor,
+                      //           ),
+                      //         ),
+                      //       ],
+                      //     ),
+                      //   );
+                      // })
+                      // Observer(
+                      //     builder: (context) {
+                      //       final isDownloading = store.isDownloading(videoTopic?.id?.toString()??"");
+                      //       final progress = store.getDownloadProgress(videoTopic?.id?.toString()??"");
+                      //
+                      //       return Row(
+                      //         mainAxisAlignment: MainAxisAlignment.end,
+                      //         children: [
+                      //           isDownloading ? SizedBox(
+                      //             width: 20,
+                      //             height: 20,
+                      //             child: CircularProgressIndicator(
+                      //               value: progress / 100,
+                      //               strokeWidth: 3.0,
+                      //               valueColor: AlwaysStoppedAnimation<Color>(ThemeManager.primaryColor),
+                      //             ),
+                      //           )
+                      //               : Icon(
+                      //             isDownloaded!
+                      //                 ? Icons.check_circle
+                      //                 : Icons.download_for_offline,
+                      //             color: isDownloaded ? Colors.green : ThemeManager.blueFinal,
+                      //           ),
+                      //           const SizedBox(width: 4),
+                      //           Text(
+                      //             isDownloaded!
+                      //                 ? "Downloaded"
+                      //                 : isDownloading
+                      //                 ? "Downloading $progress%"
+                      //                 : "Download",
+                      //             style: interRegular.copyWith(
+                      //               fontSize: Dimensions.fontSizeExtraSmall,
+                      //               fontWeight: FontWeight.w500,
+                      //               color: isDownloaded
+                      //                   ? Colors.green
+                      //                   : isDownloading
+                      //                   ? ThemeManager.primaryColor
+                      //                   : ThemeManager.blackColor,
+                      //             ),
+                      //           ),
+                      //         ],
+                      //       );
+                      //     }
+                      // )
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (notesTopic?.isAccess == false)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  height: Dimensions.PADDING_SIZE_LARGE,
+                  width: Dimensions.PADDING_SIZE_LARGE,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                      color: ThemeManager.primaryColor,
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(9.6),
+                        bottomLeft: Radius.circular(9.6),
+                      )),
+                  child: const Icon(
+                    Icons.lock,
+                    color: AppColors.white,
+                    size: 14,
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
   }
-
-  // ───────────────────────────────────────────────────────────────────
-  // Filter predicates.
-  // ───────────────────────────────────────────────────────────────────
 
   void _filterNotes() async {
     final store = Provider.of<NotesCategoryStore>(context, listen: false);
@@ -773,13 +1281,11 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
     } else if (selectedFilter == "Completed") {
       filtered = store.notestopic
           .where((note) =>
-              note?.isCompleted != null &&
-              (note?.isCompleted ?? false) == true)
+              note?.isCompleted != null && (note?.isCompleted ?? false) == true)
           .toList();
     } else if (selectedFilter == "In Progress") {
-      filtered = store.notestopic
-          .where((note) => (note?.isPaused ?? false))
-          .toList();
+      filtered =
+          store.notestopic.where((note) => (note?.isPaused ?? false)).toList();
     } else if (selectedFilter == "Not Started") {
       filtered = store.notestopic
           .where((note) =>
@@ -790,26 +1296,29 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
     } else if (selectedFilter == "Offline Notes") {
       filtered = offlineNotes;
     } else if (selectedFilter == "Bookmarked Notes") {
-      filtered = store.notestopic
-          .where((note) => note?.isBookmark == true)
-          .toList();
+      filtered =
+          store.notestopic.where((note) => note?.isBookmark == true).toList();
     }
     filteredNotes = filtered;
     isBookmarkedDone =
         filtered.map((topic) => topic?.isBookmark ?? false).toList();
+    // setState(() {});
   }
 
   Future<void> _filterOfflineNotes() async {
     final store = Provider.of<NotesCategoryStore>(context, listen: false);
-    if (_downloadedTitleIdsCache.isEmpty) {
-      await _loadDownloadedTitleIds();
+    List<NotesTopicModel?> downloadedNotes = [];
+    for (var note in store.notestopic) {
+      final titleId = note?.sId.toString() ?? "";
+      final isDownloaded = await _checkIfNoteDownloaded(titleId);
+      if (isDownloaded) {
+        downloadedNotes.add(note);
+      }
     }
-    offlineNotes = store.notestopic
-        .where((n) => _isNoteDownloadedSync(n?.sId.toString() ?? ''))
-        .toList();
+
+    offlineNotes = downloadedNotes;
   }
 
-  // ignore: unused_element
   Future<bool> _checkIfNoteDownloaded(String titleId) async {
     final downloadedNote = await dbHelper.getNoteByTitleId(titleId);
     if (downloadedNote != null) {
@@ -819,22 +1328,15 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
         debugPrint("downExists");
         return true;
       } else {
+        // Clean up the database entry if the file is missing
         await dbHelper.deleteNoteByTitleId(titleId);
       }
     }
     return false;
   }
 
-  // ───────────────────────────────────────────────────────────────────
-  // Download path — preserved behaviour.
-  // ───────────────────────────────────────────────────────────────────
-
-  Future<void> downloadPDF(
-    String url,
-    String filename,
-    NotesCategoryStore store,
-    NotesTopicModel? notesTopic,
-  ) async {
+  Future<void> downloadPDF(String url, String filename,
+      NotesCategoryStore store, NotesTopicModel? notesTopic) async {
     final titleId = notesTopic?.sId.toString() ?? "";
 
     try {
@@ -855,56 +1357,46 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
           _showPDFDownloadProgressNotification(0);
         }
 
-        response.stream.listen(
-          (data) {
-            downloadedBytes += data.length;
-            fileSink.add(data);
+        response.stream.listen((data) {
+          downloadedBytes += data.length;
+          fileSink.add(data);
 
-            if (totalBytes > 0) {
-              double progress =
-                  ((downloadedBytes / totalBytes) * 100).clamp(0, 100);
-              _updatePDFDownloadProgressNotification(progress.toInt());
-              debugPrint("PDF Download Progress: $progress%");
-            }
-          },
-          onDone: () async {
-            await fileSink.close();
-            store.completeDownload(titleId);
-            final pdfDataModel = NotesOfflineDataModel(
-              title: notesTopic?.title ?? '',
-              titleId: notesTopic?.sId ?? '',
-              topicName: notesTopic?.topic_name ?? '',
-              categoryName: notesTopic?.category_name ?? '',
-              subCategoryName: notesTopic?.subcategory_name ?? '',
-              categoryId: notesTopic?.categoryId ?? '',
-              subCategoryId: notesTopic?.subcategoryId ?? '',
-              topicId: notesTopic?.topicId ?? '',
-              notePath: filePath,
-            );
-            await dbHelper.insert(pdfDataModel);
-            // Keep the in-memory cache in sync so the row flips to
-            // "Downloaded" without another N+1 sweep.
-            _downloadedTitleIdsCache.add(titleId);
+          if (totalBytes > 0) {
+            double progress =
+                ((downloadedBytes / totalBytes) * 100).clamp(0, 100);
+            _updatePDFDownloadProgressNotification(progress.toInt());
+            debugPrint("PDF Download Progress: $progress%");
+          }
+        }, onDone: () async {
+          await fileSink.close();
+          store.completeDownload(titleId);
+          final pdfDataModel = NotesOfflineDataModel(
+            title: notesTopic?.title ?? '',
+            titleId: notesTopic?.sId ?? '',
+            topicName: notesTopic?.topic_name ?? '',
+            categoryName: notesTopic?.category_name ?? '',
+            subCategoryName: notesTopic?.subcategory_name ?? '',
+            categoryId: notesTopic?.categoryId ?? '',
+            subCategoryId: notesTopic?.subcategoryId ?? '',
+            topicId: notesTopic?.topicId ?? '',
+            notePath: filePath,
+          );
+          await dbHelper.insert(pdfDataModel);
 
-            if (!isDesktop) {
-              _showPDFDownloadNotification(
-                'PDF Download Complete',
-                "${notesTopic?.title} has been saved offline successfully.",
-              );
-            }
-            if (mounted) {
-              setState(() {
-                isDownloaded = true;
-              });
-            }
-          },
-          onError: (e) async {
-            debugPrint("Error downloading PDF: $e");
-            store.cancelDownload(titleId);
-            await fileSink.close();
-          },
-          cancelOnError: true,
-        );
+          if (!isDesktop) {
+            _showPDFDownloadNotification('PDF Download Complete',
+                "${notesTopic?.title} has been saved offline successfully.");
+          }
+          if (mounted) {
+            setState(() {
+              isDownloaded = true;
+            });
+          }
+        }, onError: (e) async {
+          debugPrint("Error downloading PDF: $e");
+          store.cancelDownload(titleId);
+          await fileSink.close();
+        }, cancelOnError: true);
       } else {
         debugPrint(
             "Failed to download PDF. Status code: ${response.statusCode}");
@@ -929,7 +1421,7 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
         NotificationDetails(android: androidDetails);
 
     await flutterLocalNotificationsPlugin.show(
-      1,
+      1, // Unique Notification ID
       'PDF Download in Progress',
       'Downloading...',
       platformDetails,
@@ -951,7 +1443,7 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
         NotificationDetails(android: androidDetails);
 
     await flutterLocalNotificationsPlugin.show(
-      1,
+      1, // Unique Notification ID
       'PDF Download in Progress',
       'Downloading... $progress%',
       platformDetails,
@@ -972,263 +1464,10 @@ class _NotesChapterDetailState extends State<NotesChapterDetail> {
         NotificationDetails(android: androidDetails);
 
     await flutterLocalNotificationsPlugin.show(
-      1,
+      1, // Unique Notification ID
       title,
       message,
       platformDetails,
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════════
-// Presentational widgets — private, purely visual.
-// ══════════════════════════════════════════════════════════════════════
-
-class _HeroHeader extends StatelessWidget {
-  const _HeroHeader({
-    required this.isDesktop,
-    required this.chapter,
-  });
-
-  final bool isDesktop;
-  final String chapter;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTokens.brand, AppTokens.brand2],
-        ),
-      ),
-      padding: isDesktop
-          ? const EdgeInsets.symmetric(
-              vertical: AppTokens.s24, horizontal: AppTokens.s24)
-          : const EdgeInsets.only(
-              top: AppTokens.s32 + AppTokens.s24,
-              left: AppTokens.s20,
-              right: AppTokens.s20,
-              bottom: AppTokens.s20,
-            ),
-      child: Row(
-        children: [
-          IconButton(
-            highlightColor: Colors.transparent,
-            hoverColor: Colors.transparent,
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: AppColors.white,
-            ),
-          ),
-          const SizedBox(width: AppTokens.s4),
-          Expanded(
-            child: Text(
-              chapter,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTokens.titleSm(context).copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterChipRow extends StatelessWidget {
-  const _FilterChipRow({
-    required this.filters,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final List<String> filters;
-  final String selected;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: AppTokens.s32 + AppTokens.s4,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppTokens.s8),
-        itemBuilder: (context, i) {
-          final f = filters[i];
-          final isSelected = f == selected;
-          return ChoiceChip(
-            side: BorderSide(color: AppTokens.border(context)),
-            label: Text(f),
-            labelStyle: AppTokens.caption(context).copyWith(
-              fontWeight: FontWeight.w600,
-              color: isSelected ? AppColors.white : AppTokens.ink(context),
-            ),
-            selected: isSelected,
-            selectedColor: AppTokens.accent(context),
-            backgroundColor: AppTokens.surface(context),
-            onSelected: (_) => onSelected(f),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _TypeBadge extends StatelessWidget {
-  const _TypeBadge({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    if (label.isEmpty) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.s8,
-        vertical: AppTokens.s4,
-      ),
-      decoration: BoxDecoration(
-        color: AppTokens.accentSoft(context),
-        borderRadius: BorderRadius.circular(AppTokens.r8),
-      ),
-      child: Text(
-        label,
-        style: AppTokens.caption(context).copyWith(
-          fontWeight: FontWeight.w600,
-          color: AppTokens.accent(context),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusRow extends StatelessWidget {
-  const _StatusRow({
-    required this.completed,
-    required this.inProgress,
-    required this.pageNumber,
-  });
-
-  final bool completed;
-  final bool inProgress;
-  final int pageNumber;
-
-  @override
-  Widget build(BuildContext context) {
-    if (completed) {
-      return Row(
-        children: [
-          Icon(
-            Icons.check_circle_rounded,
-            size: 18,
-            color: AppTokens.success(context),
-          ),
-          const SizedBox(width: AppTokens.s4),
-          Text(
-            "Completed",
-            style: AppTokens.caption(context).copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppTokens.success(context),
-            ),
-          ),
-        ],
-      );
-    }
-    if (inProgress) {
-      return Row(
-        children: [
-          Icon(
-            Icons.pause_circle_rounded,
-            size: 18,
-            color: AppTokens.warning(context),
-          ),
-          const SizedBox(width: AppTokens.s4),
-          Flexible(
-            child: Text(
-              "Paused | Continue Reading — Page $pageNumber",
-              overflow: TextOverflow.ellipsis,
-              style: AppTokens.caption(context).copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTokens.warning(context),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-    return Row(
-      children: [
-        Icon(
-          Icons.circle_outlined,
-          size: 18,
-          color: AppTokens.muted(context),
-        ),
-        const SizedBox(width: AppTokens.s4),
-        Text(
-          "Not Started",
-          style: AppTokens.caption(context).copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppTokens.muted(context),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppTokens.s24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              height: AppTokens.s32 + AppTokens.s32,
-              width: AppTokens.s32 + AppTokens.s32,
-              decoration: BoxDecoration(
-                color: AppTokens.surface2(context),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.menu_book_rounded,
-                color: AppTokens.muted(context),
-                size: 32,
-              ),
-            ),
-            const SizedBox(height: AppTokens.s16),
-            Text(
-              "No chapters yet",
-              style: AppTokens.titleSm(context).copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppTokens.ink(context),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppTokens.s8),
-            Text(
-              "We're sorry, there's no content available right now. Please check back later or explore other sections for more educational resources.",
-              style: AppTokens.body(context).copyWith(
-                fontWeight: FontWeight.w400,
-                color: AppTokens.muted(context),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

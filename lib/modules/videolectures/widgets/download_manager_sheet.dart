@@ -1,22 +1,17 @@
-// ignore_for_file: deprecated_member_use, library_private_types_in_public_api, unused_import, use_super_parameters, unused_field, unused_local_variable, non_constant_identifier_names, dead_code, prefer_final_fields, unnecessary_import
-
 import 'dart:async';
-import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
 import 'package:shusruta_lms/helpers/app_tokens.dart';
 import 'package:shusruta_lms/helpers/colors.dart';
-import 'package:shusruta_lms/helpers/dimensions.dart';
+import 'package:shusruta_lms/helpers/empty_state.dart';
 import 'package:shusruta_lms/helpers/styles.dart';
 import 'package:shusruta_lms/services/download_service.dart';
 
 /// Shows the download queue, active download progress, storage usage,
 /// and WiFi-only toggle. Invoke via `DownloadManagerSheet.show(context)`.
 ///
-/// Preserved public contract:
-///   • `DownloadManagerSheet({super.key})` — const constructor.
-///   • Static `show(BuildContext context)` returns a `Future<void>` and
-///     presents the sheet via `showModalBottomSheet` + `DraggableScrollableSheet`.
-///   • Consumes `DownloadService.instance` for all task state.
+/// Apple-minimalistic chrome — drag handle pill, 28pt top corners,
+/// scaffold-toned background. Empty state when nothing is in flight.
 class DownloadManagerSheet extends StatefulWidget {
   const DownloadManagerSheet({super.key});
 
@@ -24,16 +19,25 @@ class DownloadManagerSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTokens.surface(context),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTokens.r28)),
-      ),
-      builder: (_) => const DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.3,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: _sheetBuilder,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withOpacity(0.55),
+      builder: (sheetCtx) => Container(
+        decoration: BoxDecoration(
+          color: AppTokens.surface(sheetCtx),
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppTokens.r28),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.3,
+            maxChildSize: 0.9,
+            expand: false,
+            builder: _sheetBuilder,
+          ),
+        ),
       ),
     );
   }
@@ -106,23 +110,18 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
     final failed = tasks.where((t) => t.status == DownloadStatus.failed).toList();
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(
-        AppTokens.s16,
-        AppTokens.s12,
-        AppTokens.s16,
-        AppTokens.s16,
-      ),
+      padding: const EdgeInsets.fromLTRB(AppTokens.s16, AppTokens.s12, AppTokens.s16, AppTokens.s16),
       child: ListView(
         children: [
-          // Handle bar
+          // Apple-style drag handle pill.
           Center(
             child: Container(
-              width: 40,
+              width: 44,
               height: 4,
               margin: const EdgeInsets.only(bottom: AppTokens.s16),
               decoration: BoxDecoration(
                 color: AppTokens.border(context),
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(999),
               ),
             ),
           ),
@@ -131,13 +130,7 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Downloads',
-                style: AppTokens.titleMd(context).copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppTokens.ink(context),
-                ),
-              ),
+              Text('Downloads', style: AppTokens.titleLg(context)),
               // WiFi-only toggle
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -145,18 +138,14 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
                   Icon(
                     Icons.wifi,
                     size: 16,
-                    color: _service.wifiOnly
-                        ? AppTokens.accent(context)
-                        : AppTokens.muted(context),
+                    color: _service.wifiOnly ? AppTokens.accent(context) : AppTokens.muted(context),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'WiFi only',
                     style: AppTokens.caption(context).copyWith(
+                      color: _service.wifiOnly ? AppTokens.accent(context) : AppTokens.muted(context),
                       fontWeight: FontWeight.w600,
-                      color: _service.wifiOnly
-                          ? AppTokens.accent(context)
-                          : AppTokens.muted(context),
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -164,44 +153,39 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
                     height: 24,
                     child: Switch(
                       value: _service.wifiOnly,
+                      activeColor: AppTokens.accent(context),
                       onChanged: (v) async {
                         await _service.setWifiOnly(v);
                         setState(() {});
                       },
-                      activeColor: AppTokens.accent(context),
+                      activeThumbColor: AppColors.primaryColor,
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: AppTokens.s8),
+          const SizedBox(height: 8),
 
           // Storage info bar
           if (_storageInfo.isNotEmpty) ...[
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTokens.s12,
-                vertical: AppTokens.s12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: AppTokens.surface2(context),
-                borderRadius: BorderRadius.circular(AppTokens.r12),
-                border: Border.all(color: AppTokens.border(context)),
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey[200]!),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.storage_rounded,
-                    size: 18,
-                    color: AppTokens.muted(context),
-                  ),
-                  const SizedBox(width: AppTokens.s8),
+                  Icon(Icons.storage_rounded, size: 18, color: Colors.grey[600]),
+                  const SizedBox(width: 8),
                   Text(
                     '${_storageInfo['fileCount']} videos \u2022 ${_storageInfo['formatted']} used',
-                    style: AppTokens.caption(context).copyWith(
+                    style: interRegular.copyWith(
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppTokens.muted(context),
+                      color: Colors.grey[700],
                     ),
                   ),
                   const Spacer(),
@@ -210,44 +194,45 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
                       onTap: () => _showDeleteAllDialog(context),
                       child: Text(
                         'Clear all',
-                        style: AppTokens.caption(context).copyWith(
+                        style: interRegular.copyWith(
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: ThemeManager.redAlert,
+                          color: Colors.red[400],
                         ),
                       ),
                     ),
                 ],
               ),
             ),
-            const SizedBox(height: AppTokens.s12),
+            const SizedBox(height: 12),
           ],
 
           // Active download
           if (active != null && active.status == DownloadStatus.downloading) ...[
             _sectionTitle('Downloading'),
             _activeDownloadTile(active),
-            const SizedBox(height: AppTokens.s8),
+            const SizedBox(height: 8),
           ],
 
           // Encrypting
           if (active != null && active.status == DownloadStatus.encrypting) ...[
             _sectionTitle('Securing'),
             _encryptingTile(active),
-            const SizedBox(height: AppTokens.s8),
+            const SizedBox(height: 8),
           ],
 
           // Queued
           if (queued.isNotEmpty) ...[
             _sectionTitle('In Queue (${queued.length})'),
             ...queued.map(_queuedTile),
-            const SizedBox(height: AppTokens.s8),
+            const SizedBox(height: 8),
           ],
 
           // Failed
           if (failed.isNotEmpty) ...[
             _sectionTitle('Failed'),
             ...failed.map(_failedTile),
-            const SizedBox(height: AppTokens.s8),
+            const SizedBox(height: 8),
           ],
 
           // Completed
@@ -256,34 +241,12 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
             ...completed.map(_completedTile),
           ],
 
-          // Empty state
+          // Empty state — uses the shared EmptyState helper.
           if (tasks.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.download_done_rounded,
-                    size: 48,
-                    color: AppTokens.muted(context),
-                  ),
-                  const SizedBox(height: AppTokens.s12),
-                  Text(
-                    'No downloads yet',
-                    style: AppTokens.body(context).copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTokens.muted(context),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Downloaded videos will appear here',
-                    style: AppTokens.caption(context).copyWith(
-                      color: AppTokens.muted(context),
-                    ),
-                  ),
-                ],
-              ),
+            const EmptyState(
+              icon: Icons.download_done_rounded,
+              title: 'No downloads yet',
+              subtitle: 'Downloaded videos will appear here. Tap the cloud icon on any lecture to start.',
             ),
         ],
       ),
@@ -295,9 +258,10 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
       padding: const EdgeInsets.only(bottom: 6, top: 4),
       child: Text(
         title,
-        style: AppTokens.caption(context).copyWith(
+        style: interRegular.copyWith(
+          fontSize: 12,
           fontWeight: FontWeight.w700,
-          color: AppTokens.muted(context),
+          color: Colors.grey[500],
           letterSpacing: 0.5,
         ),
       ),
@@ -306,11 +270,11 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
 
   Widget _activeDownloadTile(DownloadTask task) {
     return Container(
-      padding: const EdgeInsets.all(AppTokens.s12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTokens.accentSoft(context),
-        borderRadius: BorderRadius.circular(AppTokens.r12),
-        border: Border.all(color: AppTokens.accent(context).withOpacity(0.25)),
+        color: AppColors.primaryColor.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryColor.withOpacity(0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,9 +284,10 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
               Expanded(
                 child: Text(
                   task.title,
-                  style: AppTokens.body(context).copyWith(
+                  style: interRegular.copyWith(
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: AppTokens.ink(context),
+                    color: ThemeManager.blackColor,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -330,23 +295,19 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
               ),
               GestureDetector(
                 onTap: () => _service.cancel(task.titleId),
-                child: Icon(
-                  Icons.close,
-                  size: 18,
-                  color: AppTokens.muted(context),
-                ),
+                child: Icon(Icons.close, size: 18, color: Colors.grey[500]),
               ),
             ],
           ),
-          const SizedBox(height: AppTokens.s8),
+          const SizedBox(height: 8),
           // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: task.progressPercent / 100,
               minHeight: 6,
-              backgroundColor: AppTokens.surface2(context),
-              valueColor: AlwaysStoppedAnimation<Color>(AppTokens.accent(context)),
+              backgroundColor: Colors.grey[200],
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
             ),
           ),
           const SizedBox(height: 6),
@@ -355,15 +316,14 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
             children: [
               Text(
                 '${task.progressPercent}% \u2022 ${task.downloadedSizeFormatted} / ${task.fileSizeFormatted}',
-                style: AppTokens.caption(context).copyWith(
-                  color: AppTokens.muted(context),
-                ),
+                style: interRegular.copyWith(fontSize: 11, color: Colors.grey[600]),
               ),
               Text(
                 task.quality,
-                style: AppTokens.caption(context).copyWith(
+                style: interRegular.copyWith(
+                  fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: AppTokens.accent(context),
+                  color: AppColors.primaryColor,
                 ),
               ),
             ],
@@ -375,11 +335,11 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
 
   Widget _encryptingTile(DownloadTask task) {
     return Container(
-      padding: const EdgeInsets.all(AppTokens.s12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.orange.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(AppTokens.r12),
-        border: Border.all(color: Colors.orange.withOpacity(0.25)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.15)),
       ),
       child: Row(
         children: [
@@ -388,25 +348,20 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
             height: 18,
             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange),
           ),
-          const SizedBox(width: AppTokens.s12),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   task.title,
-                  style: AppTokens.body(context).copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTokens.ink(context),
-                  ),
+                  style: interRegular.copyWith(fontSize: 13, fontWeight: FontWeight.w700),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   'Encrypting for offline playback...',
-                  style: AppTokens.caption(context).copyWith(
-                    color: Colors.orange[700],
-                  ),
+                  style: interRegular.copyWith(fontSize: 11, color: Colors.orange[700]),
                 ),
               ],
             ),
@@ -420,13 +375,10 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
     final position = _service.queuedTasks.indexOf(task) + 1;
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.s12,
-        vertical: AppTokens.s12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTokens.surface2(context),
-        borderRadius: BorderRadius.circular(AppTokens.r12),
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
@@ -435,25 +387,20 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
             height: 24,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppTokens.border(context),
+              color: Colors.grey[200],
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               '$position',
-              style: AppTokens.caption(context).copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppTokens.muted(context),
-              ),
+              style:
+                  interRegular.copyWith(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.grey[600]),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               task.title,
-              style: AppTokens.caption(context).copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTokens.ink(context),
-              ),
+              style: interRegular.copyWith(fontSize: 12, fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -463,11 +410,7 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
               _service.cancel(task.titleId);
               setState(() {});
             },
-            child: Icon(
-              Icons.close,
-              size: 16,
-              color: AppTokens.muted(context),
-            ),
+            child: Icon(Icons.close, size: 16, color: Colors.grey[400]),
           ),
         ],
       ),
@@ -477,17 +420,14 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
   Widget _failedTile(DownloadTask task) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.s12,
-        vertical: AppTokens.s12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: ThemeManager.redAlert.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(AppTokens.r12),
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, size: 18, color: ThemeManager.redAlert),
+          Icon(Icons.error_outline, size: 18, color: Colors.red[400]),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -495,18 +435,13 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
               children: [
                 Text(
                   task.title,
-                  style: AppTokens.caption(context).copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppTokens.ink(context),
-                  ),
+                  style: interRegular.copyWith(fontSize: 12, fontWeight: FontWeight.w600),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   task.errorMessage ?? 'Download failed',
-                  style: AppTokens.caption(context).copyWith(
-                    color: ThemeManager.redAlert,
-                  ),
+                  style: interRegular.copyWith(fontSize: 10, color: Colors.red[400]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -529,15 +464,12 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTokens.accent(context),
+                color: AppColors.primaryColor,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 'Retry',
-                style: AppTokens.caption(context).copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+                style: interRegular.copyWith(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
               ),
             ),
           ),
@@ -549,34 +481,26 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
   Widget _completedTile(DownloadTask task) {
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppTokens.s12,
-        vertical: AppTokens.s12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: ThemeManager.greenSuccess.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(AppTokens.r12),
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
-          Icon(Icons.check_circle, size: 18, color: ThemeManager.greenSuccess),
+          Icon(Icons.check_circle, size: 18, color: Colors.green[600]),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               task.title,
-              style: AppTokens.caption(context).copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTokens.ink(context),
-              ),
+              style: interRegular.copyWith(fontSize: 12, fontWeight: FontWeight.w600),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
             task.fileSizeFormatted,
-            style: AppTokens.caption(context).copyWith(
-              color: AppTokens.muted(context),
-            ),
+            style: interRegular.copyWith(fontSize: 10, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -587,50 +511,29 @@ class _DownloadManagerSheetState extends State<DownloadManagerSheet> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTokens.surface(context),
-        surfaceTintColor: AppTokens.surface(context),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTokens.r16),
-        ),
         title: Text(
           'Delete All Downloads?',
-          style: AppTokens.titleSm(context).copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppTokens.ink(context),
-          ),
+          style: interRegular.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         content: Text(
           'This will remove all offline videos and free up ${_storageInfo['formatted'] ?? '0 MB'} of storage.',
-          style: AppTokens.body(context).copyWith(
-            color: AppTokens.muted(context),
-          ),
+          style: interRegular.copyWith(fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancel',
-              style: AppTokens.body(context).copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTokens.muted(context),
-              ),
-            ),
+            child: Text('Cancel', style: interRegular.copyWith(fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: ThemeManager.redAlert),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               await _service.deleteAllDownloads();
               await _loadStorageInfo();
               if (ctx.mounted) Navigator.pop(ctx);
               if (mounted) setState(() {});
             },
-            child: Text(
-              'Delete All',
-              style: AppTokens.body(context).copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            child: Text('Delete All',
+                style: interRegular.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ],
       ),

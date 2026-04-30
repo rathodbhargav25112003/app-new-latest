@@ -1,5 +1,3 @@
-// ignore_for_file: non_constant_identifier_types, deprecated_member_use, unused_field, library_private_types_in_public_api, constant_identifier_names, unused_element, non_constant_identifier_names
-
 import 'dart:convert';
 import 'dart:io';
 
@@ -13,66 +11,22 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-
-import 'package:shusruta_lms/helpers/app_tokens.dart';
-import 'package:shusruta_lms/helpers/colors.dart';
-import 'package:shusruta_lms/helpers/constants.dart';
-import 'package:shusruta_lms/modules/dashboard/store/home_store.dart';
-import 'package:shusruta_lms/modules/notes/notes_viewer.dart';
+import 'package:shusruta_lms/modules/notes/reading_preferences_sheet.dart';
 import 'package:shusruta_lms/modules/notes/sharedhelper.dart';
 import 'package:shusruta_lms/modules/notes/store/notes_category_store.dart';
-import 'package:shusruta_lms/modules/videolectures/store/video_category_store.dart';
 
-/// PDF reader screen opened from every notes tile in the app. Wraps
-/// `NotesViewerWrapper` (which hosts either PSPDFKit on mobile or
-/// Syncfusion `SfPdfViewer` on desktop) and adds the top hero bar with
-/// Back / Mark-as-Read / Bookmark controls plus a floating "Save" FAB
-/// that flushes annotations back to the backend.
-///
-/// Preserved public contract:
-///   • `NotesReadView({...})` constructor with 14 fields — required:
-///     `topic_name`, `subcategory_name`, `category_name`, `title`,
-///     `isDownloaded`; optional: `fileUrl`, `titleId`, `subcategoryId`,
-///     `categoryId`, `topicId`, `isCompleted`, `isBookmark`, `pageNo`,
-///     `annotationData`. All field names (including the snake_case
-///     `topic_name`/`category_name`/`subcategory_name` that would
-///     normally be `topicName` etc.) are preserved because they're
-///     referenced by GlobalKey-based callers in the legacy codebase.
-///   • Static `route(RouteSettings)` factory reading the 14-key args
-///     map including the mixed-case `'isBookMark'` key (note the
-///     capital M in the middle — preserved byte-for-byte from
-///     upstream) and returning a `CupertinoPageRoute`.
-///   • `NotesViewerWrapper` public class + public `NotesViewerWrapperState`
-///     with constructor parameters `pdfUrl`, `titleId`,
-///     `initialAnnotationJson`, `initialPage`, `isFromNormal=true`,
-///     `onAnnotationsChanged`, `onDocumentLoaded`, `onStateCreated` and
-///     public state methods `saveLastPageToBackend()`,
-///     `exportAndSaveAnnotations()`, `openAnnotationToolbar()`.
-///   • MobX wiring: `Provider.of<NotesCategoryStore>` +
-///     `onTopicDetailApiCall(widget.titleId)` in `_getPdfContent`,
-///     `store.isDownloading` / `isLoading` / `startDownload` /
-///     `completeDownload` / `cancelDownload` used by `downloadPDF`.
-///   • `Provider.of<VideoCategoryStore>` used for
-///     `onCreateVideoHistoryApiCall(titleId)` (mark-as-read) and
-///     `onCreateBookmarkContentApiCall(titleId)` (bookmark toggle).
-///   • `Provider.of<HomeStore>` used for
-///     `onCreateVideoNoteHistoryCall(titleId, 'pdf')` (view history).
-///   • `WillPopScope` save-on-back pattern preserved — delays,
-///     mount-guards, and `FirebaseCrashlytics.instance.recordError`
-///     all kept byte-for-byte.
-///   • `FloatingActionButton` with heroTag "notes_save_button" and
-///     tooltip "Save" triggering `exportAndSaveAnnotations` kept.
-///   • `modifiedString = "getPDF${pdfUrl.substring(...)}"` URL
-///     transformation and `pdfBaseUrl + modifiedString` composition
-///     kept byte-for-byte.
-///   • `jsonEncode(widget.annotationData)` passed to wrapper kept.
-///   • Android SDK < 33 permission flow in `getPermission()` kept.
-///   • `downloadPDF(String url, String filename, NotesCategoryStore)`
-///     public state method with the flutter_local_notifications
-///     progress/completion notification pattern preserved (mobile-only
-///     via top-level `isDesktop` from `sharedhelper.dart`).
-///   • Android notification channel 'download_channel' / 'Downloads'
-///     and 'pdf_download_channel' / 'PDF Downloads' IDs kept.
+import '../../helpers/app_feedback.dart';
+import '../../helpers/app_tokens.dart';
+import '../../helpers/colors.dart';
+import '../../helpers/constants.dart';
+import '../../helpers/dimensions.dart';
+import '../../helpers/haptics.dart';
+import '../../helpers/share_helpers.dart';
+import '../../services/recent_notes_service.dart';
+import '../dashboard/store/home_store.dart';
+import '../videolectures/store/video_category_store.dart';
+import 'notes_viewer.dart';
+
 class NotesReadView extends StatefulWidget {
   final String? fileUrl;
   final String title;
@@ -88,28 +42,25 @@ class NotesReadView extends StatefulWidget {
   final bool? isCompleted;
   final bool? isBookmark;
   final int? pageNo;
-
-  const NotesReadView({
-    super.key,
-    this.fileUrl,
-    this.titleId,
-    this.subcategoryId,
-    this.categoryId,
-    required this.topic_name,
-    required this.subcategory_name,
-    required this.category_name,
-    required this.title,
-    required this.isDownloaded,
-    this.topicId,
-    this.isCompleted,
-    this.isBookmark,
-    this.pageNo,
-    this.annotationData,
-  });
+  const NotesReadView(
+      {super.key,
+      this.fileUrl,
+      this.titleId,
+      this.subcategoryId,
+      this.categoryId,
+      required this.topic_name,
+      required this.subcategory_name,
+      required this.category_name,
+      required this.title,
+      required this.isDownloaded,
+      this.topicId,
+      this.isCompleted,
+      this.isBookmark,
+      this.pageNo,
+      this.annotationData});
 
   @override
   State<NotesReadView> createState() => _NotesReadViewState();
-
   static Route<dynamic> route(RouteSettings routeSettings) {
     final arguments = routeSettings.arguments as Map<String, dynamic>;
     return CupertinoPageRoute(
@@ -133,9 +84,6 @@ class NotesReadView extends StatefulWidget {
   }
 }
 
-/// Thin wrapper around [NotesViewer] that exposes its save/export/toolbar
-/// methods through an [onStateCreated] callback so the enclosing
-/// [NotesReadView] can drive them from its hero bar and FAB.
 class NotesViewerWrapper extends StatefulWidget {
   final String pdfUrl;
   final String titleId;
@@ -147,7 +95,7 @@ class NotesViewerWrapper extends StatefulWidget {
   final void Function(NotesViewerWrapperState)? onStateCreated;
 
   const NotesViewerWrapper({
-    super.key,
+    Key? key,
     required this.pdfUrl,
     required this.titleId,
     required this.initialAnnotationJson,
@@ -156,15 +104,14 @@ class NotesViewerWrapper extends StatefulWidget {
     this.onAnnotationsChanged,
     this.onDocumentLoaded,
     this.onStateCreated,
-  });
+  }) : super(key: key);
 
   @override
   NotesViewerWrapperState createState() => NotesViewerWrapperState();
 }
 
 class NotesViewerWrapperState extends State<NotesViewerWrapper> {
-  final GlobalKey<NotesViewerState> _notesViewerKey =
-      GlobalKey<NotesViewerState>();
+  final GlobalKey<NotesViewerState> _notesViewerKey = GlobalKey<NotesViewerState>();
 
   Future<void> saveLastPageToBackend() async {
     await _notesViewerKey.currentState?.saveLastPageToBackend();
@@ -207,12 +154,11 @@ class _NotesReadViewState extends State<NotesReadView> {
   bool isMarkRead = false;
   bool isBookmarkedDone = false;
   bool isDownloadedPdf = false;
-  final String _selectedText = '';
-  final String _documentPath =
-      "https://pdftron.s3.amazonaws.com/downloads/pl/PDFTRON_mobile_about.pdf";
+  String _selectedText = '';
+  final String _documentPath = "https://pdftron.s3.amazonaws.com/downloads/pl/PDFTRON_mobile_about.pdf";
   String? _document;
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
-  NotesViewerWrapperState? _notesViewerWrapperState;
+  late NotesViewerWrapperState? _notesViewerWrapperState;
 
   @override
   void initState() {
@@ -221,10 +167,34 @@ class _NotesReadViewState extends State<NotesReadView> {
     _initializeNotifications();
     _createVideoNoteHistory();
     isBookmarkedDone = widget.isBookmark ?? false;
-    isDownloadedPdf = widget.isDownloaded;
+    isDownloadedPdf = widget.isDownloaded ?? false;
     isMarkRead = widget.isCompleted ?? false;
+    // if (widget.isDownloaded == false) {
     _getPdfContent();
+    // }
     getPermission();
+
+    // Record this open into the recents cache so the new browse
+    // screen can surface this PDF in the "Continue reading" rail.
+    // Fire-and-forget — failures don't block the reader.
+    if ((widget.titleId ?? '').isNotEmpty) {
+      // ignore: discarded_futures
+      RecentNotesService.instance.recordOpen(
+        RecentNoteEntry(
+          titleId: widget.titleId!,
+          title: widget.title,
+          contentUrl: widget.fileUrl ?? '',
+          topicId: widget.topicId,
+          topicName: widget.topic_name,
+          subcategoryId: widget.subcategoryId,
+          subcategoryName: widget.subcategory_name,
+          categoryId: widget.categoryId,
+          categoryName: widget.category_name,
+          lastPage: widget.pageNo,
+          isCompleted: widget.isCompleted ?? false,
+        ),
+      );
+    }
   }
 
   @override
@@ -232,27 +202,29 @@ class _NotesReadViewState extends State<NotesReadView> {
     super.dispose();
   }
 
-  // ───────────────────────────────────────────────────────────────────
-  // Lifecycle helpers — preserved API & side effects.
-  // ───────────────────────────────────────────────────────────────────
-
   Future<void> _initializeNotifications() async {
-    const AndroidNotificationChannel androidNotificationChannel =
-        AndroidNotificationChannel(
+    const AndroidNotificationChannel androidNotificationChannel = AndroidNotificationChannel(
       'download_channel',
       'Downloads',
       description: 'Notifications for download progress',
       importance: Importance.high,
     );
 
+    // Now create the channel
     await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(androidNotificationChannel);
   }
 
   Future<void> getPermission() async {
     try {
+      if (!Platform.isAndroid) {
+        // iOS doesn't need storage permission for this flow
+        setState(() {
+          permissionGranted = true;
+        });
+        return;
+      }
       DeviceInfoPlugin plugin = DeviceInfoPlugin();
       AndroidDeviceInfo android = await plugin.androidInfo;
       final sdkInt = android.version.sdkInt;
@@ -268,6 +240,10 @@ class _NotesReadViewState extends State<NotesReadView> {
             permissionGranted = false;
           });
         }
+      } else {
+        setState(() {
+          permissionGranted = true;
+        });
       }
     } catch (e, st) {
       debugPrint('Error getting device info or permissions: $e\nStack: $st');
@@ -301,23 +277,21 @@ class _NotesReadViewState extends State<NotesReadView> {
     await store.onCreateBookmarkContentApiCall(widget.titleId ?? '');
   }
 
-  // ───────────────────────────────────────────────────────────────────
-  // Build.
-  // ───────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final store = Provider.of<NotesCategoryStore>(context, listen: false);
-    final isDesktopEnv = Platform.isWindows || Platform.isMacOS;
-
     return WillPopScope(
       onWillPop: () async {
         try {
-          await Future.delayed(const Duration(milliseconds: 300));
+          // Add delay to allow any pending animations to complete
+          await Future.delayed(Duration(milliseconds: 300));
           if (!mounted) return false;
+
           await _notesViewerWrapperState?.saveLastPageToBackend();
           await _notesViewerWrapperState?.exportAndSaveAnnotations();
-          await Future.delayed(const Duration(milliseconds: 200));
+
+          // Add another small delay before allowing pop
+          await Future.delayed(Duration(milliseconds: 200));
           return mounted;
         } catch (e, st) {
           FirebaseCrashlytics.instance.recordError(e, st);
@@ -325,96 +299,365 @@ class _NotesReadViewState extends State<NotesReadView> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppTokens.scaffold(context),
-        floatingActionButton: _SaveFab(
-          onPressed: () {
-            _notesViewerWrapperState?.exportAndSaveAnnotations();
-          },
+        // Apple-style mini-FAB pinned bottom-right. Saves annotations
+        // explicitly (auto-save runs on dispose). Uses accent color +
+        // soft shadow + 16pt radius — matches the rest of the app.
+        floatingActionButton: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.18),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: AppTokens.accent(context),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(28),
+              onTap: () async {
+                Haptics.medium();
+                await _notesViewerWrapperState?.exportAndSaveAnnotations();
+                if (mounted) {
+                  AppFeedback.success(context, 'Notes saved');
+                }
+              },
+              child: Container(
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.save_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+            ),
+          ),
         ),
-        body: Observer(
-          builder: (BuildContext context) {
-            // ignore: unused_local_variable
-            final isDownloading =
-                store.isDownloading(widget.titleId?.toString() ?? "");
+        backgroundColor: AppTokens.scaffold(context),
+        body: Observer(builder: (BuildContext context) {
+          final isDownloading = store.isDownloading(widget.titleId?.toString() ?? "");
 
-            return Column(
+          return Container(
+            // Apple-style reader chrome: ink-tone header for contrast
+            // against the white page below; matches iBooks / Apple
+            // Books on dark mode.
+            color: AppTokens.ink(context),
+            child: Column(
               children: [
-                _HeroBar(
-                  isDesktop: isDesktopEnv,
-                  title: widget.title,
-                  isMarkRead: isMarkRead,
-                  isBookmarkedDone: isBookmarkedDone,
-                  onBack: () async {
-                    await _notesViewerWrapperState?.saveLastPageToBackend();
-                    await _notesViewerWrapperState?.exportAndSaveAnnotations();
-                    if (!mounted) return;
-                    if (!context.mounted) return;
-                    Navigator.pop(context);
-                  },
-                  onToggleRead: () {
-                    setState(() {
-                      isMarkRead = !isMarkRead;
-                    });
-                    _createVideoHistory();
-                  },
-                  onToggleBookmark: () {
-                    setState(() {
-                      isBookmarkedDone = !isBookmarkedDone;
-                    });
-                    _putBookMarkApiCall();
-                  },
+                Padding(
+                  padding: (Platform.isWindows || Platform.isMacOS)
+                      ? const EdgeInsets.symmetric(vertical: AppTokens.s12, horizontal: AppTokens.s12)
+                      : const EdgeInsets.only(
+                          top: AppTokens.s32, left: AppTokens.s8, right: AppTokens.s8, bottom: AppTokens.s8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                          highlightColor: Colors.transparent,
+                          hoverColor: Colors.transparent,
+                          onPressed: () async {
+                            Haptics.selection();
+                            await _notesViewerWrapperState?.saveLastPageToBackend();
+                            await _notesViewerWrapperState?.exportAndSaveAnnotations();
+                            if (mounted) Navigator.pop(context);
+                          },
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: AppColors.white,
+                            size: 18,
+                          )),
+                      if (_selectedText.isNotEmpty)
+                        IconButton(
+                          icon: const Icon(Icons.highlight, color: AppColors.white),
+                          onPressed: () {},
+                        ),
+                      const SizedBox(width: AppTokens.s4),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              widget.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTokens.titleSm(context).copyWith(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            // Mark-as-read pill — flips to a soft
+                            // "Read" badge when complete.
+                            InkWell(
+                              onTap: () {
+                                Haptics.medium();
+                                setState(() {
+                                  isMarkRead = !isMarkRead;
+                                });
+                                _createVideoHistory();
+                              },
+                              borderRadius: BorderRadius.circular(50),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: AppTokens.s8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isMarkRead
+                                      ? AppTokens.success(context).withOpacity(0.18)
+                                      : Colors.white.withOpacity(0.16),
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isMarkRead ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                      color: isMarkRead ? AppTokens.success(context) : Colors.white,
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      isMarkRead ? "Read" : "Mark as read",
+                                      style: AppTokens.caption(context).copyWith(
+                                        color: isMarkRead ? AppTokens.success(context) : Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Reading preferences (sepia/dark/brightness/etc).
+                      IconButton(
+                        tooltip: 'Reading options',
+                        icon: const Icon(
+                          Icons.text_format_rounded,
+                          color: AppColors.white,
+                          size: 22,
+                        ),
+                        onPressed: () {
+                          Haptics.selection();
+                          ReadingPreferencesSheet.show(context);
+                        },
+                      ),
+                      // Share PDF link.
+                      IconButton(
+                        tooltip: 'Share',
+                        icon: const Icon(
+                          Icons.ios_share_rounded,
+                          color: AppColors.white,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          Haptics.selection();
+                          ShareHelpers.openUrlAsLink(
+                            context,
+                            text: "${widget.title}\n\nReading on Sushruta LGS",
+                            url: pdfBaseUrl + modifiedString,
+                          );
+                        },
+                      ),
+                      InkWell(
+                        onTap: () {
+                          Haptics.medium();
+                          setState(() {
+                            isBookmarkedDone = !isBookmarkedDone;
+                          });
+                          _putBookMarkApiCall();
+                          AppFeedback.success(
+                            context,
+                            isBookmarkedDone ? 'Bookmarked' : 'Bookmark removed',
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(
+                            isBookmarkedDone ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+                            color: AppColors.white,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        width: AppTokens.s4,
+                      ),
+                      // isDownloading
+                      //     ? SizedBox(
+                      //         width: 20,
+                      //         height: 20,
+                      //         child: CircularProgressIndicator(
+                      //           color: ThemeManager.white,
+                      //         ),
+                      //       )
+                      //     : isDownloadedPdf
+                      //         ? InkWell(
+                      //             onTap: () {
+                      //               showDialog(
+                      //                 context: context,
+                      //                 builder: (BuildContext context) {
+                      //                   return AlertDialog(
+                      //                     title: Text(
+                      //                       "Delete Confirmation",
+                      //                       style: interRegular.copyWith(
+                      //                         fontSize:
+                      //                             Dimensions.fontSizeDefault,
+                      //                         fontWeight: FontWeight.w600,
+                      //                         color: ThemeManager.blackColor,
+                      //                       ),
+                      //                     ),
+                      //                     content: Text(
+                      //                       "Are you sure you want to delete the offline downloaded note?",
+                      //                       style: interRegular.copyWith(
+                      //                         fontSize:
+                      //                             Dimensions.fontSizeSmall,
+                      //                         fontWeight: FontWeight.w600,
+                      //                         color: ThemeManager.blackColor,
+                      //                       ),
+                      //                     ),
+                      //                     actions: [
+                      //                       TextButton(
+                      //                         onPressed: () {
+                      //                           Navigator.pop(context);
+                      //                         },
+                      //                         child: Text(
+                      //                           "Cancel",
+                      //                           style: interRegular.copyWith(
+                      //                             fontSize: Dimensions
+                      //                                 .fontSizeDefault,
+                      //                             fontWeight: FontWeight.w600,
+                      //                             color:
+                      //                                 ThemeManager.blackColor,
+                      //                           ),
+                      //                         ),
+                      //                       ),
+                      //                       ElevatedButton(
+                      //                         onPressed: () async {
+                      //                           Navigator.pop(context);
+                      //                           Navigator.pop(context);
+                      //                           Navigator.pop(context);
+                      //                           setState(() {});
+                      //                         },
+                      //                         style: ElevatedButton.styleFrom(
+                      //                           backgroundColor:
+                      //                               AppColors.redText,
+                      //                         ),
+                      //                         child: Text(
+                      //                           "Delete",
+                      //                           style: interRegular.copyWith(
+                      //                             fontSize: Dimensions
+                      //                                 .fontSizeDefault,
+                      //                             fontWeight: FontWeight.w600,
+                      //                             color: ThemeManager.white,
+                      //                           ),
+                      //                         ),
+                      //                       ),
+                      //                     ],
+                      //                   );
+                      //                 },
+                      //               );
+                      //             },
+                      //             child: Container(
+                      //               height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+                      //               width: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+                      //               alignment: Alignment.center,
+                      //               decoration: BoxDecoration(
+                      //                   color: ThemeManager.downloadColor,
+                      //                   shape: BoxShape.circle),
+                      //               child: SvgPicture.asset(
+                      //                 "assets/image/offline_status_white.svg",
+                      //                 color: ThemeManager.white,
+                      //               ),
+                      //             ),
+                      //           )
+                      //         : InkWell(
+                      //             onTap: () {
+                      //               String url = pdfBaseUrl + modifiedString;
+                      //               String filename = pdfName;
+                      //               downloadPDF(url, filename, store);
+                      //             },
+                      //             child: Container(
+                      //               height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+                      //               width: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+                      //               alignment: Alignment.center,
+                      //               decoration: BoxDecoration(
+                      //                   color: ThemeManager.downloadColor,
+                      //                   shape: BoxShape.circle),
+                      //               child: SvgPicture.asset(
+                      //                 "assets/image/downloadIcon.svg",
+                      //                 color: ThemeManager.white,
+                      //               ),
+                      //             ),
+                      //           ),
+                      const SizedBox(
+                        width: Dimensions.PADDING_SIZE_SMALL,
+                      ),
+                    ],
+                  ),
                 ),
                 Expanded(
                   child: Container(
                     width: double.infinity,
+                    padding: const EdgeInsets.only(),
                     decoration: BoxDecoration(
-                      color: AppTokens.scaffold(context),
-                      borderRadius: isDesktopEnv
+                      color: ThemeManager.mainBackground,
+                      borderRadius: (Platform.isWindows || Platform.isMacOS)
                           ? null
                           : const BorderRadius.only(
-                              topLeft: Radius.circular(AppTokens.r28),
-                              topRight: Radius.circular(AppTokens.r28),
+                              topLeft: Radius.circular(28.8),
+                              topRight: Radius.circular(28.8),
                             ),
                     ),
                     child: Observer(
                       builder: (BuildContext context) {
                         if (store.isLoading) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.primaryColor,
-                            ),
-                          );
+                          return Center(
+                              child: CircularProgressIndicator(
+                            color: ThemeManager.primaryColor,
+                          ));
                         }
                         return Stack(
                           children: [
                             Center(
-                              child: ClipRRect(
-                                borderRadius: isDesktopEnv
-                                    ? BorderRadius.zero
-                                    : const BorderRadius.only(
-                                        topLeft:
-                                            Radius.circular(AppTokens.r28),
-                                        topRight:
-                                            Radius.circular(AppTokens.r28),
-                                      ),
-                                child: NotesViewerWrapper(
-                                  pdfUrl: pdfBaseUrl + modifiedString,
-                                  titleId: widget.titleId!,
-                                  initialAnnotationJson:
-                                      jsonEncode(widget.annotationData),
-                                  initialPage: widget.pageNo,
-                                  isFromNormal: true,
-                                  onAnnotationsChanged: () {
-                                    setState(() {});
-                                  },
-                                  onDocumentLoaded: () {
-                                    setState(() {});
-                                  },
-                                  onStateCreated: (state) {
-                                    _notesViewerWrapperState = state;
-                                  },
-                                ),
-                              ),
+                              child: Container(
+                                  decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(28.8),
+                                        topRight: Radius.circular(28.8),
+                                      )),
+                                  child: ClipRRect(
+                                    borderRadius: (Platform.isWindows || Platform.isMacOS)
+                                        ? BorderRadius.zero
+                                        : const BorderRadius.only(
+                                            topLeft: Radius.circular(28.8),
+                                            topRight: Radius.circular(28.8),
+                                          ),
+                                    child: NotesViewerWrapper(
+                                      pdfUrl: pdfBaseUrl + modifiedString,
+                                      titleId: widget.titleId!,
+                                      initialAnnotationJson: jsonEncode(widget.annotationData),
+                                      initialPage: widget.pageNo,
+                                      isFromNormal: true,
+                                      onAnnotationsChanged: () {
+                                        setState(() {});
+                                      },
+                                      onDocumentLoaded: () {
+                                        setState(() {});
+                                      },
+                                      onStateCreated: (state) {
+                                        _notesViewerWrapperState = state;
+                                      },
+                                    ),
+                                  )),
                             ),
                           ],
                         );
@@ -423,20 +666,341 @@ class _NotesReadViewState extends State<NotesReadView> {
                   ),
                 ),
               ],
-            );
-          },
-        ),
+            ),
+          );
+          // return Container(
+          //   color: ThemeManager.blueFinalDark,
+          //   child: Column(
+          //     children: [
+          //       Padding(
+          //         padding: (Platform.isWindows || Platform.isMacOS)
+          //             ? const EdgeInsets.symmetric(
+          //                 vertical: Dimensions.PADDING_SIZE_LARGE * 1.2,
+          //                 horizontal: Dimensions.PADDING_SIZE_LARGE * 1.2)
+          //             : const EdgeInsets.only(
+          //                 top: Dimensions.PADDING_SIZE_LARGE * 3,
+          //                 left: Dimensions.PADDING_SIZE_LARGE * 1.2,
+          //                 right: Dimensions.PADDING_SIZE_SMALL * 1.2,
+          //                 bottom: Dimensions.PADDING_SIZE_SMALL * 1.3),
+          //         child: Row(
+          //           children: [
+          //             IconButton(
+          //                 highlightColor: Colors.transparent,
+          //                 hoverColor: Colors.transparent,
+          //                 onPressed: () async {
+          //                   try {
+          //                     // Add delay to allow any pending animations to complete
+          //                     await Future.delayed(Duration(milliseconds: 300));
+          //                     if (!mounted) return;
+
+          //                     await _notesViewerWrapperState?.saveLastPageToBackend();
+          //                     await _notesViewerWrapperState?.exportAndSaveAnnotations();
+
+          //                     // Add another small delay before navigation
+          //                     await Future.delayed(Duration(milliseconds: 200));
+          //                     if (mounted) {
+          //                       Navigator.pop(context);
+          //                     }
+          //                   } catch (e, st) {
+          //                     FirebaseCrashlytics.instance.recordError(e, st);
+          //                     // Still try to navigate even if save fails
+          //                     if (mounted) {
+          //                   Navigator.pop(context);
+          //                     }
+          //                   }
+          //                 },
+          //                 icon: const Icon(
+          //                   Icons.arrow_back_ios_new_rounded,
+          //                   color: AppColors.white,
+          //                 )),
+
+          //               IconButton(
+          //                 icon: const Icon(Icons.highlight),
+          //                 onPressed: () async {
+          //                   // Add a short delay to allow ripple animation to finish before opening annotation toolbar (fixes Android crash)
+          //                   await Future.delayed(const Duration(milliseconds: 150));
+          //                   if (_notesViewerWrapperState != null && mounted) {
+          //                     _notesViewerWrapperState?.openAnnotationToolbar();
+          //                   }
+          //                 },
+          //               ),
+          //             const SizedBox(
+          //               width: Dimensions.PADDING_SIZE_SMALL,
+          //             ),
+          //             Column(
+          //               crossAxisAlignment: CrossAxisAlignment.start,
+          //               children: [
+          //                 SizedBox(
+          //                   width: MediaQuery.of(context).size.width * 0.5,
+          //                   child: Text(
+          //                     " ${widget.title}",
+          //                     style: interRegular.copyWith(
+          //                       fontSize: Dimensions.fontSizeDefault,
+          //                       fontWeight: FontWeight.w600,
+          //                       color: AppColors.white,
+          //                     ),
+          //                   ),
+          //                 ),
+          //                 const SizedBox(
+          //                   height: Dimensions.PADDING_SIZE_SMALL,
+          //                 ),
+          //                 InkWell(
+          //                   onTap: () {
+          //                     setState(() {
+          //                       isMarkRead = !isMarkRead;
+          //                     });
+          //                     _createVideoHistory();
+          //                   },
+          //                   child: Container(
+          //                     padding: const EdgeInsets.symmetric(
+          //                         horizontal:
+          //                             Dimensions.PADDING_SIZE_SMALL * 1.2,
+          //                         vertical:
+          //                             Dimensions.PADDING_SIZE_EXTRA_SMALL *
+          //                                 1.2),
+          //                     decoration: BoxDecoration(
+          //                         color: ThemeManager.whitePrimary,
+          //                         borderRadius: BorderRadius.circular(50.53)),
+          //                     child: Row(
+          //                       children: [
+          //                         Icon(Icons.check_circle_outline,
+          //                             color: isMarkRead == true
+          //                                 ? Colors.green
+          //                                 : ThemeManager.blackColor,
+          //                             size: 24),
+          //                         Text(
+          //                           isMarkRead == true
+          //                               ? "Read"
+          //                               : "Mark as Read",
+          //                           style: interRegular.copyWith(
+          //                             fontSize: Dimensions.fontSizeSmall,
+          //                             fontWeight: FontWeight.w500,
+          //                             color: isMarkRead == true
+          //                                 ? Colors.green
+          //                                 : ThemeManager.blackColor,
+          //                           ),
+          //                         ),
+          //                       ],
+          //                     ),
+          //                   ),
+          //                 ),
+          //               ],
+          //             ),
+          //             const Spacer(),
+          //             InkWell(
+          //               onTap: () {
+          //                 setState(() {
+          //                   isBookmarkedDone = !isBookmarkedDone;
+          //                 });
+          //                 _putBookMarkApiCall();
+          //               },
+          //               child: Icon(
+          //                 isBookmarkedDone == true
+          //                     ? Icons.bookmark
+          //                     : Icons.bookmark_border,
+          //                 color: isBookmarkedDone == true
+          //                     ? ThemeManager.currentTheme == AppTheme.Light
+          //                         ? ThemeManager.white
+          //                         : Colors.white
+          //                     : ThemeManager.currentTheme == AppTheme.Light
+          //                         ? ThemeManager.white
+          //                         : Colors.white,
+          //                 size: 24,
+          //               ),
+          //             ),
+          //             const SizedBox(
+          //               width: Dimensions.PADDING_SIZE_SMALL * 1.4,
+          //             ),
+          //             isDownloading
+          //                 ? SizedBox(
+          //                     width: 20,
+          //                     height: 20,
+          //                     child: CircularProgressIndicator(
+          //                       color: ThemeManager.white,
+          //                     ),
+          //                   )
+          //                 : isDownloadedPdf
+          //                     ? InkWell(
+          //                         onTap: () {
+          //                           showDialog(
+          //                             context: context,
+          //                             builder: (BuildContext context) {
+          //                               return AlertDialog(
+          //                                 title: Text(
+          //                                   "Delete Confirmation",
+          //                                   style: interRegular.copyWith(
+          //                                     fontSize:
+          //                                         Dimensions.fontSizeDefault,
+          //                                     fontWeight: FontWeight.w600,
+          //                                     color: ThemeManager.blackColor,
+          //                                   ),
+          //                                 ),
+          //                                 content: Text(
+          //                                   "Are you sure you want to delete the offline downloaded note?",
+          //                                   style: interRegular.copyWith(
+          //                                     fontSize:
+          //                                         Dimensions.fontSizeSmall,
+          //                                     fontWeight: FontWeight.w600,
+          //                                     color: ThemeManager.blackColor,
+          //                                   ),
+          //                                 ),
+          //                                 actions: [
+          //                                   TextButton(
+          //                                     onPressed: () {
+          //                                       Navigator.pop(context);
+          //                                     },
+          //                                     child: Text(
+          //                                       "Cancel",
+          //                                       style: interRegular.copyWith(
+          //                                         fontSize: Dimensions
+          //                                             .fontSizeDefault,
+          //                                         fontWeight: FontWeight.w600,
+          //                                         color:
+          //                                             ThemeManager.blackColor,
+          //                                       ),
+          //                                     ),
+          //                                   ),
+          //                                   ElevatedButton(
+          //                                     onPressed: () async {
+          //                                       Navigator.pop(context);
+          //                                       Navigator.pop(context);
+          //                                       Navigator.pop(context);
+          //                                       setState(() {});
+          //                                     },
+          //                                     style: ElevatedButton.styleFrom(
+          //                                       backgroundColor:
+          //                                           AppColors.redText,
+          //                                     ),
+          //                                     child: Text(
+          //                                       "Delete",
+          //                                       style: interRegular.copyWith(
+          //                                         fontSize: Dimensions
+          //                                             .fontSizeDefault,
+          //                                         fontWeight: FontWeight.w600,
+          //                                         color: ThemeManager.white,
+          //                                       ),
+          //                                     ),
+          //                                   ),
+          //                                 ],
+          //                               );
+          //                             },
+          //                           );
+          //                         },
+          //                         child: Container(
+          //                           height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+          //                           width: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+          //                           alignment: Alignment.center,
+          //                           decoration: BoxDecoration(
+          //                               color: ThemeManager.downloadColor,
+          //                               shape: BoxShape.circle),
+          //                           child: SvgPicture.asset(
+          //                             "assets/image/offline_status_white.svg",
+          //                             color: ThemeManager.white,
+          //                           ),
+          //                         ),
+          //                       )
+          //                     : InkWell(
+          //                         onTap: () {
+          //                           String url = pdfBaseUrl + modifiedString;
+          //                           String filename = pdfName;
+          //                           downloadPDF(url, filename, store);
+          //                         },
+          //                         child: Container(
+          //                           height: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+          //                           width: Dimensions.PADDING_SIZE_EXTRA_LARGE,
+          //                           alignment: Alignment.center,
+          //                           decoration: BoxDecoration(
+          //                               color: ThemeManager.downloadColor,
+          //                               shape: BoxShape.circle),
+          //                           child: SvgPicture.asset(
+          //                             "assets/image/downloadIcon.svg",
+          //                             color: ThemeManager.white,
+          //                           ),
+          //                         ),
+          //                       ),
+          //             const SizedBox(
+          //               width: Dimensions.PADDING_SIZE_SMALL,
+          //             ),
+          //           ],
+          //         ),
+          //       ),
+          //       Expanded(
+          //         child: Container(
+          //           width: double.infinity,
+          //           padding: const EdgeInsets.only(
+          //               // left: Dimensions.PADDING_SIZE_LARGE*1.2,
+          //               // right: Dimensions.PADDING_SIZE_LARGE*1.2,
+          //               // top: Dimensions.PADDING_SIZE_EXTRA_LARGE
+          //               ),
+          //           decoration: BoxDecoration(
+          //             color: ThemeManager.mainBackground,
+          //             borderRadius: (Platform.isWindows || Platform.isMacOS)
+          //                 ? null
+          //                 : const BorderRadius.only(
+          //                     topLeft: Radius.circular(28.8),
+          //                     topRight: Radius.circular(28.8),
+          //                   ),
+          //           ),
+          //           child: Observer(
+          //             builder: (BuildContext context) {
+          //               if (store.isLoading) {
+          //                 return Center(
+          //                     child: CircularProgressIndicator(
+          //                   color: ThemeManager.primaryColor,
+          //                 ));
+          //               }
+          //               return Stack(
+          //                 children: [
+          //                   Center(
+          //                     child: Container(
+          //                         decoration: BoxDecoration(
+          //                             color: ThemeManager.borderBlue,
+          //                             borderRadius: const BorderRadius.only(
+          //                               topLeft: Radius.circular(28.8),
+          //                               topRight: Radius.circular(28.8),
+          //                             )),
+          //                         child: ClipRRect(
+          //                           borderRadius:
+          //                               (Platform.isWindows || Platform.isMacOS)
+          //                                   ? BorderRadius.zero
+          //                                   : const BorderRadius.only(
+          //                                       topLeft: Radius.circular(28.8),
+          //                                       topRight: Radius.circular(28.8),
+          //                                     ),
+          //                           child: NotesViewerWrapper(
+          //                             pdfUrl: pdfBaseUrl + modifiedString,
+          //                             titleId: widget.titleId!,
+          //                             initialAnnotationJson:
+          //                                 jsonEncode(widget.annotationData),
+          //                             initialPage: widget.pageNo,
+          //                             isFromNormal: true,
+          //                             onAnnotationsChanged: () {
+          //                               setState(() {});
+          //                             },
+          //                             onDocumentLoaded: () {
+          //                               setState(() {});
+          //                             },
+          //                             onStateCreated: (state) {
+          //                               _notesViewerWrapperState = state;
+          //                             },
+          //                           ),
+          //                         )),
+          //                   ),
+          //                 ],
+          //               );
+          //             },
+          //           ),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // );
+        }),
       ),
     );
   }
 
-  // ───────────────────────────────────────────────────────────────────
-  // Download path — preserved public method + android notification
-  // progress/completion flow. Unchanged in behaviour.
-  // ───────────────────────────────────────────────────────────────────
-
-  Future<void> downloadPDF(
-      String url, String filename, NotesCategoryStore store) async {
+  Future<void> downloadPDF(String url, String filename, NotesCategoryStore store) async {
     final titleId = widget.titleId.toString();
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -456,41 +1020,34 @@ class _NotesReadViewState extends State<NotesReadView> {
           _showPDFDownloadProgressNotification(0);
         }
 
-        response.stream.listen(
-          (data) {
-            downloadedBytes += data.length;
-            fileSink.add(data);
+        response.stream.listen((data) {
+          downloadedBytes += data.length;
+          fileSink.add(data);
 
-            if (totalBytes > 0) {
-              double progress =
-                  ((downloadedBytes / totalBytes) * 100).clamp(0, 100);
-              _updatePDFDownloadProgressNotification(progress.toInt());
-              debugPrint("PDF Download Progress: $progress%");
-            }
-          },
-          onDone: () async {
-            await fileSink.close();
-            store.completeDownload(titleId);
-            if (!isDesktop) {
-              _showPDFDownloadNotification('PDF Download Complete',
-                  "${widget.title} has been saved offline successfully.");
-            }
-            if (mounted) {
-              setState(() {
-                isDownloadedPdf = true;
-              });
-            }
-          },
-          onError: (e) async {
-            debugPrint("Error downloading PDF: $e");
-            store.cancelDownload(titleId);
-            await fileSink.close();
-          },
-          cancelOnError: true,
-        );
+          if (totalBytes > 0) {
+            double progress = ((downloadedBytes / totalBytes) * 100).clamp(0, 100);
+            _updatePDFDownloadProgressNotification(progress.toInt());
+            debugPrint("PDF Download Progress: $progress%");
+          }
+        }, onDone: () async {
+          await fileSink.close();
+          store.completeDownload(titleId);
+          if (!isDesktop) {
+            _showPDFDownloadNotification(
+                'PDF Download Complete', "${widget.title} has been saved offline successfully.");
+          }
+          if (mounted) {
+            setState(() {
+              isDownloadedPdf = true;
+            });
+          }
+        }, onError: (e) async {
+          debugPrint("Error downloading PDF: $e");
+          store.cancelDownload(titleId);
+          await fileSink.close();
+        }, cancelOnError: true);
       } else {
-        debugPrint(
-            "Failed to download PDF. Status code: ${response.statusCode}");
+        debugPrint("Failed to download PDF. Status code: ${response.statusCode}");
       }
     } catch (e) {
       debugPrint("Exception during PDF download: $e");
@@ -508,11 +1065,10 @@ class _NotesReadViewState extends State<NotesReadView> {
       progress: progress,
     );
 
-    NotificationDetails platformDetails =
-        NotificationDetails(android: androidDetails);
+    NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
 
     await flutterLocalNotificationsPlugin.show(
-      1,
+      1, // Unique Notification ID
       'PDF Download in Progress',
       'Downloading...',
       platformDetails,
@@ -530,11 +1086,10 @@ class _NotesReadViewState extends State<NotesReadView> {
       progress: progress,
     );
 
-    NotificationDetails platformDetails =
-        NotificationDetails(android: androidDetails);
+    NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
 
     await flutterLocalNotificationsPlugin.show(
-      1,
+      1, // Unique Notification ID
       'PDF Download in Progress',
       'Downloading... $progress%',
       platformDetails,
@@ -542,8 +1097,7 @@ class _NotesReadViewState extends State<NotesReadView> {
   }
 
   void _showPDFDownloadNotification(String title, String message) async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'pdf_download_channel',
       'PDF Downloads',
       channelDescription: 'Notifications for completed PDF downloads',
@@ -551,183 +1105,13 @@ class _NotesReadViewState extends State<NotesReadView> {
       priority: Priority.high,
     );
 
-    const NotificationDetails platformDetails =
-        NotificationDetails(android: androidDetails);
+    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
 
     await flutterLocalNotificationsPlugin.show(
-      1,
+      1, // Unique Notification ID
       title,
       message,
       platformDetails,
-    );
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════════
-// Presentational widgets — private, purely visual.
-// ══════════════════════════════════════════════════════════════════════
-
-class _SaveFab extends StatelessWidget {
-  const _SaveFab({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton(
-      heroTag: "notes_save_button",
-      backgroundColor: AppTokens.accent(context),
-      foregroundColor: AppColors.white,
-      onPressed: onPressed,
-      tooltip: 'Save',
-      child: const Icon(Icons.save_rounded),
-    );
-  }
-}
-
-class _HeroBar extends StatelessWidget {
-  const _HeroBar({
-    required this.isDesktop,
-    required this.title,
-    required this.isMarkRead,
-    required this.isBookmarkedDone,
-    required this.onBack,
-    required this.onToggleRead,
-    required this.onToggleBookmark,
-  });
-
-  final bool isDesktop;
-  final String title;
-  final bool isMarkRead;
-  final bool isBookmarkedDone;
-  final VoidCallback onBack;
-  final VoidCallback onToggleRead;
-  final VoidCallback onToggleBookmark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTokens.brand, AppTokens.brand2],
-        ),
-      ),
-      padding: isDesktop
-          ? const EdgeInsets.symmetric(
-              vertical: AppTokens.s20,
-              horizontal: AppTokens.s20,
-            )
-          : const EdgeInsets.only(
-              top: AppTokens.s32 + AppTokens.s24,
-              left: AppTokens.s16,
-              right: AppTokens.s16,
-              bottom: AppTokens.s16,
-            ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          IconButton(
-            highlightColor: Colors.transparent,
-            hoverColor: Colors.transparent,
-            onPressed: onBack,
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: AppColors.white,
-            ),
-          ),
-          const SizedBox(width: AppTokens.s4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTokens.titleSm(context).copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.white,
-                  ),
-                ),
-                const SizedBox(height: AppTokens.s8),
-                _MarkReadPill(
-                  isMarkRead: isMarkRead,
-                  onTap: onToggleRead,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppTokens.s12),
-          InkWell(
-            onTap: onToggleBookmark,
-            borderRadius: BorderRadius.circular(AppTokens.r8),
-            child: Padding(
-              padding: const EdgeInsets.all(AppTokens.s8),
-              child: Icon(
-                isBookmarkedDone
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                color: AppColors.white,
-                size: 24,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MarkReadPill extends StatelessWidget {
-  const _MarkReadPill({
-    required this.isMarkRead,
-    required this.onTap,
-  });
-
-  final bool isMarkRead;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppTokens.r20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppTokens.s12,
-          vertical: AppTokens.s4,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(AppTokens.r20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.check_circle_outline_rounded,
-              size: 18,
-              color: isMarkRead
-                  ? AppTokens.success(context)
-                  : AppTokens.ink(context),
-            ),
-            const SizedBox(width: AppTokens.s4),
-            Text(
-              isMarkRead ? "Read" : "Mark as Read",
-              style: AppTokens.caption(context).copyWith(
-                fontWeight: FontWeight.w600,
-                color: isMarkRead
-                    ? AppTokens.success(context)
-                    : AppTokens.ink(context),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

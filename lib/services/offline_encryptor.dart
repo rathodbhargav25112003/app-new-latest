@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
@@ -92,15 +93,107 @@ class OfflineEncryptor {
     }
   }
 
+  // ── Decrypted-file cache ────────────────────────────────────────────────
+  //
+  // When [titleId] is supplied, the decrypted file is written to a STABLE
+  // path derived from the titleId so it survives app restarts. The in-memory
+  // map is just a fast lookup; on cold start we fall back to checking the
+  // stable path on disk.
+
+  static final Map<String, String> _decryptCache = {};
+  static String? _cachedTmpDir;
+
+  /// Build a stable, deterministic path for a given [titleId].
+  static Future<String> _stableCachePath(String titleId) async {
+    _cachedTmpDir ??= (await getTemporaryDirectory()).path;
+    return '$_cachedTmpDir/dec_$titleId.tmp';
+  }
+
+  /// Return the cached decrypted [File] for [titleId] if it still exists on
+  /// disk, or `null` so the caller falls through to the slow path.
+  ///
+  /// Checks the in-memory map first (instant), then falls back to the
+  /// stable disk path (survives app restart).
+  static Future<File?> getCachedDecryptedFile(
+    String titleId,
+    File encFile,
+  ) async {
+    // 1. In-memory fast path.
+    final memPath = _decryptCache[titleId];
+    if (memPath != null) {
+      final f = File(memPath);
+      if (await f.exists()) return f;
+      _decryptCache.remove(titleId);
+    }
+    // 2. Stable-path fallback (cold start).
+    final stablePath = await _stableCachePath(titleId);
+    final f = File(stablePath);
+    if (await f.exists()) {
+      _decryptCache[titleId] = stablePath;
+      return f;
+    }
+    return null;
+  }
+
+  /// Remove the cached decrypted file for [titleId] from disk and memory.
+  static Future<void> evictCache(String titleId) async {
+    final path = _decryptCache.remove(titleId);
+    if (path != null) {
+      try {
+        final f = File(path);
+        if (await f.exists()) await f.delete();
+      } catch (_) {}
+    }
+    // Also clean stable path if different.
+    try {
+      final stablePath = await _stableCachePath(titleId);
+      if (stablePath != path) {
+        final f = File(stablePath);
+        if (await f.exists()) await f.delete();
+      }
+    } catch (_) {}
+  }
+
   /// Decrypt [encFile] → temp clear file and return it.
   ///
   /// Auto-detects v1 (legacy whole-file) and v2 (chunked) formats.
-  /// Streams v2 files so RAM usage stays bounded even for very large videos.
-  static Future<File> decryptFileToTemp(File encFile, List<int> key) async {
+  /// The heavy crypto work runs in a **background isolate** so the UI
+  /// thread stays responsive (no jank on the loading overlay).
+  ///
+  /// When [titleId] is provided the result is cached so that subsequent calls
+  /// for the same title return instantly without re-decrypting.
+  static Future<File> decryptFileToTemp(File encFile, List<int> key, {String? titleId}) async {
     if (key.length != 32) {
       throw ArgumentError('AES-256 requires a 32-byte key');
     }
 
+    // Resolve output path on the main isolate (needs path_provider).
+    final String outPath;
+    if (titleId != null && titleId.isNotEmpty) {
+      outPath = await _stableCachePath(titleId);
+    } else {
+      _cachedTmpDir ??= (await getTemporaryDirectory()).path;
+      outPath = '$_cachedTmpDir/${encFile.uri.pathSegments.last}.${DateTime.now().millisecondsSinceEpoch}.tmp';
+    }
+
+    // Run the actual crypto in a background isolate.
+    final resultPath = await Isolate.run(() =>
+        _decryptInIsolate(encFile.path, outPath, key));
+
+    if (titleId != null && titleId.isNotEmpty) {
+      _decryptCache[titleId] = resultPath;
+    }
+    return File(resultPath);
+  }
+
+  /// Pure function that runs entirely inside a background isolate.
+  /// No Flutter APIs, no path_provider — just file I/O + crypto.
+  static Future<String> _decryptInIsolate(
+    String encPath,
+    String outPath,
+    List<int> key,
+  ) async {
+    final encFile = File(encPath);
     final raf = await encFile.open();
     try {
       // Read header: magic(4) + version(1)
@@ -115,16 +208,10 @@ class OfflineEncryptor {
       }
       final version = headerProbe[_magic.length];
 
-      final tmpDir = await getTemporaryDirectory();
-      final tmp = File(
-        '${tmpDir.path}/${encFile.uri.pathSegments.last}.${DateTime.now().millisecondsSinceEpoch}.tmp',
-      );
+      final tmp = File(outPath);
       await tmp.parent.create(recursive: true);
 
       if (version == _versionV1) {
-        // Legacy: whole-file GCM. Small files okay; use streaming read to
-        // avoid pulling everything at once when possible. GCM still needs the
-        // auth tag at the end — so for v1 we fall back to full-buffer.
         final total = await encFile.length();
         final remaining = total - (_magic.length + 1);
         final rest = await raf.read(remaining);
@@ -141,7 +228,7 @@ class OfflineEncryptor {
           secretKey: secretKey,
         );
         await tmp.writeAsBytes(clear, flush: true);
-        return tmp;
+        return outPath;
       }
 
       if (version != _versionV2) {
@@ -188,7 +275,7 @@ class OfflineEncryptor {
         await out.flush();
         await out.close();
       }
-      return tmp;
+      return outPath;
     } finally {
       await raf.close();
     }

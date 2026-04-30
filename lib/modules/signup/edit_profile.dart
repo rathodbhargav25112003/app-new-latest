@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/routes.dart';
 import '../../helpers/app_tokens.dart';
 import '../../helpers/colors.dart';
+import '../../helpers/dimensions.dart';
 import '../../models/get_user_details_model.dart';
 import '../dashboard/store/home_store.dart';
 import '../login/verify_otp_mail.dart';
@@ -71,11 +72,9 @@ class _EditProfileState extends State<EditProfile> {
   final _emailKey = GlobalKey<FormFieldState<String>>();
   final _dobKey = GlobalKey<FormFieldState<String>>();
 
-  final RegExp _emailRegex =
-      RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  final RegExp _emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
 
-  bool get _isCurrentStatusPicked =>
-      currentStatus == 'PG Resident' || currentStatus == 'Post-Graduate';
+  bool get _isCurrentStatusPicked => currentStatus == 'PG Resident' || currentStatus == 'Post-Graduate';
 
   @override
   void initState() {
@@ -266,13 +265,57 @@ class _EditProfileState extends State<EditProfile> {
   Widget build(BuildContext context) {
     selectedValue = widget.userprofile.preparingFor ?? '';
     standerdFor = widget.userprofile.standerdFor ?? '';
-    selectedCheckboxValues =
-        List<String>.from(widget.userprofile.exams as Iterable);
+    selectedCheckboxValues = List<String>.from(widget.userprofile.exams as Iterable);
     loggedInPlatform = _detectPlatform();
 
     return Scaffold(
       backgroundColor: AppTokens.scaffold(context),
-      bottomNavigationBar: _SaveBar(onPressed: _submit),
+      // bottomNavigationBar: _SaveBar(onPressed: _submit),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: ThemeManager.white,
+          boxShadow: [
+            BoxShadow(
+              color: ThemeManager.grey1.withOpacity(0.4),
+              blurRadius: 10,
+              offset: Offset(0, -10),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: Dimensions.PADDING_SIZE_LARGE),
+              CustomButton(
+                onPressed: () {
+                  FocusScope.of(context).unfocus();
+                  // Navigator.of(context).pushNamed(Routes.login);
+                  _updateProfile(
+                      widget.userprofile.id ?? "",
+                      nameController.text,
+                      dateController.text,
+                      selectedValue,
+                      selectedCheckboxValues,
+                      currentStatus ?? "",
+                      phoneController.text,
+                      emailController.text);
+                },
+                buttonText: "Save",
+                textColor: Colors.white,
+                height: Dimensions.PADDING_SIZE_EXTRA_LARGE * 2.2,
+                textAlign: TextAlign.center,
+                radius: Dimensions.RADIUS_DEFAULT,
+                transparent: true,
+                bgColor: ThemeManager.blueFinal,
+                fontSize: Dimensions.fontSizeDefault,
+              ),
+              const SizedBox(height: Dimensions.PADDING_SIZE_LARGE),
+            ],
+          ),
+        ),
+      ),
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -379,8 +422,7 @@ class _EditProfileState extends State<EditProfile> {
                   padding: const EdgeInsets.only(top: AppTokens.s8),
                   child: Text(
                     'Please select one.',
-                    style: AppTokens.caption(context)
-                        .copyWith(color: AppTokens.danger(context)),
+                    style: AppTokens.caption(context).copyWith(color: AppTokens.danger(context)),
                   ),
                 ),
               const SizedBox(height: AppTokens.s24),
@@ -404,8 +446,7 @@ class _EditProfileState extends State<EditProfile> {
                   context,
                   hint: 'Mobile number',
                   prefix: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppTokens.s12),
+                    padding: const EdgeInsets.symmetric(horizontal: AppTokens.s12, vertical: AppTokens.s8),
                     child: Text(
                       '+91',
                       style: AppTokens.titleSm(context).copyWith(
@@ -419,8 +460,7 @@ class _EditProfileState extends State<EditProfile> {
                   ),
                 ).copyWith(
                   counterText: '',
-                  prefixIconConstraints:
-                      const BoxConstraints(minWidth: 48, minHeight: 32),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 48, minHeight: 32),
                 ),
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -500,8 +540,7 @@ class _TopBar extends StatelessWidget {
         const SizedBox(width: AppTokens.s12),
         Text(
           'Edit profile',
-          style: AppTokens.titleLg(context)
-              .copyWith(color: AppTokens.ink(context)),
+          style: AppTokens.titleLg(context).copyWith(color: AppTokens.ink(context)),
         ),
       ],
     );
@@ -574,8 +613,7 @@ class _SummaryCard extends StatelessWidget {
         children: [
           if (hasGroup) _SummaryRow(label: 'Group', value: group),
           if (hasGroup && hasPrep) const SizedBox(height: AppTokens.s8),
-          if (hasPrep)
-            _SummaryRow(label: 'Preparing for', value: preparingFor),
+          if (hasPrep) _SummaryRow(label: 'Preparing for', value: preparingFor),
           if (hasExams) ...[
             const SizedBox(height: AppTokens.s12),
             Wrap(
@@ -584,8 +622,7 @@ class _SummaryCard extends StatelessWidget {
               children: exams
                   .map(
                     (e) => Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppTokens.s12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: AppTokens.s12, vertical: 6),
                       decoration: BoxDecoration(
                         color: AppTokens.surface(context),
                         borderRadius: BorderRadius.circular(999),
@@ -657,8 +694,7 @@ class _ChangeAction extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTokens.r8),
         onTap: onTap,
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: AppTokens.s16),
           child: Text(
             'Change',
             style: AppTokens.caption(context).copyWith(
@@ -689,14 +725,10 @@ class _RadioCard extends StatelessWidget {
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        color: selected
-            ? AppTokens.accentSoft(context)
-            : AppTokens.surface(context),
+        color: selected ? AppTokens.accentSoft(context) : AppTokens.surface(context),
         borderRadius: BorderRadius.circular(AppTokens.r12),
         border: Border.all(
-          color: selected
-              ? AppTokens.accent(context)
-              : AppTokens.border(context),
+          color: selected ? AppTokens.accent(context) : AppTokens.border(context),
           width: selected ? 1.5 : 1,
         ),
       ),
@@ -704,8 +736,7 @@ class _RadioCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppTokens.r12),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppTokens.s12, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: AppTokens.s12, vertical: 14),
           child: Row(
             children: [
               _RadioDot(selected: selected),
@@ -715,8 +746,7 @@ class _RadioCard extends StatelessWidget {
                   label,
                   style: AppTokens.titleSm(context).copyWith(
                     color: AppTokens.ink(context),
-                    fontWeight:
-                        selected ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
               ),
@@ -740,9 +770,7 @@ class _RadioDot extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected
-              ? AppTokens.accent(context)
-              : AppTokens.border(context),
+          color: selected ? AppTokens.accent(context) : AppTokens.border(context),
           width: 2,
         ),
       ),

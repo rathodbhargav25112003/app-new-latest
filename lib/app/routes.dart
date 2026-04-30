@@ -5,21 +5,11 @@ import 'package:shusruta_lms/modules/bookmarks/bookmark_category_list.dart';
 import 'package:shusruta_lms/modules/bookmarks/bookmark_main_list.dart';
 import 'package:shusruta_lms/modules/bookmarks/bookmark_question_detail.dart';
 import 'package:shusruta_lms/modules/bookmarks/bookmark_question_list.dart';
-import 'package:shusruta_lms/modules/cortex/cortex_chat_screen.dart';
-// Cortex AI v2/v3 — multi-turn chat, modes, memory, snippets
-import 'package:shusruta_lms/modules/cortex/cortex_home_screen.dart';
-import 'package:shusruta_lms/modules/cortex/cortex_memory_screen.dart';
-import 'package:shusruta_lms/modules/cortex/cortex_mode_start_screen.dart';
-import 'package:shusruta_lms/modules/cortex/cortex_snippets_screen.dart';
 import 'package:shusruta_lms/modules/hardcopy/chapter_details_screen.dart';
 import 'package:shusruta_lms/modules/hardcopy/module_index_screen.dart';
 import 'package:shusruta_lms/modules/hardcopy/purchase_hardcopy_screen.dart';
 import 'package:shusruta_lms/modules/masterTest/choose_test_screen.dart';
 import 'package:shusruta_lms/modules/masterTest/test_master_exam_screen.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/screens/performance_trends_screen.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/screens/reading_settings_screen.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/screens/scheduled_sessions_screen.dart';
-import 'package:shusruta_lms/modules/mcq_review_v3/screens/study_plan_screen.dart';
 import 'package:shusruta_lms/modules/new_subscription_plans/new_custom_subscription_plan.dart';
 import 'package:shusruta_lms/modules/notes/notes_subject_detail.dart';
 import 'package:shusruta_lms/modules/reports/spr%20reports/spr_report_detail.dart';
@@ -36,6 +26,11 @@ import '../modules/bookmarks/masterBookmarks/master_bookmark_category_list.dart'
 import '../modules/bookmarks/masterBookmarks/master_bookmark_question_detail.dart';
 import '../modules/bookmarks/masterBookmarks/select_master_bookmark_by_exam.dart';
 import '../modules/bookmarks/select_bookmark_by_exam.dart';
+import '../modules/cortex/cortex_chat_screen.dart';
+import '../modules/cortex/cortex_home_screen.dart';
+import '../modules/cortex/cortex_memory_screen.dart';
+import '../modules/cortex/cortex_mode_start_screen.dart';
+import '../modules/cortex/cortex_snippets_screen.dart';
 import '../modules/customtests/custom_configuration.dart';
 import '../modules/customtests/custom_preview.dart';
 import '../modules/customtests/custom_test_exam_screen.dart';
@@ -65,7 +60,10 @@ import '../modules/hardcopyNotes/hardcopy_subscription_detail_screen.dart';
 import '../modules/hardcopyNotes/select_subscription_with_hardcopy.dart';
 import '../modules/hardcopyNotes/selected_subscription_plan_with_hard_copy_notes.dart';
 import '../modules/hardcopyNotes/view_hard_copy_note_details.dart';
+import '../modules/daily_review/daily_review_screen.dart';
 import '../modules/history/delete_history_screen.dart';
+import '../modules/settings/notification_preferences_screen.dart';
+import '../modules/settings/settings_screen.dart';
 import '../modules/liveclass/live_class_main_screen.dart';
 import '../modules/liveclass/live_classes.dart';
 import '../modules/liveclass/live_classes_completed.dart';
@@ -86,6 +84,11 @@ import '../modules/masterTest/practice_custom_test_solution_screen.dart';
 import '../modules/masterTest/practice_mock_solution_exam_screen.dart';
 import '../modules/masterTest/sectionwisemasterTest/section_question_pallet.dart';
 import '../modules/masterTest/sectionwisemasterTest/start_section_instruction_screen.dart';
+import '../modules/mcq_review_v3/screens/performance_trends_screen.dart';
+import '../modules/mcq_review_v3/screens/reading_settings_screen.dart';
+import '../modules/mcq_review_v3/screens/review_queue_screen.dart';
+import '../modules/mcq_review_v3/screens/scheduled_sessions_screen.dart';
+import '../modules/mcq_review_v3/screens/study_plan_screen.dart';
 import '../modules/new_subscription_plans/new_add_address.dart';
 import '../modules/new_subscription_plans/new_checkout_plan.dart';
 import '../modules/new_subscription_plans/new_select_offers_plan.dart';
@@ -96,6 +99,7 @@ import '../modules/new_subscription_plans/select_delivery_type.dart';
 import '../modules/new_subscription_plans/select_subscription_plan.dart';
 import '../modules/new_subscription_plans/store/ordered_book_store.dart';
 import '../modules/notes/downloaded_notes.dart';
+import '../modules/notes/notes_browse_screen.dart';
 import '../modules/notes/notes_category.dart';
 import '../modules/notes/notes_chapter_detail.dart';
 import '../modules/notes/notes_read_view.dart';
@@ -124,7 +128,6 @@ import '../modules/reports/reports_subcategory_list.dart';
 import '../modules/reports/reports_topic_list.dart';
 import '../modules/reports/select_exam_report_list.dart';
 import '../modules/reports/solution_report.dart';
-import '../modules/review/review_queue_screen.dart';
 import '../modules/signup/edit_profile.dart';
 import '../modules/signup/google_signup_form.dart';
 import '../modules/signup/preparing_for_screen.dart';
@@ -154,6 +157,7 @@ import '../modules/testimonial_and_blog/testimonial_screen.dart';
 import '../modules/upgrade_plans/select_upgrade_plan.dart';
 import '../modules/verifyotp/verify_change_mobile_otp.dart';
 import '../modules/verifyotp/verify_otp.dart';
+import '../modules/videolectures/video_browse_screen.dart';
 import '../modules/videolectures/video_category.dart';
 import '../modules/videolectures/video_chapter_detail.dart';
 import '../modules/videolectures/video_player_detail.dart';
@@ -187,12 +191,14 @@ class Routes {
   static const String home = "home";
   static const String googleSignUpForm = "googlesignupform";
   static const String videoLectures = "videolectures";
+  static const String videoLecturesLegacy = "videoLecturesLegacy";
   static const String videoSubjectDetail = "videosubjectdetail";
   static const String VideoTopicCategory = "Videotopiccategory";
   static const String videoChapterDetail = "videochapterdetail";
   static const String videoPlayDetail = "videoplaydetail";
   static const String videoPlayDetailDemo = "videoplaydetaildemo";
   static const String notesCategory = "notescategory";
+  static const String notesLegacy = "noteslegacy";
   static const String notesTopicCategory = "notestopiccategory";
   static const String notesSubjectDetail = "notessubjectdetail";
   static const String notesChapterDetail = "noteschapterdetail";
@@ -246,6 +252,9 @@ class Routes {
   static const String reportMainScreen = "reportmainscreen";
   static const String masterReportMainScreen = "masterreportmainscreen";
   static const String editProfile = "editprofile";
+  static const String settings = "settings";
+  static const String dailyReview = "dailyreview";
+  static const String notificationPreferences = "notificationpreferences";
   static const String verifyChangeMobileOtp = "verifychangemobileotp";
   static const String downloadedNotes = "downloadednotes";
   static const String downloadedNotesCategory = "downloadednotescategory";
@@ -312,7 +321,6 @@ class Routes {
   static const String selectUpgradePlan = 'selectUpgradePlan'; // Upgrade plan selection screen route
   static const String deleteHistoryScreen = "deleteHistoryScreen";
   static const String preparingForScreen = "preparingForScreen";
-  static const String reviewQueue = "reviewQueue";
 
   // Cortex AI v2/v3 routes
   static const String cortexHome = "cortexHome";
@@ -447,6 +455,15 @@ class Routes {
         }
       case videoLectures:
         {
+          // The new browse screen replaces the legacy 4-deep
+          // VideoLecturesScreen as the default entry point —
+          // single-tap-to-player via search, recents rail, and
+          // expandable subject cards. Old screen still reachable
+          // via videoLecturesLegacy below.
+          return VideoBrowseScreen.route(routeSettings);
+        }
+      case videoLecturesLegacy:
+        {
           return VideoLecturesScreen.route(routeSettings);
         }
       case VideoTopicCategory:
@@ -466,6 +483,16 @@ class Routes {
           return VideoPlayerDetail.route(routeSettings);
         }
       case notesCategory:
+        {
+          // The new browse screen replaces the legacy NotesScreen as
+          // the default entry point — single-tap-to-reader via search,
+          // recents rail, and expandable category cards. The old
+          // NotesScreen (legacy 4-deep flow) is still accessible via
+          // notesLegacy below for any deep links that bypass the new
+          // browse.
+          return NotesBrowseScreen.route(routeSettings);
+        }
+      case notesLegacy:
         {
           return NotesScreen.route(routeSettings);
         }
@@ -921,13 +948,21 @@ class Routes {
         {
           return DeleteHistoryScreen.route(routeSettings);
         }
+      case settings:
+        {
+          return SettingsScreen.route(routeSettings);
+        }
+      case dailyReview:
+        {
+          return DailyReviewScreen.route(routeSettings);
+        }
+      case notificationPreferences:
+        {
+          return NotificationPreferencesScreen.route(routeSettings);
+        }
       case preparingForScreen:
         {
           return PreparingForScreen.route(routeSettings);
-        }
-      case reviewQueue:
-        {
-          return ReviewQueueScreen.route(routeSettings);
         }
       // Cortex AI v2/v3 routes
       case cortexHome:
